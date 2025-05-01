@@ -30,18 +30,26 @@ const BillingCredits = () => {
               </div>
             </div>
             
-            <div>
-              <div className="flex justify-between items-center mb-1">
-                <span className="text-xs text-slate-500">Usage this month</span>
-                <span className="text-xs font-medium text-slate-700">75/200</span>
+            <div className="space-y-1">
+              <div className="flex justify-between">
+                <span className="text-xs text-slate-500">Basic Imaging Credits Used</span>
+                <span className="text-xs font-medium text-slate-700">35 orders ($70)</span>
               </div>
-              <Progress value={37.5} className="h-2" />
+              <div className="flex justify-between">
+                <span className="text-xs text-slate-500">Advanced Imaging Credits Used</span>
+                <span className="text-xs font-medium text-slate-700">12 orders ($84)</span>
+              </div>
+              <div className="flex justify-between items-center mt-2">
+                <span className="text-xs text-slate-500">Monthly usage</span>
+                <span className="text-xs font-medium text-slate-700">47/150 orders</span>
+              </div>
+              <Progress value={31.3} className="h-2" />
             </div>
             
             <div className="flex items-center text-sm">
               <TrendingDown className="h-4 w-4 text-red-500 mr-1" />
               <span className="text-red-500 font-medium">Low balance warning:</span>
-              <span className="text-slate-600 ml-1">You have less than 200 credits</span>
+              <span className="text-slate-600 ml-1">Your credits will run out in approximately 15 days</span>
             </div>
           </CardContent>
         </Card>
@@ -59,7 +67,7 @@ const BillingCredits = () => {
                 </div>
                 <div>
                   <p className="text-sm font-medium text-slate-900">Auto-reload is active</p>
-                  <p className="text-xs text-slate-500 mt-1">500 credits will be purchased when your balance falls below 100</p>
+                  <p className="text-xs text-slate-500 mt-1">100 imaging order credits ($200) will be purchased when your balance falls below 25 credits</p>
                 </div>
               </div>
             </div>
@@ -77,22 +85,31 @@ const BillingCredits = () => {
             <CardTitle className="text-lg">Purchase Credits</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-2">
-              <div className="border border-slate-200 rounded-lg p-3 text-center hover:border-primary hover:bg-primary-lighter/20 cursor-pointer">
-                <p className="text-lg font-bold text-slate-900">100</p>
-                <p className="text-xs text-slate-500">$50 ($0.50/credit)</p>
+            <div className="mb-3">
+              <h4 className="text-sm font-medium text-slate-700 mb-2">Physician Group Plans</h4>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="border border-slate-200 rounded-lg p-3 text-center hover:border-primary hover:bg-primary-lighter/20 cursor-pointer">
+                  <p className="text-lg font-bold text-slate-900">100 Credits</p>
+                  <p className="text-xs text-slate-500">$200 ($2/order)</p>
+                </div>
+                <div className="border border-slate-200 rounded-lg p-3 text-center hover:border-primary hover:bg-primary-lighter/20 cursor-pointer">
+                  <p className="text-lg font-bold text-slate-900">500 Credits</p>
+                  <p className="text-xs text-slate-500">$1,000 ($2/order)</p>
+                </div>
               </div>
-              <div className="border border-slate-200 rounded-lg p-3 text-center hover:border-primary hover:bg-primary-lighter/20 cursor-pointer">
-                <p className="text-lg font-bold text-slate-900">200</p>
-                <p className="text-xs text-slate-500">$90 ($0.45/credit)</p>
-              </div>
-              <div className="border border-slate-200 rounded-lg p-3 text-center hover:border-primary hover:bg-primary-lighter/20 cursor-pointer">
-                <p className="text-lg font-bold text-slate-900">500</p>
-                <p className="text-xs text-slate-500">$200 ($0.40/credit)</p>
-              </div>
-              <div className="border border-slate-200 rounded-lg p-3 text-center hover:border-primary hover:bg-primary-lighter/20 cursor-pointer">
-                <p className="text-lg font-bold text-slate-900">1000</p>
-                <p className="text-xs text-slate-500">$350 ($0.35/credit)</p>
+            </div>
+            
+            <div>
+              <h4 className="text-sm font-medium text-slate-700 mb-2">Radiology Group Plans</h4>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="border border-slate-200 rounded-lg p-3 text-center hover:border-primary hover:bg-primary-lighter/20 cursor-pointer">
+                  <div className="font-bold text-slate-900">Basic Imaging</div>
+                  <p className="text-xs text-slate-500">$2 per order</p>
+                </div>
+                <div className="border border-slate-200 rounded-lg p-3 text-center hover:border-primary hover:bg-primary-lighter/20 cursor-pointer">
+                  <div className="font-bold text-slate-900">Advanced Imaging</div>
+                  <p className="text-xs text-slate-500">$7 per order</p>
+                </div>
               </div>
             </div>
             
@@ -153,8 +170,8 @@ const BillingCredits = () => {
                           <TrendingDown className="h-4 w-4 text-red-600" />
                         </div>
                         <div className="ml-3">
-                          <div className="text-sm font-medium text-slate-900">Order Validation</div>
-                          <div className="text-xs text-slate-500">Order #ORD-78945</div>
+                          <div className="text-sm font-medium text-slate-900">Basic Imaging Order</div>
+                          <div className="text-xs text-slate-500">Order #ORD-78945 ($2)</div>
                         </div>
                       </div>
                     </td>
@@ -169,8 +186,8 @@ const BillingCredits = () => {
                           <TrendingDown className="h-4 w-4 text-red-600" />
                         </div>
                         <div className="ml-3">
-                          <div className="text-sm font-medium text-slate-900">Order Validation</div>
-                          <div className="text-xs text-slate-500">Order #ORD-78942</div>
+                          <div className="text-sm font-medium text-slate-900">Advanced Imaging Order</div>
+                          <div className="text-xs text-slate-500">Order #ORD-78942 ($7)</div>
                         </div>
                       </div>
                     </td>
