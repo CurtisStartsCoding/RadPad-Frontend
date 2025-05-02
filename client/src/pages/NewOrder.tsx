@@ -135,19 +135,17 @@ const NewOrder = () => {
         
         {/* Dictation Form */}
         {orderStep === 'dictation' && (
-          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-            <div className="p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <span className="text-base font-medium text-gray-900">Clinical Dictation</span>
-                  <div className="ml-2 bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-full text-xs font-medium flex items-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-3 w-3 mr-1">
-                      <circle cx="12" cy="12" r="10"></circle>
-                      <line x1="12" y1="8" x2="12" y2="12"></line>
-                      <line x1="12" y1="16" x2="12.01" y2="16"></line>
-                    </svg>
-                    HIPAA Protected
-                  </div>
+          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden w-full">
+            <div className="border-l-2 border-gray-200 pl-4 pr-4 pt-4 pb-0">
+              <div className="flex items-center">
+                <span className="text-base font-medium text-gray-900">Clinical Dictation</span>
+                <div className="ml-2 bg-amber-50 text-amber-800 border border-amber-200 px-2 py-0.5 rounded-full text-xs font-medium flex items-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-3 w-3 mr-1">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="8" x2="12" y2="12"></line>
+                    <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                  </svg>
+                  HIPAA Protected
                 </div>
               </div>
               <p className="text-sm text-gray-600 mt-1">
@@ -191,30 +189,32 @@ const NewOrder = () => {
               
               <div className="mt-3">
                 <textarea 
-                  className="w-full h-48 p-3 border border-gray-200 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-none"
+                  className="w-full min-h-[240px] p-4 border-0 focus:outline-none resize-none text-gray-700 text-base"
                   placeholder="Examples: '55-year-old female with newly diagnosed breast cancer. Request CT chest, abdomen and pelvis for staging.'"
                   value={dictationText}
                   onChange={handleDictationChange}
                 />
-                <div className="flex justify-between items-center mt-2">
+                <div className="flex items-center justify-between px-3 py-2 bg-gray-50 border-t border-gray-200">
                   <div className="flex space-x-2">
                     <button
-                      className="flex items-center justify-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50"
+                      className="h-8 px-2 text-xs border border-gray-300 rounded-md flex items-center"
                       onClick={handleClearText}
                     >
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="mr-2">
-                        <rect x="4" y="4" width="16" height="16" rx="1" stroke="currentColor" strokeWidth="2"/>
-                        <path d="M9 9L15 15M15 9L9 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-3 w-3 mr-1 inline-block">
+                        <path d="M21 12a9 9 0 0 1-9 9"></path>
+                        <path d="M3 12a9 9 0 0 1 9-9"></path>
+                        <path d="m21 3-6 6"></path>
                       </svg>
                       Clear
                     </button>
                     <button
-                      className="flex items-center justify-center px-4 py-2 ml-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50"
+                      className="h-8 px-2 text-xs border border-gray-300 rounded-md flex items-center"
                       onClick={handleVoiceInput}
                     >
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="mr-2">
-                        <rect x="7" y="4" width="10" height="16" rx="5" stroke="currentColor" strokeWidth="2"/>
-                        <path d="M12 4V2M12 20V22M4 12H2M6 6L4.5 4.5M18 6L19.5 4.5M22 12H20" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-3 w-3 mr-1 inline-block">
+                        <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path>
+                        <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                        <line x1="12" y1="19" x2="12" y2="22"></line>
                       </svg>
                       Voice Input
                     </button>
@@ -226,13 +226,13 @@ const NewOrder = () => {
               </div>
             </div>
             <div className="flex justify-end p-4 border-t border-gray-200">
-              <Button
-                className="bg-blue-700 hover:bg-blue-800 text-white font-medium px-4 py-2 h-auto"
+              <button
+                className={`px-4 py-2 bg-slate-500 text-white rounded-md ${dictationText.trim().length < 10 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-slate-600'}`}
                 disabled={dictationText.trim().length < 10}
                 onClick={handleProcessOrder}
               >
                 Process Order
-              </Button>
+              </button>
             </div>
           </div>
         )}
