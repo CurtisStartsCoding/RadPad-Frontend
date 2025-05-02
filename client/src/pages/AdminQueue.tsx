@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLocation } from "wouter";
 import { 
   Table, 
   TableBody, 
@@ -21,10 +22,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Search, Filter, Calendar, Clock, ArrowUpDown, FileText, CheckCircle2 } from "lucide-react";
 import { allOrders } from "@/lib/mock-data";
+import { AppPage } from "@/App";
 
 const AdminQueue = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFilter, setSelectedFilter] = useState("all");
+  const [_, setLocation] = useLocation();
   
   // Filter orders by status for admin queue
   const filteredOrders = allOrders.filter(order => {
@@ -182,7 +185,11 @@ const AdminQueue = () => {
                         <TableCell>{getStatusBadge(order.status)}</TableCell>
                         <TableCell className="text-right">
                           {order.status === 'pending_admin' ? (
-                            <Button variant="outline" size="sm">
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => setLocation("/admin-order-finalization")}
+                            >
                               <FileText className="h-4 w-4 mr-1" />
                               Complete
                             </Button>

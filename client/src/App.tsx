@@ -10,6 +10,7 @@ import Dashboard from "@/pages/Dashboard";
 import NewOrder from "@/pages/NewOrder";
 import OrderList from "@/pages/OrderList";
 import AdminQueue from "@/pages/AdminQueue";
+import AdminOrderFinalization from "@/pages/AdminOrderFinalization";
 import RadiologyQueue from "@/pages/RadiologyQueue";
 import OrganizationProfile from "@/pages/OrganizationProfile";
 import Locations from "@/pages/Locations";
@@ -26,6 +27,7 @@ export enum AppPage {
   NewOrder = "new-order",
   OrderList = "orders",
   AdminQueue = "admin-queue",
+  AdminOrderFinalization = "admin-order-finalization",
   RadiologyQueue = "radiology-queue",
   OrgProfile = "org-profile",
   Locations = "locations",
@@ -51,6 +53,8 @@ function App() {
         return <OrderList />;
       case AppPage.AdminQueue:
         return <AdminQueue />;
+      case AppPage.AdminOrderFinalization:
+        return <AdminOrderFinalization />;
       case AppPage.RadiologyQueue:
         return <RadiologyQueue />;
       case AppPage.OrgProfile:

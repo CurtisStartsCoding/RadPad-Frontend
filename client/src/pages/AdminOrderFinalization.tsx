@@ -1,11 +1,11 @@
 import { useState } from "react";
+import { useLocation } from "wouter";
 import { 
   Card, 
   CardContent, 
-  CardDescription, 
-  CardFooter, 
   CardHeader, 
-  CardTitle 
+  CardTitle, 
+  CardDescription 
 } from "@/components/ui/card";
 import { 
   Tabs, 
@@ -16,561 +16,754 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { 
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage
+} from "@/components/ui/form";
 import { Badge } from "@/components/ui/badge";
 import { 
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { 
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import PatientInfoCard from "@/components/order/PatientInfoCard";
-import { 
-  ArrowLeft, 
-  CheckCircle, 
-  ChevronRight, 
-  FileText, 
-  AlertCircle,
-  Calendar,
-  HelpCircle,
-  Upload,
-  PlusCircle,
-  Edit
-} from "lucide-react";
-import { temporaryPatient } from "@/lib/mock-data";
-
-// Mock validation result for displaying in order summary
-const mockValidationResult = {
-  validationStatus: 'valid',
-  feedback: "The clinical information provided is sufficient for the requested MRI of the right knee. This order meets the appropriate use criteria (AUC) for imaging based on the documented history of trauma and ongoing symptoms.",
-  complianceScore: 8,
-  suggestedCodes: [
-    {
-      code: "S83.6XXA",
-      description: "Sprain of the superior tibiofibular joint and ligament, initial encounter",
-      type: "ICD-10",
-      confidence: 0.91
-    },
-    {
-      code: "M25.561",
-      description: "Pain in right knee",
-      type: "ICD-10",
-      confidence: 0.85
-    },
-    {
-      code: "73721",
-      description: "Magnetic resonance imaging, any joint of lower extremity",
-      type: "CPT",
-      confidence: 0.94
-    }
-  ]
-};
-
-// Mock dictation text
-const mockDictationText = "MRI right knee due to persistent pain and swelling following sports injury 3 weeks ago. Patient reports limited range of motion and instability when walking. Previous X-ray showed no fracture.";
-
-// Mock modality
-const mockModality = "MRI";
-
-// Mock insurance options
-const insuranceProviders = [
-  "Blue Cross Blue Shield",
-  "UnitedHealthcare",
-  "Aetna",
-  "Cigna",
-  "Medicare",
-  "Medicaid",
-  "Kaiser Permanente",
-  "Humana",
-  "Other"
-];
+  Alert,
+  AlertDescription,
+  AlertTitle
+} from "@/components/ui/alert";
+import { InfoIcon, FileText, ArrowLeft, CheckCircle } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { allOrders } from "@/lib/mock-data";
 
 const AdminOrderFinalization = () => {
-  const [activeTab, setActiveTab] = useState("patient");
-  const [showCreditAlert, setShowCreditAlert] = useState(false);
-  const [selectedPriority, setSelectedPriority] = useState("routine");
-  const [selectedInsurance, setSelectedInsurance] = useState("Blue Cross Blue Shield");
-  const [policyNumber, setPolicyNumber] = useState("");
-  const [groupNumber, setGroupNumber] = useState("");
-  const [subscriberName, setSubscriberName] = useState("");
-  const [relationshipToSubscriber, setRelationshipToSubscriber] = useState("self");
-  const [additionalNotes, setAdditionalNotes] = useState("");
+  const [location, setLocation] = useLocation();
+  const [currentTab, setCurrentTab] = useState("patient");
+  const [isSending, setIsSending] = useState(false);
+  const [orderSent, setOrderSent] = useState(false);
+  const { toast } = useToast();
   
-  // Mock patient demographic fields
-  const [phone, setPhone] = useState("");
-  const [address, setAddress] = useState("");
-  const [city, setCity] = useState("");
-  const [state, setState] = useState("");
-  const [zipCode, setZipCode] = useState("");
+  // Mock order data based on ID (in a real app, this would be fetched from API)
+  const order = allOrders[0]; // Just use first order for mock
   
-  // Function to handle sending to radiology
-  const handleSendToRadiology = () => {
-    setShowCreditAlert(true);
+  // Patient information state
+  const [patientInfo, setPatientInfo] = useState({
+    firstName: order.patient.name.split(' ')[0] || '',
+    lastName: order.patient.name.split(' ')[1] || '',
+    dateOfBirth: order.patient.dob,
+    gender: "female",
+    addressLine1: "123 Main Street",
+    addressLine2: "",
+    city: "Anytown",
+    state: "CA",
+    zipCode: "90210",
+    phoneNumber: "(555) 123-4567",
+    email: "",
+    mrn: order.patient.mrn
+  });
+  
+  // Insurance information state
+  const [insuranceInfo, setInsuranceInfo] = useState({
+    insurerName: "Blue Cross Blue Shield",
+    policyNumber: "BCBS123456789",
+    groupNumber: "GRP12345",
+    policyHolderName: order.patient.name,
+    policyHolderRelationship: "self",
+    policyHolderDateOfBirth: order.patient.dob,
+    secondaryInsurerName: "",
+    secondaryPolicyNumber: "",
+    secondaryGroupNumber: ""
+  });
+  
+  // Supplemental information state
+  const [supplementalInfo, setSupplementalInfo] = useState({
+    text: "Patient has history of migraines. Previous imaging from 2024 showed no significant findings. Patient reports worsening symptoms in the past month."
+  });
+  
+  // Handle patient info change
+  const handlePatientInfoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setPatientInfo({
+      ...patientInfo,
+      [name]: value
+    });
   };
   
-  // Function to confirm credit usage and complete order
-  const confirmCreditUsage = () => {
-    setShowCreditAlert(false);
-    // In a real app, this would call an API to complete the order
-    console.log("Order sent to radiology");
+  // Handle insurance info change
+  const handleInsuranceInfoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setInsuranceInfo({
+      ...insuranceInfo,
+      [name]: value
+    });
+  };
+  
+  // Handle supplemental info change
+  const handleSupplementalInfoChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setSupplementalInfo({
+      ...supplementalInfo,
+      text: e.target.value
+    });
+  };
+  
+  // Handle tab change
+  const handleTabChange = (value: string) => {
+    setCurrentTab(value);
+  };
+  
+  // Handle navigation to next tab
+  const handleNextTab = () => {
+    if (currentTab === "patient") {
+      setCurrentTab("insurance");
+    } else if (currentTab === "insurance") {
+      setCurrentTab("supplemental");
+    } else if (currentTab === "supplemental") {
+      setCurrentTab("review");
+    }
+  };
+  
+  // Handle navigation to previous tab
+  const handlePreviousTab = () => {
+    if (currentTab === "insurance") {
+      setCurrentTab("patient");
+    } else if (currentTab === "supplemental") {
+      setCurrentTab("insurance");
+    } else if (currentTab === "review") {
+      setCurrentTab("supplemental");
+    }
+  };
+  
+  // Handle send to radiology
+  const handleSendToRadiology = () => {
+    setIsSending(true);
+    
+    // Simulate API call
+    setTimeout(() => {
+      setIsSending(false);
+      setOrderSent(true);
+      
+      toast({
+        title: "Order sent to radiology",
+        description: "Order #" + order.id + " has been successfully sent to " + order.radiologyGroup,
+        variant: "default",
+      });
+    }, 1500);
+  };
+  
+  // Handle go back to queue
+  const handleBackToQueue = () => {
+    setLocation("/admin-queue");
   };
   
   return (
     <div className="container mx-auto py-6 max-w-5xl">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-semibold">Complete Order Details</h1>
-          <p className="text-sm text-slate-500">Finalize order information before sending to radiology</p>
-        </div>
-        <Button variant="outline" className="flex items-center">
-          <ArrowLeft className="mr-2 h-4 w-4" />
+      <div className="flex items-center mb-6">
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          className="mr-2" 
+          onClick={handleBackToQueue}
+        >
+          <ArrowLeft className="h-4 w-4 mr-1" />
           Back to Queue
         </Button>
+        <div>
+          <h1 className="text-2xl font-semibold">Complete Order Information</h1>
+          <p className="text-sm text-slate-500">
+            Add required patient details to send this order to radiology
+          </p>
+        </div>
       </div>
       
-      {/* Order Info Summary */}
-      <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="md:col-span-2">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-base">Order Information</CardTitle>
-              <Badge className="uppercase font-normal text-xs bg-amber-100 text-amber-800 hover:bg-amber-100">
-                Awaiting Completion
-              </Badge>
+      {orderSent ? (
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex flex-col items-center justify-center py-10">
+              <div className="bg-green-50 rounded-full p-3 mb-4">
+                <CheckCircle className="h-12 w-12 text-green-500" />
+              </div>
+              <h2 className="text-xl font-medium mb-2">Order Successfully Sent</h2>
+              <p className="text-center text-slate-500 max-w-md mb-6">
+                Order #{order.id} for {order.patient.name} has been sent to {order.radiologyGroup}.
+                They will contact the patient directly for scheduling.
+              </p>
+              <div className="flex space-x-4">
+                <Button variant="outline" onClick={handleBackToQueue}>
+                  Return to Queue
+                </Button>
+              </div>
             </div>
-            <CardDescription>
-              Order #{Math.floor(Math.random() * 1000) + 5000} • Created on {new Date().toLocaleDateString()}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="grid grid-cols-3 gap-4">
-              <div>
-                <p className="text-xs font-medium text-slate-500">Modality</p>
-                <p className="text-sm font-medium text-slate-900 mt-0.5">{mockModality}</p>
+          </CardContent>
+        </Card>
+      ) : (
+        <>
+          <Card className="mb-6">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Order #{order.id} - {order.modality}</CardTitle>
+                  <CardDescription>Created on {new Date(order.createdAt).toLocaleDateString()}</CardDescription>
+                </div>
+                <Badge variant="outline" className="bg-amber-50 border-amber-200 text-amber-700">
+                  Needs Completion
+                </Badge>
               </div>
-              <div>
-                <p className="text-xs font-medium text-slate-500">Ordering Physician</p>
-                <p className="text-sm font-medium text-slate-900 mt-0.5">Dr. Sarah Johnson</p>
-              </div>
-              <div>
-                <p className="text-xs font-medium text-slate-500">Date Ordered</p>
-                <div className="flex items-center mt-0.5">
-                  <Calendar className="h-3.5 w-3.5 mr-1.5 text-slate-500" />
-                  <p className="text-sm font-medium text-slate-900">
-                    {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                  </p>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <p className="text-sm font-medium mb-1">Patient</p>
+                  <p className="text-slate-600">{order.patient.name}</p>
+                  <p className="text-xs text-slate-400">DOB: {order.patient.dob}</p>
+                  <p className="text-xs text-slate-400">MRN: {order.patient.mrn}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium mb-1">Ordering Physician</p>
+                  <p className="text-slate-600">Dr. Sarah Johnson</p>
+                  <p className="text-xs text-slate-400">Internal Medicine</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium mb-1">Radiology Group</p>
+                  <p className="text-slate-600">{order.radiologyGroup}</p>
                 </div>
               </div>
-            </div>
-            
-            <div>
-              <p className="text-xs font-medium text-slate-500">Clinical Information</p>
-              <p className="text-sm text-slate-700 mt-0.5 bg-slate-50 p-3 rounded-md">
-                {mockDictationText}
-              </p>
-            </div>
-            
-            <div>
-              <p className="text-xs font-medium text-slate-500">Diagnostic Codes</p>
-              <div className="flex flex-wrap gap-2 mt-1">
-                {mockValidationResult.suggestedCodes.map((code, index) => (
-                  <Badge key={index} variant="outline" className="bg-blue-50 border-blue-200 text-blue-700">
-                    {code.code}: {code.description}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">Required Actions</CardTitle>
-            <CardDescription>
-              Complete these items before sending
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="flex items-start space-x-3">
-              <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${activeTab === "patient" || phone ? "bg-green-100 text-green-600" : "bg-amber-100 text-amber-600"}`}>
-                {phone ? (
-                  <CheckCircle className="h-4 w-4" />
-                ) : (
-                  <ChevronRight className="h-4 w-4" />
-                )}
-              </div>
-              <div>
-                <p className="text-sm font-medium text-slate-900">Patient Demographics</p>
-                <p className="text-xs text-slate-500">Complete patient contact details</p>
-              </div>
-            </div>
-            
-            <div className="flex items-start space-x-3">
-              <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${activeTab === "insurance" || policyNumber ? "bg-green-100 text-green-600" : "bg-amber-100 text-amber-600"}`}>
-                {policyNumber ? (
-                  <CheckCircle className="h-4 w-4" />
-                ) : (
-                  <ChevronRight className="h-4 w-4" />
-                )}
-              </div>
-              <div>
-                <p className="text-sm font-medium text-slate-900">Insurance Information</p>
-                <p className="text-xs text-slate-500">Add insurance details</p>
-              </div>
-            </div>
-            
-            <div className="flex items-start space-x-3">
-              <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${activeTab === "additional" || selectedPriority !== "routine" ? "bg-green-100 text-green-600" : "bg-slate-100 text-slate-500"}`}>
-                {selectedPriority !== "routine" ? (
-                  <CheckCircle className="h-4 w-4" />
-                ) : (
-                  <ChevronRight className="h-4 w-4" />
-                )}
-              </div>
-              <div>
-                <p className="text-sm font-medium text-slate-900">Additional Details</p>
-                <p className="text-xs text-slate-500">Optional priority and notes</p>
-              </div>
-            </div>
-          </CardContent>
-          <CardFooter className="border-t px-6 py-4 bg-slate-50">
-            <Button 
-              onClick={handleSendToRadiology}
-              disabled={!phone || !policyNumber}
-              className="w-full"
-            >
-              <FileText className="h-4 w-4 mr-2" />
-              Send to Radiology
-            </Button>
-          </CardFooter>
-        </Card>
-      </div>
-      
-      {/* Patient Info Card */}
-      <div className="mb-4">
-        <PatientInfoCard
-          patient={temporaryPatient}
-          onEditPatient={() => setActiveTab("patient")}
-        />
-      </div>
-      
-      {/* Order Completion Tabs */}
-      <Card>
-        <CardContent className="p-6">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <TabsList className="grid grid-cols-3 w-full">
-              <TabsTrigger value="patient">
-                Patient Demographics
-              </TabsTrigger>
-              <TabsTrigger value="insurance">
-                Insurance Information
-              </TabsTrigger>
-              <TabsTrigger value="additional">
-                Additional Details
-              </TabsTrigger>
-            </TabsList>
-            
-            {/* Patient Demographics Tab */}
-            <TabsContent value="patient" className="space-y-6">
-              <div>
-                <h3 className="text-lg font-medium mb-4">Patient Demographics</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="phone">Phone Number <span className="text-red-500">*</span></Label>
-                    <Input
-                      id="phone"
-                      placeholder="(123) 456-7890"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                    />
+              
+              <div className="mt-6 bg-blue-50 p-4 rounded-md">
+                <div className="flex">
+                  <FileText className="h-5 w-5 text-blue-500 mt-0.5 mr-2 flex-shrink-0" />
+                  <div>
+                    <p className="text-sm font-medium text-blue-800 mb-1">Clinical Indication</p>
+                    <p className="text-sm text-blue-700">
+                      45-year-old female with chronic headaches persisting for over 3 months. 
+                      Patient reports severe pain localized to the right temporal region with occasional 
+                      visual disturbances. Not responsive to standard migraine medications. 
+                      Request MRI brain to evaluate for structural abnormalities.
+                    </p>
                   </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email Address</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder="patient@example.com"
-                    />
-                  </div>
-                  
-                  <div className="space-y-2 md:col-span-2">
-                    <Label htmlFor="address">Address <span className="text-red-500">*</span></Label>
-                    <Input
-                      id="address"
-                      placeholder="123 Main St"
-                      value={address}
-                      onChange={(e) => setAddress(e.target.value)}
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="city">City <span className="text-red-500">*</span></Label>
-                    <Input
-                      id="city"
-                      placeholder="Anytown"
-                      value={city}
-                      onChange={(e) => setCity(e.target.value)}
-                    />
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="state">State <span className="text-red-500">*</span></Label>
-                      <Input
-                        id="state"
-                        placeholder="CA"
-                        value={state}
-                        onChange={(e) => setState(e.target.value)}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardContent className="pt-6">
+              <Tabs value={currentTab} onValueChange={handleTabChange}>
+                <TabsList className="grid grid-cols-4 mb-6">
+                  <TabsTrigger value="patient">Patient Info</TabsTrigger>
+                  <TabsTrigger value="insurance">Insurance</TabsTrigger>
+                  <TabsTrigger value="supplemental">Supplemental</TabsTrigger>
+                  <TabsTrigger value="review">Review & Send</TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="patient">
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="firstName">First Name</Label>
+                        <Input 
+                          id="firstName" 
+                          name="firstName" 
+                          value={patientInfo.firstName} 
+                          onChange={handlePatientInfoChange}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="lastName">Last Name</Label>
+                        <Input 
+                          id="lastName" 
+                          name="lastName" 
+                          value={patientInfo.lastName} 
+                          onChange={handlePatientInfoChange}
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="dateOfBirth">Date of Birth</Label>
+                        <Input 
+                          id="dateOfBirth" 
+                          name="dateOfBirth" 
+                          value={patientInfo.dateOfBirth} 
+                          onChange={handlePatientInfoChange}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="gender">Gender</Label>
+                        <Select 
+                          value={patientInfo.gender} 
+                          onValueChange={(value) => setPatientInfo({...patientInfo, gender: value})}
+                        >
+                          <SelectTrigger id="gender">
+                            <SelectValue placeholder="Select gender" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="male">Male</SelectItem>
+                            <SelectItem value="female">Female</SelectItem>
+                            <SelectItem value="other">Other</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="addressLine1">Address Line 1</Label>
+                      <Input 
+                        id="addressLine1" 
+                        name="addressLine1" 
+                        value={patientInfo.addressLine1} 
+                        onChange={handlePatientInfoChange}
                       />
                     </div>
                     
-                    <div className="space-y-2">
-                      <Label htmlFor="zipcode">Zip Code <span className="text-red-500">*</span></Label>
-                      <Input
-                        id="zipcode"
-                        placeholder="12345"
-                        value={zipCode}
-                        onChange={(e) => setZipCode(e.target.value)}
+                    <div>
+                      <Label htmlFor="addressLine2">Address Line 2</Label>
+                      <Input 
+                        id="addressLine2" 
+                        name="addressLine2" 
+                        value={patientInfo.addressLine2} 
+                        onChange={handlePatientInfoChange}
+                      />
+                    </div>
+                    
+                    <div className="grid grid-cols-3 gap-4">
+                      <div>
+                        <Label htmlFor="city">City</Label>
+                        <Input 
+                          id="city" 
+                          name="city" 
+                          value={patientInfo.city} 
+                          onChange={handlePatientInfoChange}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="state">State</Label>
+                        <Input 
+                          id="state" 
+                          name="state" 
+                          value={patientInfo.state} 
+                          onChange={handlePatientInfoChange}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="zipCode">ZIP Code</Label>
+                        <Input 
+                          id="zipCode" 
+                          name="zipCode" 
+                          value={patientInfo.zipCode} 
+                          onChange={handlePatientInfoChange}
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="phoneNumber">Phone Number</Label>
+                        <Input 
+                          id="phoneNumber" 
+                          name="phoneNumber" 
+                          value={patientInfo.phoneNumber} 
+                          onChange={handlePatientInfoChange}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="email">Email</Label>
+                        <Input 
+                          id="email" 
+                          name="email" 
+                          value={patientInfo.email} 
+                          onChange={handlePatientInfoChange}
+                        />
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="mrn">Medical Record Number (MRN)</Label>
+                      <Input 
+                        id="mrn" 
+                        name="mrn" 
+                        value={patientInfo.mrn} 
+                        onChange={handlePatientInfoChange}
                       />
                     </div>
                   </div>
-                </div>
-              </div>
-              
-              <div className="flex justify-end">
-                <Button onClick={() => setActiveTab("insurance")}>
-                  Continue to Insurance
-                  <ChevronRight className="ml-2 h-4 w-4" />
-                </Button>
-              </div>
-            </TabsContent>
-            
-            {/* Insurance Information Tab */}
-            <TabsContent value="insurance" className="space-y-6">
-              <div>
-                <h3 className="text-lg font-medium mb-4">Insurance Information</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2 md:col-span-2">
-                    <Label htmlFor="insurance-provider">Insurance Provider <span className="text-red-500">*</span></Label>
-                    <Select
-                      value={selectedInsurance}
-                      onValueChange={setSelectedInsurance}
-                    >
-                      <SelectTrigger id="insurance-provider">
-                        <SelectValue placeholder="Select insurance provider" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {insuranceProviders.map((provider) => (
-                          <SelectItem key={provider} value={provider}>
-                            {provider}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
                   
-                  <div className="space-y-2">
-                    <Label htmlFor="policy-number">Policy Number <span className="text-red-500">*</span></Label>
-                    <Input
-                      id="policy-number"
-                      placeholder="XXXX-XXXX-XXXX-XXXX"
-                      value={policyNumber}
-                      onChange={(e) => setPolicyNumber(e.target.value)}
-                    />
+                  <div className="flex justify-end mt-6">
+                    <Button onClick={handleNextTab}>
+                      Continue to Insurance
+                    </Button>
                   </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="group-number">Group Number</Label>
-                    <Input
-                      id="group-number"
-                      placeholder="XXX-XXXXXX"
-                      value={groupNumber}
-                      onChange={(e) => setGroupNumber(e.target.value)}
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="subscriber-name">Subscriber Name <span className="text-red-500">*</span></Label>
-                    <Input
-                      id="subscriber-name"
-                      placeholder="John Doe"
-                      value={subscriberName}
-                      onChange={(e) => setSubscriberName(e.target.value)}
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="relationship">Relationship to Subscriber <span className="text-red-500">*</span></Label>
-                    <Select
-                      value={relationshipToSubscriber}
-                      onValueChange={setRelationshipToSubscriber}
-                    >
-                      <SelectTrigger id="relationship">
-                        <SelectValue placeholder="Select relationship" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="self">Self</SelectItem>
-                        <SelectItem value="spouse">Spouse</SelectItem>
-                        <SelectItem value="child">Child</SelectItem>
-                        <SelectItem value="other">Other</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
+                </TabsContent>
                 
-                <div className="mt-4 bg-blue-50 p-3 rounded-md flex items-start">
-                  <HelpCircle className="h-5 w-5 text-blue-500 mr-2 mt-0.5" />
-                  <div>
-                    <p className="text-sm text-blue-800">Insurance Card</p>
-                    <p className="text-xs text-blue-600 mt-1">
-                      Upload images of the front and back of the insurance card for verification.
-                    </p>
-                    <div className="mt-2 flex space-x-2">
-                      <Button variant="outline" size="sm" className="h-8">
-                        <Upload className="h-3.5 w-3.5 mr-1" />
-                        Upload Front
-                      </Button>
-                      <Button variant="outline" size="sm" className="h-8">
-                        <Upload className="h-3.5 w-3.5 mr-1" />
-                        Upload Back
-                      </Button>
+                <TabsContent value="insurance">
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-medium">Primary Insurance</h3>
+                    
+                    <div>
+                      <Label htmlFor="insurerName">Insurance Company</Label>
+                      <Input 
+                        id="insurerName" 
+                        name="insurerName" 
+                        value={insuranceInfo.insurerName} 
+                        onChange={handleInsuranceInfoChange}
+                      />
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="policyNumber">Policy Number</Label>
+                        <Input 
+                          id="policyNumber" 
+                          name="policyNumber" 
+                          value={insuranceInfo.policyNumber} 
+                          onChange={handleInsuranceInfoChange}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="groupNumber">Group Number</Label>
+                        <Input 
+                          id="groupNumber" 
+                          name="groupNumber" 
+                          value={insuranceInfo.groupNumber} 
+                          onChange={handleInsuranceInfoChange}
+                        />
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="policyHolderName">Policy Holder Name</Label>
+                      <Input 
+                        id="policyHolderName" 
+                        name="policyHolderName" 
+                        value={insuranceInfo.policyHolderName} 
+                        onChange={handleInsuranceInfoChange}
+                      />
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="policyHolderRelationship">Relationship to Patient</Label>
+                        <Select 
+                          value={insuranceInfo.policyHolderRelationship} 
+                          onValueChange={(value) => setInsuranceInfo({...insuranceInfo, policyHolderRelationship: value})}
+                        >
+                          <SelectTrigger id="policyHolderRelationship">
+                            <SelectValue placeholder="Select relationship" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="self">Self</SelectItem>
+                            <SelectItem value="spouse">Spouse</SelectItem>
+                            <SelectItem value="parent">Parent</SelectItem>
+                            <SelectItem value="child">Child</SelectItem>
+                            <SelectItem value="other">Other</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label htmlFor="policyHolderDateOfBirth">Policy Holder Date of Birth</Label>
+                        <Input 
+                          id="policyHolderDateOfBirth" 
+                          name="policyHolderDateOfBirth" 
+                          value={insuranceInfo.policyHolderDateOfBirth} 
+                          onChange={handleInsuranceInfoChange}
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="pt-4">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-lg font-medium">Secondary Insurance (Optional)</h3>
+                        {!insuranceInfo.secondaryInsurerName && (
+                          <Button 
+                            variant="ghost" 
+                            onClick={() => setInsuranceInfo({...insuranceInfo, secondaryInsurerName: "Medicare"})}
+                          >
+                            + Add Secondary Insurance
+                          </Button>
+                        )}
+                      </div>
+                      
+                      {insuranceInfo.secondaryInsurerName && (
+                        <>
+                          <div className="mt-4">
+                            <Label htmlFor="secondaryInsurerName">Insurance Company</Label>
+                            <Input 
+                              id="secondaryInsurerName" 
+                              name="secondaryInsurerName" 
+                              value={insuranceInfo.secondaryInsurerName} 
+                              onChange={handleInsuranceInfoChange}
+                            />
+                          </div>
+                          
+                          <div className="grid grid-cols-2 gap-4 mt-4">
+                            <div>
+                              <Label htmlFor="secondaryPolicyNumber">Policy Number</Label>
+                              <Input 
+                                id="secondaryPolicyNumber" 
+                                name="secondaryPolicyNumber" 
+                                value={insuranceInfo.secondaryPolicyNumber} 
+                                onChange={handleInsuranceInfoChange}
+                              />
+                            </div>
+                            <div>
+                              <Label htmlFor="secondaryGroupNumber">Group Number</Label>
+                              <Input 
+                                id="secondaryGroupNumber" 
+                                name="secondaryGroupNumber" 
+                                value={insuranceInfo.secondaryGroupNumber} 
+                                onChange={handleInsuranceInfoChange}
+                              />
+                            </div>
+                          </div>
+                        </>
+                      )}
                     </div>
                   </div>
-                </div>
-              </div>
-              
-              <div className="flex justify-between">
-                <Button variant="outline" onClick={() => setActiveTab("patient")}>
-                  Back to Demographics
-                </Button>
-                <Button onClick={() => setActiveTab("additional")}>
-                  Continue to Additional Details
-                  <ChevronRight className="ml-2 h-4 w-4" />
-                </Button>
-              </div>
-            </TabsContent>
-            
-            {/* Additional Details Tab */}
-            <TabsContent value="additional" className="space-y-6">
-              <div>
-                <h3 className="text-lg font-medium mb-4">Additional Details</h3>
-                <div className="space-y-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="priority">Priority</Label>
-                    <Select
-                      value={selectedPriority}
-                      onValueChange={setSelectedPriority}
-                    >
-                      <SelectTrigger id="priority">
-                        <SelectValue placeholder="Select priority level" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="routine">Routine</SelectItem>
-                        <SelectItem value="urgent">Urgent (24-48 hours)</SelectItem>
-                        <SelectItem value="stat">STAT (Same day)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    {selectedPriority !== "routine" && (
-                      <p className="text-xs text-amber-600 mt-1 flex items-center">
-                        <AlertCircle className="h-3.5 w-3.5 mr-1" />
-                        {selectedPriority === "urgent" 
-                          ? "Urgent orders may incur additional fees." 
-                          : "STAT orders will incur additional fees."}
+                  
+                  <div className="flex justify-between mt-6">
+                    <Button variant="outline" onClick={handlePreviousTab}>
+                      Back
+                    </Button>
+                    <Button onClick={handleNextTab}>
+                      Continue to Supplemental Info
+                    </Button>
+                  </div>
+                </TabsContent>
+                
+                <TabsContent value="supplemental">
+                  <div className="space-y-4">
+                    <div>
+                      <div className="flex items-center mb-2">
+                        <Label htmlFor="supplementalText" className="text-lg font-medium mr-2">
+                          Supplemental Information from EMR
+                        </Label>
+                        <Badge variant="outline" className="bg-blue-50 border-blue-200 text-blue-700">
+                          HIPAA Protected
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-slate-500 mb-2">
+                        Add any additional clinical information from the EMR that would be helpful for the radiologist.
                       </p>
-                    )}
+                      <Textarea 
+                        id="supplementalText" 
+                        className="min-h-[200px]"
+                        value={supplementalInfo.text}
+                        onChange={handleSupplementalInfoChange}
+                      />
+                    </div>
+                    
+                    <Alert className="bg-amber-50 border-amber-200">
+                      <InfoIcon className="h-4 w-4 text-amber-600" />
+                      <AlertTitle className="text-amber-800">Important Note</AlertTitle>
+                      <AlertDescription className="text-amber-700">
+                        Only paste information relevant to this imaging order. Do not include sensitive patient 
+                        information not directly related to this study.
+                      </AlertDescription>
+                    </Alert>
                   </div>
                   
-                  <div className="space-y-2">
-                    <Label htmlFor="notes">Additional Notes for Radiology</Label>
-                    <Textarea
-                      id="notes"
-                      placeholder="Enter any special instructions or relevant clinical details..."
-                      value={additionalNotes}
-                      onChange={(e) => setAdditionalNotes(e.target.value)}
-                      className="min-h-[120px]"
-                    />
+                  <div className="flex justify-between mt-6">
+                    <Button variant="outline" onClick={handlePreviousTab}>
+                      Back
+                    </Button>
+                    <Button onClick={handleNextTab}>
+                      Review Order
+                    </Button>
                   </div>
-                  
-                  <div className="space-y-2">
-                    <Label>Additional Documents</Label>
-                    <div className="border-2 border-dashed border-slate-200 rounded-lg p-6 text-center">
-                      <div className="flex flex-col items-center">
-                        <Upload className="h-8 w-8 text-slate-400 mb-2" />
-                        <p className="text-sm font-medium text-slate-700">
-                          Drag & drop files or click to upload
-                        </p>
-                        <p className="text-xs text-slate-500 mt-1">
-                          Upload relevant scans, lab reports, or clinical notes
-                        </p>
-                        <Button variant="outline" size="sm" className="mt-3">
-                          <PlusCircle className="h-4 w-4 mr-1" />
-                          Select Files
-                        </Button>
+                </TabsContent>
+                
+                <TabsContent value="review">
+                  <div className="space-y-6">
+                    <div>
+                      <h3 className="text-lg font-medium mb-4">Review Order Information</h3>
+                      <p className="text-sm text-slate-500 mb-4">
+                        Please review all information carefully before sending this order to {order.radiologyGroup}.
+                      </p>
+                      
+                      <div className="space-y-4">
+                        <Card className="bg-slate-50">
+                          <CardHeader className="pb-2">
+                            <CardTitle className="text-base">Patient Information</CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                              <div>
+                                <dt className="text-slate-500">Name</dt>
+                                <dd>{patientInfo.firstName} {patientInfo.lastName}</dd>
+                              </div>
+                              <div>
+                                <dt className="text-slate-500">Date of Birth</dt>
+                                <dd>{patientInfo.dateOfBirth}</dd>
+                              </div>
+                              <div>
+                                <dt className="text-slate-500">Gender</dt>
+                                <dd>{patientInfo.gender}</dd>
+                              </div>
+                              <div>
+                                <dt className="text-slate-500">MRN</dt>
+                                <dd>{patientInfo.mrn}</dd>
+                              </div>
+                              <div className="col-span-2">
+                                <dt className="text-slate-500">Address</dt>
+                                <dd>
+                                  {patientInfo.addressLine1} 
+                                  {patientInfo.addressLine2 && <>, {patientInfo.addressLine2}</>}<br />
+                                  {patientInfo.city}, {patientInfo.state} {patientInfo.zipCode}
+                                </dd>
+                              </div>
+                              <div>
+                                <dt className="text-slate-500">Phone</dt>
+                                <dd>{patientInfo.phoneNumber}</dd>
+                              </div>
+                              <div>
+                                <dt className="text-slate-500">Email</dt>
+                                <dd>{patientInfo.email || <span className="text-slate-400">Not provided</span>}</dd>
+                              </div>
+                            </dl>
+                          </CardContent>
+                        </Card>
+                        
+                        <Card className="bg-slate-50">
+                          <CardHeader className="pb-2">
+                            <CardTitle className="text-base">Insurance Information</CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                              <div>
+                                <dt className="text-slate-500">Primary Insurance</dt>
+                                <dd>{insuranceInfo.insurerName}</dd>
+                              </div>
+                              <div>
+                                <dt className="text-slate-500">Policy Number</dt>
+                                <dd>{insuranceInfo.policyNumber}</dd>
+                              </div>
+                              <div>
+                                <dt className="text-slate-500">Group Number</dt>
+                                <dd>{insuranceInfo.groupNumber}</dd>
+                              </div>
+                              <div>
+                                <dt className="text-slate-500">Policy Holder</dt>
+                                <dd>{insuranceInfo.policyHolderName}</dd>
+                              </div>
+                              <div>
+                                <dt className="text-slate-500">Relationship</dt>
+                                <dd>{insuranceInfo.policyHolderRelationship}</dd>
+                              </div>
+                              <div>
+                                <dt className="text-slate-500">Policy Holder DOB</dt>
+                                <dd>{insuranceInfo.policyHolderDateOfBirth}</dd>
+                              </div>
+                              
+                              {insuranceInfo.secondaryInsurerName && (
+                                <>
+                                  <div className="col-span-2 mt-2">
+                                    <dt className="text-slate-500 font-medium">Secondary Insurance</dt>
+                                  </div>
+                                  <div>
+                                    <dt className="text-slate-500">Insurance</dt>
+                                    <dd>{insuranceInfo.secondaryInsurerName}</dd>
+                                  </div>
+                                  <div>
+                                    <dt className="text-slate-500">Policy Number</dt>
+                                    <dd>{insuranceInfo.secondaryPolicyNumber || <span className="text-slate-400">Not provided</span>}</dd>
+                                  </div>
+                                  <div>
+                                    <dt className="text-slate-500">Group Number</dt>
+                                    <dd>{insuranceInfo.secondaryGroupNumber || <span className="text-slate-400">Not provided</span>}</dd>
+                                  </div>
+                                </>
+                              )}
+                            </dl>
+                          </CardContent>
+                        </Card>
+                        
+                        <Card className="bg-slate-50">
+                          <CardHeader className="pb-2">
+                            <CardTitle className="text-base">Clinical Information</CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <dl className="space-y-2 text-sm">
+                              <div>
+                                <dt className="text-slate-500">Physician's Clinical Indication</dt>
+                                <dd className="mt-1 bg-white p-2 rounded border">
+                                  45-year-old female with chronic headaches persisting for over 3 months. 
+                                  Patient reports severe pain localized to the right temporal region with occasional 
+                                  visual disturbances. Not responsive to standard migraine medications. 
+                                  Request MRI brain to evaluate for structural abnormalities.
+                                </dd>
+                              </div>
+                              <div>
+                                <dt className="text-slate-500 mt-2">Supplemental EMR Information</dt>
+                                <dd className="mt-1 bg-white p-2 rounded border">
+                                  {supplementalInfo.text || <span className="text-slate-400">None provided</span>}
+                                </dd>
+                              </div>
+                            </dl>
+                          </CardContent>
+                        </Card>
+                        
+                        <Card className="bg-slate-50">
+                          <CardHeader className="pb-2">
+                            <CardTitle className="text-base">Order Details</CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                              <div>
+                                <dt className="text-slate-500">Modality</dt>
+                                <dd>{order.modality}</dd>
+                              </div>
+                              <div>
+                                <dt className="text-slate-500">Radiology Group</dt>
+                                <dd>{order.radiologyGroup}</dd>
+                              </div>
+                              <div>
+                                <dt className="text-slate-500">CPT Code</dt>
+                                <dd>70551 - MRI Brain without contrast</dd>
+                              </div>
+                              <div>
+                                <dt className="text-slate-500">ICD-10 Codes</dt>
+                                <dd>G43.909, R51.9</dd>
+                              </div>
+                            </dl>
+                          </CardContent>
+                        </Card>
+                        
+                        <Alert className="bg-blue-50 border-blue-200">
+                          <InfoIcon className="h-4 w-4 text-blue-600" />
+                          <AlertDescription className="text-blue-700">
+                            <strong>Credit Usage:</strong> Sending this order will use 1 credit from your organization's balance. 
+                            You currently have 42 credits remaining.
+                          </AlertDescription>
+                        </Alert>
                       </div>
                     </div>
                   </div>
-                </div>
-              </div>
-              
-              <div className="flex justify-between">
-                <Button variant="outline" onClick={() => setActiveTab("insurance")}>
-                  Back to Insurance
-                </Button>
-                <Button 
-                  onClick={handleSendToRadiology}
-                  disabled={!phone || !policyNumber}
-                >
-                  <FileText className="h-4 w-4 mr-2" />
-                  Send to Radiology
-                </Button>
-              </div>
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
-      
-      {/* Credit Usage Alert Dialog */}
-      <AlertDialog open={showCreditAlert} onOpenChange={setShowCreditAlert}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Confirm Credit Usage</AlertDialogTitle>
-            <AlertDialogDescription>
-              Sending this {mockModality} order will use{" "}
-              <span className="font-medium text-blue-600">
-                {mockModality.toLowerCase().includes("x-ray") || mockModality.toLowerCase().includes("ultrasound") ? "2 standard credits" : "7 advanced credits"}
-              </span>.
-              {selectedPriority === "urgent" && (
-                <p className="mt-2 text-amber-600">
-                  An additional 1 credit will be used for urgent processing.
-                </p>
-              )}
-              {selectedPriority === "stat" && (
-                <p className="mt-2 text-amber-600">
-                  An additional 3 credits will be used for STAT processing.
-                </p>
-              )}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmCreditUsage}>
-              Confirm and Send
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+                  
+                  <div className="flex justify-between mt-6">
+                    <Button variant="outline" onClick={handlePreviousTab}>
+                      Back
+                    </Button>
+                    <Button 
+                      onClick={handleSendToRadiology} 
+                      disabled={isSending}
+                      className="bg-green-600 hover:bg-green-700"
+                    >
+                      {isSending ? "Sending..." : "Send to Radiology"}
+                    </Button>
+                  </div>
+                </TabsContent>
+              </Tabs>
+            </CardContent>
+          </Card>
+        </>
+      )}
     </div>
   );
 };
