@@ -244,7 +244,11 @@ const AdminQueue = () => {
                         <TableCell>{order.radiologyGroup}</TableCell>
                         <TableCell>{getStatusBadge(order.status)}</TableCell>
                         <TableCell className="text-right">
-                          <Button variant="outline" size="sm">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => setLocation("/admin-order-finalization")}
+                          >
                             <FileText className="h-4 w-4 mr-1" />
                             Complete
                           </Button>

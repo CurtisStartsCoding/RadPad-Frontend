@@ -47,6 +47,10 @@ export const hasAccess = (role: UserRole, page: string): boolean => {
       UserRole.AdminStaff, 
       UserRole.AdminReferring
     ],
+    "admin-order-finalization": [
+      UserRole.AdminStaff, 
+      UserRole.AdminReferring
+    ],
     "radiology-queue": [
       UserRole.Scheduler, 
       UserRole.AdminRadiology, 
