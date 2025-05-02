@@ -396,7 +396,7 @@ const AdminOrderFinalization: React.FC<AdminOrderFinalizationProps> = ({ navigat
                   <TabsTrigger value="emr-paste">EMR Paste</TabsTrigger>
                   <TabsTrigger value="patient">Patient Info</TabsTrigger>
                   <TabsTrigger value="insurance">Insurance</TabsTrigger>
-                  <TabsTrigger value="supplemental">Supplemental</TabsTrigger>
+                  <TabsTrigger value="supplemental">Order Details</TabsTrigger>
                   <TabsTrigger value="review">Review & Send</TabsTrigger>
                 </TabsList>
                 
