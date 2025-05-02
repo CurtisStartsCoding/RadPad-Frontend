@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useLocation } from "wouter";
 import { 
   Table, 
   TableBody, 
@@ -24,10 +23,13 @@ import { Search, Filter, Calendar, Clock, ArrowUpDown, FileText, CheckCircle2 } 
 import { allOrders } from "@/lib/mock-data";
 import { AppPage } from "@/App";
 
-const AdminQueue = () => {
+interface AdminQueueProps {
+  navigateTo?: (page: AppPage) => void;
+}
+
+const AdminQueue: React.FC<AdminQueueProps> = ({ navigateTo }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFilter, setSelectedFilter] = useState("all");
-  const [_, setLocation] = useLocation();
   
   // Filter orders by status for admin queue
   const filteredOrders = allOrders.filter(order => {
@@ -188,7 +190,7 @@ const AdminQueue = () => {
                             <Button 
                               variant="outline" 
                               size="sm"
-                              onClick={() => setLocation("/admin-order-finalization")}
+                              onClick={() => navigateTo && navigateTo(AppPage.AdminOrderFinalization)}
                             >
                               <FileText className="h-4 w-4 mr-1" />
                               Complete
@@ -247,7 +249,7 @@ const AdminQueue = () => {
                           <Button 
                             variant="outline" 
                             size="sm"
-                            onClick={() => setLocation("/admin-order-finalization")}
+                            onClick={() => navigateTo && navigateTo(AppPage.AdminOrderFinalization)}
                           >
                             <FileText className="h-4 w-4 mr-1" />
                             Complete

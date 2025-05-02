@@ -52,7 +52,7 @@ function App() {
       case AppPage.OrderList:
         return <OrderList />;
       case AppPage.AdminQueue:
-        return <AdminQueue />;
+        return <AdminQueue navigateTo={(page) => setCurrentPage(page)} />;
       case AppPage.AdminOrderFinalization:
         return <AdminOrderFinalization />;
       case AppPage.RadiologyQueue:

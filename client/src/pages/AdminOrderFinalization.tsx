@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useLocation } from "wouter";
+import { AppPage } from "@/App";
 import { 
   Card, 
   CardContent, 
@@ -43,8 +43,11 @@ import { InfoIcon, FileText, ArrowLeft, CheckCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { allOrders } from "@/lib/mock-data";
 
-const AdminOrderFinalization = () => {
-  const [location, setLocation] = useLocation();
+interface AdminOrderFinalizationProps {
+  navigateTo?: (page: AppPage) => void;
+}
+
+const AdminOrderFinalization: React.FC<AdminOrderFinalizationProps> = ({ navigateTo }) => {
   const [currentTab, setCurrentTab] = useState("patient");
   const [isSending, setIsSending] = useState(false);
   const [orderSent, setOrderSent] = useState(false);
