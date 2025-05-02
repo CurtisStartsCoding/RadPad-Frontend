@@ -99,57 +99,50 @@ const DictationForm = ({
       </p>
       
       {validationFeedback && (
-        <div className="mb-4 border border-red-300 rounded-md overflow-hidden">
-          <div className="bg-red-100 px-4 py-2 flex justify-between items-center">
-            <div className="flex items-center">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 text-red-600 mr-2">
-                <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path>
-                <path d="M12 9v4"></path>
-                <path d="M12 17h.01"></path>
-              </svg>
-              <h3 className="text-sm font-medium text-red-800">Issues with Dictation</h3>
-            </div>
-            {onClearFeedback && (
-              <button 
-                onClick={onClearFeedback}
-                className="text-red-500 hover:text-red-700"
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
-                  <path d="M18 6 6 18"></path>
-                  <path d="m6 6 12 12"></path>
-                </svg>
-              </button>
-            )}
-          </div>
-          <div className="bg-white px-4 py-3 text-sm text-gray-700 border-t border-red-200">
-            <p>{validationFeedback}</p>
-            
-            <div className="mt-3 flex gap-2">
-              <button
-                type="button"
-                className="h-8 text-xs px-3 py-1 border border-gray-300 rounded-md"
-              >
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-3 w-3 mr-1 inline-block">
-                  <path d="M5 12h14"></path>
-                  <path d="M12 5v14"></path>
-                </svg>
-                Add Clarification
-              </button>
+        <div className="mb-4 bg-red-50 border border-red-200 rounded-md">
+          <div className="flex items-start p-3">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 text-red-500 mt-0.5 mr-2 flex-shrink-0">
+              <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path>
+              <path d="M12 9v4"></path>
+              <path d="M12 17h.01"></path>
+            </svg>
+            <div className="flex-1">
+              <div className="flex justify-between items-start">
+                <h3 className="text-sm font-medium text-red-800">Issues with Dictation</h3>
+                {onClearFeedback && (
+                  <button 
+                    onClick={onClearFeedback}
+                    className="text-red-400 hover:text-red-600 ml-2"
+                    aria-label="Close"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+                      <path d="M18 6 6 18"></path>
+                      <path d="m6 6 12 12"></path>
+                    </svg>
+                  </button>
+                )}
+              </div>
+              <p className="mt-1 text-sm text-gray-700">{validationFeedback}</p>
               
-              {attemptCount >= 1 && onOverride && (
+              <div className="mt-3">
                 <button
                   type="button"
-                  className="h-8 text-xs px-3 py-1 bg-amber-50 text-amber-800 border border-amber-200 rounded-md hover:bg-amber-100"
-                  onClick={onOverride}
+                  className="inline-flex items-center text-xs px-2 py-1 border border-gray-300 rounded hover:bg-gray-50"
                 >
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-3 w-3 mr-1 inline-block">
-                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"></path>
-                    <path d="M8 11h8"></path>
-                    <path d="M12 15V7"></path>
-                  </svg>
-                  Override
+                  <span className="mr-1">+</span>
+                  Add Clarification
                 </button>
-              )}
+                
+                {attemptCount >= 1 && onOverride && (
+                  <button
+                    type="button"
+                    className="ml-2 inline-flex items-center text-xs px-2 py-1 bg-amber-50 text-amber-700 border border-amber-200 rounded hover:bg-amber-100"
+                    onClick={onOverride}
+                  >
+                    Override
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>
