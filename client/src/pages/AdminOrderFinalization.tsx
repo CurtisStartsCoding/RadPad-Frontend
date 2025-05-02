@@ -93,25 +93,25 @@ const AdminOrderFinalization: React.FC<AdminOrderFinalizationProps> = ({ navigat
   // Order details state
   const [orderDetails, setOrderDetails] = useState({
     orderNumber: `ROP-${new Date().toISOString().slice(2,4)}${new Date().toISOString().slice(5,7)}${new Date().toISOString().slice(8,10)}-01`,
-    location: "Advanced Imaging Center – University Campus",
-    scheduling: "Within 7 days",
+    location: "Advanced Imaging Center – East Campus",
+    scheduling: "Within 14 days",
     priority: "Routine",
-    primaryIcd10: "M24.811",
-    primaryDescription: "Derangement of right shoulder",
-    secondaryIcd10: "S43.431A",
-    secondaryDescription: "SLAP lesion, right shoulder (initial)",
-    cptCode: "73722",
-    cptDescription: "MRI upper extremity joint with contrast",
-    instructions: "✓ No contraindications to contrast.\n✓ No known drug allergies.\n→ Request MRI be scheduled within 7 days for athletic clearance."
+    primaryIcd10: "G43.909",
+    primaryDescription: "Migraine, unspecified, not intractable, without status migrainosus",
+    secondaryIcd10: "R51.9",
+    secondaryDescription: "Headache, unspecified",
+    cptCode: "70551",
+    cptDescription: "MRI brain without contrast",
+    instructions: "✓ No contraindications to contrast.\n✓ No known drug allergies.\n→ Patient reports claustrophobia; sedation may be required."
   });
   
   // Referring physician state
   const [referringPhysician, setReferringPhysician] = useState({
-    name: "Dr. Maria Rodriguez",
-    npi: "9876543210",
-    clinic: "University Sports Medicine",
-    phone: "(555) 987-6543",
-    signedDate: "04/03/2025"
+    name: "Dr. Sarah Johnson",
+    npi: "1234567890",
+    clinic: "Internal Medicine Associates",
+    phone: "(212) 555-1234",
+    signedDate: "04/15/2025"
   });
   
   // Handle patient info change
@@ -372,6 +372,7 @@ const AdminOrderFinalization: React.FC<AdminOrderFinalizationProps> = ({ navigat
                       45-year-old female with chronic headaches persisting for over 3 months. 
                       Patient reports severe pain localized to the right temporal region with occasional 
                       visual disturbances. Not responsive to standard migraine medications. 
+                      Patient has history of migraines. Previous imaging from 2024 showed no significant findings.
                       Request MRI brain to evaluate for structural abnormalities.
                     </p>
                   </div>
