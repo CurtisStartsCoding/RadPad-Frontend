@@ -196,15 +196,13 @@ export default function PatientIdentificationDialog({
           </>
         )}
         
-        {/* Error Dialog */}
+        {/* Error Dialog - Exact match to screenshot */}
         {dialogState === DialogState.ERROR && (
           <>
-            <div className="p-4">
+            <div className="px-4 py-4">
               <h2 className="text-lg font-medium">Patient Identification</h2>
-            </div>
             
-            <div className="px-4 pb-4 space-y-4">
-              <div className="text-sm text-red-500 flex items-start p-3 border border-red-200 rounded-md bg-red-50">
+              <div className="mt-3 text-red-500 flex items-start p-3 border border-red-200 rounded-md bg-red-50">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 mr-2 mt-0.5 flex-shrink-0">
                   <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path>
                   <path d="M12 9v4"></path>
@@ -213,24 +211,24 @@ export default function PatientIdentificationDialog({
                 <span>Speech recognition error: no-speech</span>
               </div>
               
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-gray-600 mt-4">
                 Please try again or type patient information manually.
               </p>
-            </div>
             
-            <div className="p-4 border-t flex justify-between">
-              <button 
-                className="px-4 py-2 text-gray-700 hover:text-gray-900 bg-white border border-gray-200 rounded"
-                onClick={onCancel}
-              >
-                Cancel
-              </button>
-              <button 
-                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                onClick={handleReset}
-              >
-                Try Again
-              </button>
+              <div className="flex justify-between mt-6">
+                <button 
+                  className="px-4 py-2 text-gray-700 hover:text-gray-900 border border-gray-300 rounded"
+                  onClick={onCancel}
+                >
+                  Cancel
+                </button>
+                <button 
+                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                  onClick={handleReset}
+                >
+                  Try Again
+                </button>
+              </div>
             </div>
           </>
         )}
