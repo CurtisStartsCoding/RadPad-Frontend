@@ -1,27 +1,15 @@
 import { useState } from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Mic, AlertTriangle, Check, X, Loader2 } from "lucide-react";
+import { Mic } from "lucide-react";
 
 interface PatientIdentificationDialogProps {
   open: boolean;
-  onClose: () => void;
+  onCancel: () => void;
   onIdentify: (patientInfo: { name: string; dob: string }) => void;
 }
 
 enum DialogState {
-  INITIAL = 'initial',
   LISTENING = 'listening',
   DICTATING = 'dictating',
-  PROCESSING = 'processing',
   CONFIRMATION = 'confirmation',
   ERROR = 'error',
   SUCCESS = 'success',
@@ -29,266 +17,318 @@ enum DialogState {
 
 export default function PatientIdentificationDialog({
   open,
-  onClose,
+  onCancel,
   onIdentify,
 }: PatientIdentificationDialogProps) {
-  const [dialogState, setDialogState] = useState<DialogState>(DialogState.INITIAL);
-  const [patientName, setPatientName] = useState<string>('');
-  const [patientDob, setPatientDob] = useState<string>('');
-  const [transcription, setTranscription] = useState<string>('');
+  const [dialogState, setDialogState] = useState<DialogState>(DialogState.LISTENING);
+  const [transcript, setTranscript] = useState<string>('');
   const [error, setError] = useState<string>('');
+  const [isListening, setIsListening] = useState<boolean>(false);
+  const [patientSuggestions, setPatientSuggestions] = useState<Array<{name: string, dob: string}>>([]);
   
-  // Simulate starting the dictation
-  const handleStartDictation = () => {
-    setDialogState(DialogState.LISTENING);
-    
-    // Simulate waiting for voice input
-    setTimeout(() => {
-      setDialogState(DialogState.DICTATING);
-      setTranscription('John Smith, date of birth 4/15/1975');
-      
-      // Simulate processing after voice input
+  // Toggle recording
+  const toggleRecording = () => {
+    if (isListening) {
+      setIsListening(false);
+      // After stopping, move to confirmation with example data
       setTimeout(() => {
-        setDialogState(DialogState.PROCESSING);
-        
-        // Simulate result
-        setTimeout(() => {
-          const parsed = {
-            name: 'John Smith',
-            dob: '04/15/1975 (48)'
-          };
-          
-          if (Math.random() > 0.2) { // 80% success rate for demo
-            setPatientName(parsed.name);
-            setPatientDob(parsed.dob);
-            setDialogState(DialogState.CONFIRMATION);
-          } else {
-            setError('Could not identify patient. Please try again or enter patient information manually.');
-            setDialogState(DialogState.ERROR);
-          }
-        }, 1500);
+        const exampleSuggestion = {
+          name: "Brad DeWitt",
+          dob: "01/01/1980"
+        };
+        setPatientSuggestions([exampleSuggestion]);
+        setDialogState(DialogState.CONFIRMATION);
+      }, 500);
+    } else {
+      setIsListening(true);
+      setTranscript('');
+      setError('');
+      
+      // Simulate dictation after a delay
+      setTimeout(() => {
+        setTranscript('Brad DeWitt January 1 1980');
+        setDialogState(DialogState.DICTATING);
       }, 1000);
-    }, 1500);
+    }
   };
   
-  // Handle confirmation
-  const handleConfirm = () => {
-    onIdentify({
-      name: patientName,
-      dob: patientDob
-    });
-    
-    // Go to success state
+  // Handle selection of a suggestion
+  const handleSelectSuggestion = (suggestion: {name: string, dob: string}) => {
+    onIdentify(suggestion);
     setDialogState(DialogState.SUCCESS);
     
-    // Close after showing success message
+    // Close after a short delay
     setTimeout(() => {
-      handleClose();
-    }, 1500);
+      handleReset();
+      onCancel();
+    }, 1000);
   };
   
-  // Handle dialog close
-  const handleClose = () => {
-    // Reset state
-    setTimeout(() => {
-      setDialogState(DialogState.INITIAL);
-      setPatientName('');
-      setPatientDob('');
-      setTranscription('');
-      setError('');
-    }, 300);
-    
-    onClose();
+  // Handle error state
+  const handleError = () => {
+    setIsListening(false);
+    setError('Speech recognition error: no-speech');
+    setDialogState(DialogState.ERROR);
   };
   
-  // Handle trying again after error
-  const handleTryAgain = () => {
-    setDialogState(DialogState.INITIAL);
+  // Handle manual text input
+  const handleManualInput = () => {
+    onIdentify({
+      name: transcript,
+      dob: "01/01/2000" // Default date
+    });
+    handleReset();
+  };
+  
+  // Reset everything
+  const handleReset = () => {
+    setDialogState(DialogState.LISTENING);
+    setTranscript('');
     setError('');
+    setIsListening(false);
+    setPatientSuggestions([]);
   };
+  
+  if (!open) return null;
   
   return (
-    <Dialog open={open} onOpenChange={(open) => !open && handleClose()}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="text-center">Patient Identification</DialogTitle>
-          <DialogDescription className="text-center">
-            {dialogState === DialogState.INITIAL && "Identify a patient using voice recognition"}
-            {dialogState === DialogState.LISTENING && "Listening for patient information..."}
-            {dialogState === DialogState.DICTATING && "Recording patient information..."}
-            {dialogState === DialogState.PROCESSING && "Processing patient information..."}
-            {dialogState === DialogState.CONFIRMATION && "Please confirm patient information"}
-            {dialogState === DialogState.ERROR && "Error identifying patient"}
-            {dialogState === DialogState.SUCCESS && "Patient identified successfully!"}
-          </DialogDescription>
-        </DialogHeader>
-        
-        <div className="flex flex-col items-center justify-center py-4">
-          {/* Initial State */}
-          {dialogState === DialogState.INITIAL && (
-            <div className="text-center">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-100 mb-4">
-                <Mic className="h-8 w-8 text-blue-600" />
-              </div>
-              <p className="text-sm text-gray-600 mb-6 max-w-xs mx-auto">
-                Dictate the patient's name and date of birth to automatically identify them in your EMR system.
-              </p>
-              <Button 
-                onClick={handleStartDictation}
-                className="bg-blue-600 hover:bg-blue-700"
-              >
-                Start Dictation
-              </Button>
-            </div>
-          )}
-          
-          {/* Listening State */}
-          {dialogState === DialogState.LISTENING && (
-            <div className="text-center">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-100 mb-4 relative">
-                <Mic className="h-8 w-8 text-blue-600" />
-                <div className="absolute inset-0 rounded-full border-4 border-blue-400 animate-ping opacity-75"></div>
-              </div>
-              <p className="text-sm text-gray-600 mb-2">
-                Ready to hear patient information
-              </p>
-              <p className="text-xs text-gray-500">
-                Say the patient's full name and date of birth...
-              </p>
-            </div>
-          )}
-          
-          {/* Dictating State */}
-          {dialogState === DialogState.DICTATING && (
-            <div className="text-center w-full">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-100 mb-4">
-                <Mic className="h-8 w-8 text-blue-600" />
-                <div className="absolute w-16 h-16 rounded-full border-4 border-blue-400 animate-pulse"></div>
-              </div>
-              <Card className="mb-4 border-blue-200 w-full">
-                <CardContent className="p-3">
-                  <p className="text-sm text-gray-800 font-medium">{transcription}</p>
-                </CardContent>
-              </Card>
-              <div className="flex justify-center">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
-                  onClick={handleClose}
-                >
-                  Cancel
-                </Button>
-              </div>
-            </div>
-          )}
-          
-          {/* Processing State */}
-          {dialogState === DialogState.PROCESSING && (
-            <div className="text-center">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-100 mb-4">
-                <Loader2 className="h-8 w-8 text-blue-600 animate-spin" />
-              </div>
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg shadow-lg max-w-md w-full mx-4">
+        {/* Listening/Dictating Dialog */}
+        {(dialogState === DialogState.LISTENING || dialogState === DialogState.DICTATING) && (
+          <>
+            <div className="p-4 border-b">
+              <h2 className="text-lg font-medium">Patient Identification</h2>
               <p className="text-sm text-gray-600">
-                Processing and validating patient information...
+                Please speak or type the patient's name and date of birth.
               </p>
             </div>
-          )}
-          
-          {/* Confirmation State */}
-          {dialogState === DialogState.CONFIRMATION && (
-            <div className="w-full">
-              <div className="flex items-center justify-center mb-4">
-                <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-amber-100">
-                  <AlertTriangle className="h-6 w-6 text-amber-600" />
+            
+            <div className="p-4 space-y-4">
+              <div className="flex justify-between items-center">
+                <div>
+                  <span className="text-sm text-gray-700">
+                    {isListening ? (
+                      <span className="flex items-center text-blue-600">
+                        <span className="animate-pulse mr-1">●</span> Recording...
+                      </span>
+                    ) : (
+                      <span>Say name and date of birth</span>
+                    )}
+                  </span>
+                </div>
+                <button
+                  className={`h-8 w-8 p-0 rounded-full flex items-center justify-center ${isListening ? 'bg-red-500 text-white' : 'bg-gray-100 text-gray-700'}`}
+                  onClick={toggleRecording}
+                  title={isListening ? "Stop recording" : "Start recording"}
+                  aria-label={isListening ? "Stop recording" : "Start recording"}
+                >
+                  {isListening ? (
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect width="16" height="16" x="4" y="4"></rect>
+                    </svg>
+                  ) : (
+                    <Mic className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
+              
+              {dialogState === DialogState.DICTATING && (
+                <div className="text-sm border p-2 rounded-md bg-gray-50">
+                  <span className="font-medium text-blue-600">Saying: </span>
+                  <span className="italic">{transcript || "..."}</span>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Example: "Patient John Smith, date of birth January 15, 1980"
+                  </p>
+                </div>
+              )}
+              
+              {error && (
+                <div className="text-sm text-red-500 flex items-start p-2 border border-red-200 rounded-md bg-red-50">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 mr-1 mt-0.5 flex-shrink-0">
+                    <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path>
+                    <path d="M12 9v4"></path>
+                    <path d="M12 17h.01"></path>
+                  </svg>
+                  <span>{error}</span>
+                </div>
+              )}
+              
+              {/* Manual input */}
+              <div className="pt-2">
+                <div className="text-sm mb-2">Or type patient information:</div>
+                <div className="flex gap-2">
+                  <input 
+                    type="text" 
+                    placeholder="Type name and date of birth" 
+                    className="px-3 py-1 border border-gray-300 rounded-md text-sm flex-1"
+                    value={transcript}
+                    onChange={(e) => {
+                      setError("");
+                      setTranscript(e.target.value);
+                    }}
+                  />
+                  <button
+                    className="px-3 py-1 border border-gray-300 rounded-md text-sm"
+                    onClick={toggleRecording}
+                  >
+                    Parse
+                  </button>
                 </div>
               </div>
-              
-              <div className="bg-white border border-gray-200 rounded-lg p-4 mb-4">
-                <h3 className="text-sm font-medium text-gray-900 mb-1">Patient Information</h3>
-                <div className="space-y-2">
-                  <div>
-                    <span className="text-xs text-gray-500">Name:</span>
-                    <p className="text-sm font-medium">{patientName}</p>
-                  </div>
-                  <div>
-                    <span className="text-xs text-gray-500">Date of Birth:</span>
-                    <p className="text-sm font-medium">{patientDob}</p>
-                  </div>
-                </div>
-              </div>
-              
-              <p className="text-sm text-gray-600 mb-4 text-center">
-                Is this information correct?
-              </p>
-              
-              <div className="flex justify-between">
-                <Button 
-                  variant="outline" 
-                  onClick={handleClose}
-                >
-                  Cancel
-                </Button>
-                <Button 
-                  className="bg-blue-600 hover:bg-blue-700"
-                  onClick={handleConfirm}
-                >
-                  Confirm
-                </Button>
-              </div>
             </div>
-          )}
-          
-          {/* Error State */}
-          {dialogState === DialogState.ERROR && (
-            <div className="text-center">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-100 mb-4">
-                <X className="h-8 w-8 text-red-600" />
-              </div>
-              <p className="text-sm text-red-600 mb-6 max-w-xs mx-auto">
-                {error}
-              </p>
-              <div className="flex space-x-3">
-                <Button 
-                  variant="outline"
-                  onClick={handleTryAgain}
-                >
-                  Try Again
-                </Button>
-                <Button 
-                  className="bg-blue-600 hover:bg-blue-700"
-                  onClick={handleClose}
-                >
-                  Close
-                </Button>
-              </div>
+            
+            <div className="p-4 border-t flex justify-between">
+              <button 
+                className="px-4 py-2 text-gray-700 hover:text-gray-900"
+                onClick={onCancel}
+              >
+                Cancel
+              </button>
+              <button 
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                onClick={handleError}
+              >
+                Identify Patient
+              </button>
             </div>
-          )}
-          
-          {/* Success State */}
-          {dialogState === DialogState.SUCCESS && (
-            <div className="text-center">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-100 mb-4">
-                <Check className="h-8 w-8 text-green-600" />
-              </div>
-              <p className="text-sm text-green-600 mb-2 font-medium">
-                Patient identified successfully!
-              </p>
-              <p className="text-xs text-gray-500">
-                Patient information has been added to the order.
-              </p>
-            </div>
-          )}
-        </div>
-        
-        {dialogState === DialogState.INITIAL && (
-          <DialogFooter className="text-xs text-gray-500 text-center">
-            <p className="w-full">
-              You can also type in patient information manually by clicking the edit button after closing this dialog.
-            </p>
-          </DialogFooter>
+          </>
         )}
-      </DialogContent>
-    </Dialog>
+        
+        {/* Error Dialog */}
+        {dialogState === DialogState.ERROR && (
+          <>
+            <div className="p-4 border-b">
+              <h2 className="text-lg font-medium">Patient Identification</h2>
+            </div>
+            
+            <div className="p-4 space-y-4">
+              <div className="text-sm text-red-500 flex items-start p-2 border border-red-200 rounded-md bg-red-50">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 mr-1 mt-0.5 flex-shrink-0">
+                  <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path>
+                  <path d="M12 9v4"></path>
+                  <path d="M12 17h.01"></path>
+                </svg>
+                <span>{error}</span>
+              </div>
+              
+              <p className="text-sm text-gray-600">
+                Please try again or type patient information manually.
+              </p>
+            </div>
+            
+            <div className="p-4 border-t flex justify-between">
+              <button 
+                className="px-4 py-2 text-gray-700 hover:text-gray-900"
+                onClick={onCancel}
+              >
+                Cancel
+              </button>
+              <button 
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                onClick={handleReset}
+              >
+                Try Again
+              </button>
+            </div>
+          </>
+        )}
+        
+        {/* Confirmation Dialog */}
+        {dialogState === DialogState.CONFIRMATION && (
+          <>
+            <div className="p-4 border-b">
+              <h2 className="text-lg font-medium">Confirm Patient Information</h2>
+              <p className="text-sm text-gray-600">
+                Please select the correct interpretation of your dictation:
+              </p>
+            </div>
+            
+            <div className="p-4 space-y-3">
+              {/* Show the original transcript */}
+              <div className="bg-gray-50 p-3 rounded-md text-sm">
+                <span className="font-semibold">You said:</span>
+                <div className="italic mt-1">{transcript}</div>
+              </div>
+              
+              {/* Map suggestions to selectable cards */}
+              <div className="space-y-2">
+                <div className="text-sm font-medium">Select the correct patient information:</div>
+                
+                {patientSuggestions.map((suggestion, index) => (
+                  <div
+                    key={index}
+                    className="border border-gray-200 hover:border-blue-500 rounded-md p-3 cursor-pointer transition-colors flex items-start"
+                    onClick={() => handleSelectSuggestion(suggestion)}
+                  >
+                    <div className="flex-1">
+                      <div className="flex items-center">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 mr-2 text-gray-500">
+                          <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path>
+                          <circle cx="12" cy="7" r="4"></circle>
+                        </svg>
+                        <span className="font-medium">{suggestion.name}</span>
+                      </div>
+                      <div className="flex items-center mt-1">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 mr-2 text-gray-500">
+                          <rect width="18" height="18" x="3" y="4" rx="2" ry="2"></rect>
+                          <line x1="16" x2="16" y1="2" y2="6"></line>
+                          <line x1="8" x2="8" y1="2" y2="6"></line>
+                          <line x1="3" x2="21" y1="10" y2="10"></line>
+                        </svg>
+                        <span>{suggestion.dob}</span>
+                      </div>
+                    </div>
+                    <div className="ml-2">
+                      <button 
+                        className="px-3 py-1 border border-gray-300 rounded-md text-sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleSelectSuggestion(suggestion);
+                        }}
+                      >
+                        Select
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              
+              {/* Option to use raw text as name */}
+              <button
+                className="w-full text-xs text-gray-600 hover:text-gray-900 py-2"
+                onClick={handleManualInput}
+              >
+                Use entire text as patient name
+              </button>
+            </div>
+            
+            <div className="p-4 border-t flex justify-end">
+              <button 
+                className="px-4 py-2 border border-gray-300 rounded-md"
+                onClick={handleReset}
+              >
+                Cancel
+              </button>
+            </div>
+          </>
+        )}
+        
+        {/* Success Dialog - This is typically not shown as a dialog, 
+             but rather reflected in the main screen's update */}
+        {dialogState === DialogState.SUCCESS && (
+          <div className="p-4 text-center">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mx-auto text-green-500 mb-4">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+              <polyline points="22 4 12 14.01 9 11.01"></polyline>
+            </svg>
+            <h2 className="text-lg font-medium mb-2">Patient identified!</h2>
+            <p className="text-sm text-gray-600">
+              The patient information has been added to your order.
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
