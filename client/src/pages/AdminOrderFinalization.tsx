@@ -121,9 +121,90 @@ const AdminOrderFinalization: React.FC<AdminOrderFinalizationProps> = ({ navigat
     setCurrentTab(value);
   };
   
+  // EMR Paste state
+  const [emrText, setEmrText] = useState("");
+  const [isParsing, setIsParsing] = useState(false);
+  const [parsingComplete, setParsingComplete] = useState(false);
+  const [parsingStatus, setParsingStatus] = useState<{
+    patient: boolean;
+    insurance: boolean;
+    message: string;
+  }>({
+    patient: false,
+    insurance: false,
+    message: ""
+  });
+
+  // Handle EMR paste
+  const handleEmrTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setEmrText(e.target.value);
+  };
+
+  // Parse EMR text
+  const handleParseEmr = () => {
+    if (!emrText.trim()) {
+      toast({
+        title: "Error",
+        description: "Please paste EMR text first",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsParsing(true);
+    // Simulate API call to parse EMR text
+    setTimeout(() => {
+      // Mock successful parsing
+      setPatientInfo({
+        ...patientInfo,
+        firstName: "Margaret",
+        lastName: "Thompson",
+        dateOfBirth: "1975-08-15",
+        gender: "female",
+        addressLine1: "456 Park Avenue",
+        addressLine2: "Apt 7B",
+        city: "New York",
+        state: "NY",
+        zipCode: "10022",
+        phoneNumber: "(212) 555-9876",
+        email: "m.thompson@example.com",
+        mrn: "PT789012"
+      });
+      
+      setInsuranceInfo({
+        ...insuranceInfo,
+        insurerName: "Aetna Health Insurance",
+        policyNumber: "AET12345678",
+        groupNumber: "GRP-98765",
+        policyHolderName: "Margaret Thompson",
+        policyHolderRelationship: "self",
+        policyHolderDateOfBirth: "1975-08-15",
+        secondaryInsurerName: "Medicare Part B",
+        secondaryPolicyNumber: "MED87654321",
+        secondaryGroupNumber: "MEDGRP-54321"
+      });
+      
+      setIsParsing(false);
+      setParsingComplete(true);
+      setParsingStatus({
+        patient: true,
+        insurance: true,
+        message: "Successfully extracted patient and insurance information from EMR text."
+      });
+
+      toast({
+        title: "Success",
+        description: "Patient and insurance information extracted successfully",
+        variant: "default",
+      });
+    }, 2000);
+  };
+
   // Handle navigation to next tab
   const handleNextTab = () => {
-    if (currentTab === "patient") {
+    if (currentTab === "emr-paste") {
+      setCurrentTab("patient");
+    } else if (currentTab === "patient") {
       setCurrentTab("insurance");
     } else if (currentTab === "insurance") {
       setCurrentTab("supplemental");
@@ -134,7 +215,9 @@ const AdminOrderFinalization: React.FC<AdminOrderFinalizationProps> = ({ navigat
   
   // Handle navigation to previous tab
   const handlePreviousTab = () => {
-    if (currentTab === "insurance") {
+    if (currentTab === "patient") {
+      setCurrentTab("emr-paste");
+    } else if (currentTab === "insurance") {
       setCurrentTab("patient");
     } else if (currentTab === "supplemental") {
       setCurrentTab("insurance");
@@ -258,12 +341,110 @@ const AdminOrderFinalization: React.FC<AdminOrderFinalizationProps> = ({ navigat
           <Card>
             <CardContent className="pt-6">
               <Tabs value={currentTab} onValueChange={handleTabChange}>
-                <TabsList className="grid grid-cols-4 mb-6">
+                <TabsList className="grid grid-cols-5 mb-6">
+                  <TabsTrigger value="emr-paste">EMR Paste</TabsTrigger>
                   <TabsTrigger value="patient">Patient Info</TabsTrigger>
                   <TabsTrigger value="insurance">Insurance</TabsTrigger>
                   <TabsTrigger value="supplemental">Supplemental</TabsTrigger>
                   <TabsTrigger value="review">Review & Send</TabsTrigger>
                 </TabsList>
+                
+                <TabsContent value="emr-paste">
+                  <div className="space-y-4">
+                    <div className="bg-slate-50 p-4 rounded-md border border-slate-200">
+                      <h3 className="text-lg font-medium flex items-center mb-2">
+                        <InfoIcon className="h-5 w-5 mr-2 text-blue-500" />
+                        EMR Patient Summary Parser
+                      </h3>
+                      <p className="text-sm text-slate-600 mb-4">
+                        Copy and paste text from your EMR patient summary or face sheet below. The system will automatically
+                        extract patient demographics and insurance information, saving you time on manual data entry.
+                      </p>
+                    </div>
+
+                    <div>
+                      <div className="flex justify-between mb-1">
+                        <Label htmlFor="emrText">EMR Patient Summary Text</Label>
+                        <Button 
+                          variant="link" 
+                          className="h-auto p-0 text-xs text-blue-500"
+                          onClick={() => setEmrText(`PATIENT DEMOGRAPHICS:
+Name: Thompson, Margaret
+DOB: 08/15/1975
+Sex: Female
+MRN: PT789012
+Address: 456 Park Avenue, Apt 7B, New York, NY 10022
+Phone: (212) 555-9876
+Email: m.thompson@example.com
+
+INSURANCE INFORMATION:
+Primary Insurance: Aetna Health Insurance
+Policy #: AET12345678
+Group #: GRP-98765
+Policy Holder: Thompson, Margaret
+Relationship to Patient: Self
+Policy Holder DOB: 08/15/1975
+
+Secondary Insurance: Medicare Part B
+Policy #: MED87654321
+Group #: MEDGRP-54321
+
+HEALTHCARE PROVIDER:
+PCP: Dr. James Wilson
+PCP Phone: (212) 555-1234
+Referring Provider: Dr. Sarah Johnson`)}
+                        >
+                          Load example text
+                        </Button>
+                      </div>
+                      <Textarea
+                        id="emrText"
+                        placeholder="Copy and paste text from EMR patient summary here..."
+                        className="min-h-[200px] font-mono text-sm"
+                        value={emrText}
+                        onChange={handleEmrTextChange}
+                      />
+                    </div>
+
+                    <div className="flex justify-between items-center">
+                      <div>
+                        {parsingComplete && (
+                          <div className="flex items-center text-sm text-green-600">
+                            <CheckCircle className="h-4 w-4 mr-1" />
+                            {parsingStatus.message}
+                          </div>
+                        )}
+                      </div>
+                      <Button 
+                        onClick={handleParseEmr}
+                        disabled={isParsing || !emrText.trim()}
+                      >
+                        {isParsing ? (
+                          <>
+                            <span className="mr-2">Parsing...</span>
+                            <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                          </>
+                        ) : "Extract Patient Information"}
+                      </Button>
+                    </div>
+
+                    {parsingComplete && (
+                      <Alert className="mt-4 bg-green-50">
+                        <CheckCircle className="h-4 w-4 text-green-600" />
+                        <AlertTitle>Information extracted successfully</AlertTitle>
+                        <AlertDescription>
+                          Patient and insurance information has been automatically extracted. You can review and edit the details in the next tabs.
+                        </AlertDescription>
+                      </Alert>
+                    )}
+
+                    <div className="flex justify-end mt-6">
+                      <Button onClick={handleNextTab}>
+                        Continue to Patient Info
+                      </Button>
+                    </div>
+                  </div>
+                </TabsContent>
                 
                 <TabsContent value="patient">
                   <div className="space-y-4">
