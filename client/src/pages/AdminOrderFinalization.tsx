@@ -54,7 +54,11 @@ const AdminOrderFinalization: React.FC<AdminOrderFinalizationProps> = ({ navigat
   const { toast } = useToast();
   
   // Mock order data based on ID (in a real app, this would be fetched from API)
-  const [order, setOrder] = useState({...allOrders[0]}); // Just use first order for mock
+  // Just use first order for mock, but override modality for this example
+  const [order, setOrder] = useState({
+    ...allOrders[0], 
+    modality: "MRI Knee"
+  });
   
   // Function to update radiology group
   const setRadiologyGroup = (group: string) => {
@@ -97,8 +101,11 @@ const AdminOrderFinalization: React.FC<AdminOrderFinalizationProps> = ({ navigat
   
   // Supplemental information state
   const [supplementalInfo, setSupplementalInfo] = useState({
-    text: "Patient has history of migraines. Previous imaging from 2024 showed no significant findings. Patient reports worsening symptoms in the past month."
+    text: "Patient has history of right knee pain. Previous imaging from 2024 showed no significant findings. Patient reports worsening symptoms in the past month."
   });
+  
+  // Clinical Summary for Review Page - Matches the reference image
+  const clinicalSummaryForReview = "Patient has history of right knee pain. Previous imaging from 2024 showed no significant findings. Patient reports worsening symptoms in the past month.";
   
   // Order details state
   const [orderDetails, setOrderDetails] = useState({
@@ -106,12 +113,12 @@ const AdminOrderFinalization: React.FC<AdminOrderFinalizationProps> = ({ navigat
     location: "Advanced Imaging Center – East Campus",
     scheduling: "Within 14 days",
     priority: "Routine",
-    primaryIcd10: "G43.909",
-    primaryDescription: "Migraine, unspecified, not intractable, without status migrainosus",
-    secondaryIcd10: "R51.9",
-    secondaryDescription: "Headache, unspecified",
-    cptCode: "70551",
-    cptDescription: "MRI brain without contrast",
+    primaryIcd10: "M25.561",
+    primaryDescription: "Pain in right knee",
+    secondaryIcd10: "M17.11",
+    secondaryDescription: "Unilateral primary osteoarthritis, right knee",
+    cptCode: "73721",
+    cptDescription: "MRI knee without contrast",
     instructions: "✓ No contraindications to contrast.\n✓ No known drug allergies.\n→ Patient reports claustrophobia; sedation may be required."
   });
   
@@ -381,11 +388,11 @@ const AdminOrderFinalization: React.FC<AdminOrderFinalizationProps> = ({ navigat
                   <div>
                     <p className="text-sm font-medium text-blue-800 mb-1">Clinical Indication</p>
                     <p className="text-sm text-blue-700">
-                      45-year-old female with chronic headaches persisting for over 3 months. 
-                      Patient reports severe pain localized to the right temporal region with occasional 
-                      visual disturbances. Not responsive to standard migraine medications. 
-                      Patient has history of migraines. Previous imaging from 2024 showed no significant findings.
-                      Request MRI brain to evaluate for structural abnormalities.
+                      45-year-old female with right knee pain persisting for over 3 months. 
+                      Patient reports pain with weight bearing and difficulty climbing stairs.
+                      Not responsive to NSAIDs and physical therapy. 
+                      Previous X-ray from 2024 showed mild degenerative changes.
+                      Request MRI knee to evaluate for meniscal tear and ligament integrity.
                     </p>
                   </div>
                 </div>
@@ -970,7 +977,7 @@ Referring Provider: Dr. Sarah Johnson`)}
                         
                         <h2 className="text-lg font-medium border-b border-slate-200 mb-3 pb-1">Clinical Summary</h2>
                         <div className="bg-slate-50 p-3 rounded mb-6 font-mono text-sm whitespace-pre-wrap">
-                          {supplementalInfo.text}
+                          {clinicalSummaryForReview}
                         </div>
                         
                         <h2 className="text-lg font-medium border-b border-slate-200 mb-3 pb-1">Diagnosis + CPT</h2>
