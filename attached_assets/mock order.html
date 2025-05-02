@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Optimized Imaging Order</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #fff;
+      color: #111;
+      max-width: 900px;
+      margin: 2rem auto;
+      padding: 2rem;
+      border: 1px solid #ccc;
+      border-radius: 0.5rem;
+    }
+    h1 {
+      font-size: 1.5rem;
+      margin-bottom: 0.25rem;
+    }
+    h2 {
+      font-size: 1.1rem;
+      border-bottom: 1px solid #ccc;
+      padding-bottom: 0.25rem;
+      margin-top: 1.5rem;
+    }
+    .row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 0.35rem;
+    }
+    .label {
+      font-weight: 600;
+      color: #333;
+      min-width: 180px;
+    }
+    .value {
+      flex: 1;
+    }
+    .mono {
+      font-family: monospace;
+      background: #f9f9f9;
+      padding: 0.75rem;
+      border-radius: 5px;
+      border: 1px solid #eee;
+      white-space: pre-wrap;
+      margin-top: 0.5rem;
+    }
+    .flex-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 2rem;
+    }
+    .col {
+      flex: 1;
+      min-width: 260px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>RADORDERPAD — VALIDATED IMAGING ORDER</h1>
+  <div class="row"><div class="label">Order #:</div><div class="value">ROP-230425-01</div></div>
+  <div class="row"><div class="label">Study:</div><div class="value">MRI Right Shoulder with Contrast</div></div>
+  <div class="row"><div class="label">Location:</div><div class="value">Advanced Imaging Center – University Campus</div></div>
+  <div class="row"><div class="label">Scheduling:</div><div class="value">Within 7 days – Return-to-play clearance</div></div>
+  <div class="row"><div class="label">Priority:</div><div class="value">Routine</div></div>
+
+  <h2>Clinical Summary</h2>
+  <div class="mono">
+25-year-old male with 6-week history of right shoulder pain after fall during tennis. Reports clicking and locking. Physical exam shows joint line tenderness and positive labral signs. SLAP lesion suspected. Imaging requested to assess labral integrity and rule out joint derangement.
+  </div>
+
+  <h2>Diagnosis + CPT</h2>
+  <div class="row"><div class="label">Primary ICD-10:</div><div class="value">M24.811 — Derangement of right shoulder</div></div>
+  <div class="row"><div class="label">Secondary ICD-10:</div><div class="value">S43.431A — SLAP lesion, right shoulder (initial)</div></div>
+  <div class="row"><div class="label">CPT Code:</div><div class="value">73722 — MRI upper extremity joint with contrast</div></div>
+
+  <h2>Validation & Authorization</h2>
+  <div class="row"><div class="label">AUC Score:</div><div class="value">92/100 – ACR Validated</div></div>
+  <div class="row"><div class="label">Authorization #:</div><div class="value">AUTH8765432</div></div>
+  <div class="row"><div class="label">Validated On:</div><div class="value">04/03/2025</div></div>
+
+  <h2>Referring Physician</h2>
+  <div class="flex-grid">
+    <div class="col">
+      <div class="row"><div class="label">Name:</div><div class="value">Dr. Maria Rodriguez</div></div>
+      <div class="row"><div class="label">NPI:</div><div class="value">9876543210</div></div>
+    </div>
+    <div class="col">
+      <div class="row"><div class="label">Clinic:</div><div class="value">University Sports Medicine</div></div>
+      <div class="row"><div class="label">Phone:</div><div class="value">(555) 987-6543</div></div>
+      <div class="row"><div class="label">Signed:</div><div class="value">04/03/2025</div></div>
+    </div>
+  </div>
+
+  <h2>Patient Information</h2>
+  <div class="flex-grid">
+    <div class="col">
+      <div class="row"><div class="label">Name:</div><div class="value">Alex Thompson</div></div>
+      <div class="row"><div class="label">DOB:</div><div class="value">01/15/2000 (25y)</div></div>
+      <div class="row"><div class="label">Sex:</div><div class="value">Male</div></div>
+      <div class="row"><div class="label">Phone:</div><div class="value">(555) 123-9876</div></div>
+    </div>
+    <div class="col">
+      <div class="row"><div class="label">Address:</div><div class="value">123 College Ave, Gainesville, FL 32608</div></div>
+      <div class="row"><div class="label">MRN:</div><div class="value">AT20000115</div></div>
+      <div class="row"><div class="label">Insurance:</div><div class="value">Blue Cross PPO — Policy #BCB6542187</div></div>
+    </div>
+  </div>
+
+  <h2>Instructions</h2>
+  <div class="mono">
+✓ No contraindications to contrast.
+✓ No known drug allergies.
+→ Request MRI be scheduled within 7 days for athletic clearance.
+  </div>
+
+</body>
+</html>

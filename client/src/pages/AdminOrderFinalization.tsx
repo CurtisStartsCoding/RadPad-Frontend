@@ -90,6 +90,30 @@ const AdminOrderFinalization: React.FC<AdminOrderFinalizationProps> = ({ navigat
     text: "Patient has history of migraines. Previous imaging from 2024 showed no significant findings. Patient reports worsening symptoms in the past month."
   });
   
+  // Order details state
+  const [orderDetails, setOrderDetails] = useState({
+    orderNumber: `ROP-${new Date().toISOString().slice(2,4)}${new Date().toISOString().slice(5,7)}${new Date().toISOString().slice(8,10)}-01`,
+    location: "Advanced Imaging Center – University Campus",
+    scheduling: "Within 7 days",
+    priority: "Routine",
+    primaryIcd10: "M24.811",
+    primaryDescription: "Derangement of right shoulder",
+    secondaryIcd10: "S43.431A",
+    secondaryDescription: "SLAP lesion, right shoulder (initial)",
+    cptCode: "73722",
+    cptDescription: "MRI upper extremity joint with contrast",
+    instructions: "✓ No contraindications to contrast.\n✓ No known drug allergies.\n→ Request MRI be scheduled within 7 days for athletic clearance."
+  });
+  
+  // Referring physician state
+  const [referringPhysician, setReferringPhysician] = useState({
+    name: "Dr. Maria Rodriguez",
+    npi: "9876543210",
+    clinic: "University Sports Medicine",
+    phone: "(555) 987-6543",
+    signedDate: "04/03/2025"
+  });
+  
   // Handle patient info change
   const handlePatientInfoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
