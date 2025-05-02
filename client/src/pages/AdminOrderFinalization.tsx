@@ -936,6 +936,15 @@ Referring Provider: Dr. Sarah Johnson`)}
                       Review Order
                     </Button>
                   </div>
+                  
+                  {/* Document Management Section */}
+                  <div className="mt-8">
+                    <h3 className="text-lg font-medium mb-4">Document Management</h3>
+                    <DocumentManager 
+                      orderId={order.id} 
+                      patientId={Number(order.patient.id)} 
+                    />
+                  </div>
                 </TabsContent>
                 
                 <TabsContent value="review">
