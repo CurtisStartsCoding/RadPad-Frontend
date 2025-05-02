@@ -19,6 +19,7 @@ import Connections from "@/pages/Connections";
 import BillingCredits from "@/pages/BillingCredits";
 import MyProfile from "@/pages/MyProfile";
 import Security from "@/pages/Security";
+import TrialValidation from "@/pages/TrialValidation";
 import NotFound from "@/pages/not-found";
 
 // Enum for all available pages
@@ -29,6 +30,7 @@ export enum AppPage {
   AdminQueue = "admin-queue",
   AdminOrderFinalization = "admin-order-finalization",
   RadiologyQueue = "radiology-queue",
+  TrialValidation = "trial-validation",
   OrgProfile = "org-profile",
   Locations = "locations",
   Users = "users",
@@ -57,6 +59,8 @@ function App() {
         return <AdminOrderFinalization navigateTo={(page) => setCurrentPage(page)} />;
       case AppPage.RadiologyQueue:
         return <RadiologyQueue />;
+      case AppPage.TrialValidation:
+        return <TrialValidation />;
       case AppPage.OrgProfile:
         return <OrganizationProfile />;
       case AppPage.Locations:
