@@ -1,5 +1,7 @@
 # RadOrderPad UI Pages Documentation
 
+*Created: May 2, 2025 at 02:18 UTC*
+
 This document provides detailed information about each page/screen in the RadOrderPad UI mockup, including their purpose, key components, and features.
 
 ## Table of Contents

@@ -1,5 +1,7 @@
 # RadOrderPad UI Mockup Documentation
 
+*Created: May 2, 2025 at 02:15 UTC*
+
 ## Project Overview
 
 RadOrderPad is a non-functional UI mockup for an imaging order platform designed for the healthcare sector. The platform allows referring physicians to dictate imaging orders, which are then completed with additional information by office administrative staff before being sent to radiology groups for scheduling and execution.
