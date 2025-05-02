@@ -5,6 +5,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { temporaryPatient } from "@/lib/mock-data";
 import PatientInfoCard from "@/components/order/PatientInfoCard";
 import ValidationView from "@/components/order/ValidationView";
+import PatientIdentificationDialog from "@/components/order/PatientIdentificationDialog";
 import { ArrowLeft, AlertCircle, Info, X, Beaker, InfoIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { UserRole } from "@/lib/roles";
@@ -48,9 +49,29 @@ const NewOrder = ({ userRole = UserRole.Physician }: NewOrderProps) => {
   const [attemptCount, setAttemptCount] = useState(0);
   const [characterCount, setCharacterCount] = useState(0);
   const [remainingCredits, setRemainingCredits] = useState(5);
+  const [isPatientDialogOpen, setIsPatientDialogOpen] = useState(false);
+  const [patient, setPatient] = useState(temporaryPatient);
   
   // Check if user is trial user
   const isTrialUser = userRole === UserRole.TrialPhysician;
+  
+  // Handle opening patient identification dialog
+  const handleEditPatient = () => {
+    setIsPatientDialogOpen(true);
+  };
+  
+  // Handle patient identification
+  const handlePatientIdentified = (patientInfo: { name: string; dob: string }) => {
+    // Update patient with identified information
+    setPatient({
+      ...patient,
+      name: patientInfo.name,
+      dob: patientInfo.dob
+    });
+    
+    // Close the dialog
+    setIsPatientDialogOpen(false);
+  };
   
   // Process order
   const handleProcessOrder = () => {
@@ -120,7 +141,9 @@ const NewOrder = ({ userRole = UserRole.Physician }: NewOrderProps) => {
   return (
     <div className="max-w-5xl mx-auto bg-gray-50 rounded-lg">
       <div className="flex items-center justify-between py-4 border-b border-gray-200 px-4">
-        <h1 className="text-xl font-medium">Radiology Order - Unknown Patient</h1>
+        <h1 className="text-xl font-medium">
+          Radiology Order - {patient.name === "Unknown Patient" ? "Unknown Patient" : patient.name}
+        </h1>
         <div className="flex items-center space-x-2">
           <div className="flex items-center">
             <span className="h-2 w-2 bg-blue-600 rounded-full mr-1"></span>
@@ -164,11 +187,18 @@ const NewOrder = ({ userRole = UserRole.Physician }: NewOrderProps) => {
         {!isTrialUser && (
           <div className="mb-6">
             <PatientInfoCard 
-              patient={temporaryPatient} 
-              onEditPatient={() => console.log("Add patient clicked")}
+              patient={patient} 
+              onEditPatient={handleEditPatient}
             />
           </div>
         )}
+        
+        {/* Patient Identification Dialog */}
+        <PatientIdentificationDialog
+          open={isPatientDialogOpen}
+          onClose={() => setIsPatientDialogOpen(false)}
+          onIdentify={handlePatientIdentified}
+        />
         
         {/* Dictation Form */}
         {orderStep === 'dictation' && (
