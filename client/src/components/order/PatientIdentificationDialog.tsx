@@ -20,10 +20,9 @@ export default function PatientIdentificationDialog({
   onCancel,
   onIdentify,
 }: PatientIdentificationDialogProps) {
-  // Start with ERROR state for this demonstration
-  const [dialogState, setDialogState] = useState<DialogState>(DialogState.ERROR);
+  const [dialogState, setDialogState] = useState<DialogState>(DialogState.LISTENING);
   const [transcript, setTranscript] = useState<string>('');
-  const [error, setError] = useState<string>('Speech recognition error: no-speech');
+  const [error, setError] = useState<string>('');
   const [isListening, setIsListening] = useState<boolean>(false);
   const [patientSuggestions, setPatientSuggestions] = useState<Array<{name: string, dob: string}>>([]);
   
@@ -196,39 +195,41 @@ export default function PatientIdentificationDialog({
           </>
         )}
         
-        {/* Error Dialog - Exact match to screenshot */}
+        {/* Error Dialog */}
         {dialogState === DialogState.ERROR && (
           <>
-            <div className="px-4 py-4">
+            <div className="p-4 border-b">
               <h2 className="text-lg font-medium">Patient Identification</h2>
+            </div>
             
-              <div className="mt-3 text-red-500 flex items-start p-3 border border-red-200 rounded-md bg-red-50">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 mr-2 mt-0.5 flex-shrink-0">
+            <div className="p-4 space-y-4">
+              <div className="text-sm text-red-500 flex items-start p-2 border border-red-200 rounded-md bg-red-50">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 mr-1 mt-0.5 flex-shrink-0">
                   <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path>
                   <path d="M12 9v4"></path>
                   <path d="M12 17h.01"></path>
                 </svg>
-                <span>Speech recognition error: no-speech</span>
+                <span>{error}</span>
               </div>
               
-              <p className="text-sm text-gray-600 mt-4">
+              <p className="text-sm text-gray-600">
                 Please try again or type patient information manually.
               </p>
+            </div>
             
-              <div className="flex justify-between mt-6">
-                <button 
-                  className="px-4 py-2 text-gray-700 hover:text-gray-900 border border-gray-300 rounded"
-                  onClick={onCancel}
-                >
-                  Cancel
-                </button>
-                <button 
-                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                  onClick={handleReset}
-                >
-                  Try Again
-                </button>
-              </div>
+            <div className="p-4 border-t flex justify-between">
+              <button 
+                className="px-4 py-2 text-gray-700 hover:text-gray-900"
+                onClick={onCancel}
+              >
+                Cancel
+              </button>
+              <button 
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                onClick={handleReset}
+              >
+                Try Again
+              </button>
             </div>
           </>
         )}
@@ -250,38 +251,47 @@ export default function PatientIdentificationDialog({
                 <div className="italic mt-1">{transcript}</div>
               </div>
               
-              {/* Patient selection card - exactly matching the screenshot */}
-              <div>
-                <div className="text-sm font-medium mb-2">Select the correct patient information:</div>
+              {/* Map suggestions to selectable cards */}
+              <div className="space-y-2">
+                <div className="text-sm font-medium">Select the correct patient information:</div>
                 
-                <div className="border border-gray-200 rounded-md p-4">
-                  <div className="flex items-center mb-2">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 mr-2 text-gray-500">
-                      <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path>
-                      <circle cx="12" cy="7" r="4"></circle>
-                    </svg>
-                    <span className="font-medium">Brad DeWitt</span>
+                {patientSuggestions.map((suggestion, index) => (
+                  <div
+                    key={index}
+                    className="border border-gray-200 hover:border-blue-500 rounded-md p-3 cursor-pointer transition-colors flex items-start"
+                    onClick={() => handleSelectSuggestion(suggestion)}
+                  >
+                    <div className="flex-1">
+                      <div className="flex items-center">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 mr-2 text-gray-500">
+                          <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path>
+                          <circle cx="12" cy="7" r="4"></circle>
+                        </svg>
+                        <span className="font-medium">{suggestion.name}</span>
+                      </div>
+                      <div className="flex items-center mt-1">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 mr-2 text-gray-500">
+                          <rect width="18" height="18" x="3" y="4" rx="2" ry="2"></rect>
+                          <line x1="16" x2="16" y1="2" y2="6"></line>
+                          <line x1="8" x2="8" y1="2" y2="6"></line>
+                          <line x1="3" x2="21" y1="10" y2="10"></line>
+                        </svg>
+                        <span>{suggestion.dob}</span>
+                      </div>
+                    </div>
+                    <div className="ml-2">
+                      <button 
+                        className="px-3 py-1 border border-gray-300 rounded-md text-sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleSelectSuggestion(suggestion);
+                        }}
+                      >
+                        Select
+                      </button>
+                    </div>
                   </div>
-                  
-                  <div className="flex items-center mb-3">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 mr-2 text-gray-500">
-                      <rect width="18" height="18" x="3" y="4" rx="2" ry="2"></rect>
-                      <line x1="16" x2="16" y1="2" y2="6"></line>
-                      <line x1="8" x2="8" y1="2" y2="6"></line>
-                      <line x1="3" x2="21" y1="10" y2="10"></line>
-                    </svg>
-                    <span>01/01/1980</span>
-                  </div>
-
-                  <div className="flex justify-end">
-                    <button 
-                      className="px-3 py-1 bg-white border border-gray-300 rounded-md text-sm hover:bg-gray-50"
-                      onClick={() => handleSelectSuggestion(patientSuggestions[0])}
-                    >
-                      Select
-                    </button>
-                  </div>
-                </div>
+                ))}
               </div>
               
               {/* Option to use raw text as name */}
@@ -295,7 +305,7 @@ export default function PatientIdentificationDialog({
             
             <div className="p-4 border-t flex justify-end">
               <button 
-                className="px-4 py-2 border border-gray-300 rounded-md text-sm"
+                className="px-4 py-2 border border-gray-300 rounded-md"
                 onClick={handleReset}
               >
                 Cancel
