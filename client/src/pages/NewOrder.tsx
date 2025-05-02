@@ -140,8 +140,12 @@ const NewOrder = () => {
               <div className="flex items-center justify-between">
                 <div className="flex items-center">
                   <span className="text-base font-medium text-gray-900">Clinical Dictation</span>
-                  <div className="ml-2 bg-amber-50 text-amber-800 border border-amber-200 px-2 py-0.5 rounded-full text-xs font-medium flex items-center">
-                    <Info className="h-3 w-3 mr-1" />
+                  <div className="ml-2 bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-full text-xs font-medium flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-3 w-3 mr-1">
+                      <circle cx="12" cy="12" r="10"></circle>
+                      <line x1="12" y1="8" x2="12" y2="12"></line>
+                      <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                    </svg>
                     HIPAA Protected
                   </div>
                 </div>
@@ -175,10 +179,10 @@ const NewOrder = () => {
                     </Button>
                   </div>
                   <div className="mt-2 ml-6">
-                    <Button variant="ghost" size="sm" className="h-7 px-2 text-xs bg-white border border-gray-200">
+                    <Button variant="ghost" size="sm" className="h-7 px-2 text-xs bg-white border border-gray-200 hover:bg-gray-50 hover:text-gray-800">
                       + Add Clarification
                     </Button>
-                    <Button variant="ghost" size="sm" className="h-7 px-2 text-xs bg-amber-50 text-amber-800 border border-amber-200 ml-2">
+                    <Button variant="ghost" size="sm" className="h-7 px-2 text-xs bg-amber-50 text-amber-800 border border-amber-200 ml-2 hover:bg-amber-100 hover:text-amber-900 hover:border-amber-300">
                       Override
                     </Button>
                   </div>
@@ -196,17 +200,21 @@ const NewOrder = () => {
                   <div className="flex space-x-2">
                     <Button
                       variant="outline"
-                      className="text-sm"
+                      className="text-sm py-1 h-7 font-normal border-gray-200 hover:bg-gray-50 hover:text-gray-800"
                       onClick={handleClearText}
                     >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1">
+                        <path d="M3 6h18"></path>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                      </svg>
                       Clear
                     </Button>
                     <Button
                       variant="outline"
-                      className="text-sm flex items-center"
+                      className="text-sm py-1 h-7 font-normal border-gray-200 hover:bg-gray-50 hover:text-gray-800 flex items-center"
                       onClick={handleVoiceInput}
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1">
                         <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path>
                         <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
                         <line x1="12" y1="19" x2="12" y2="22"></line>
@@ -222,7 +230,7 @@ const NewOrder = () => {
             </div>
             <div className="flex justify-end p-4 border-t border-gray-200">
               <Button
-                className="bg-blue-600 hover:bg-blue-700 text-white"
+                className="bg-blue-700 hover:bg-blue-800 text-white font-medium px-4 py-2 h-auto"
                 disabled={dictationText.trim().length < 10}
                 onClick={handleProcessOrder}
               >

@@ -54,7 +54,7 @@ export function PatientInfoCard({ patient, onEditPatient }: PatientInfoCardProps
         <Button 
           variant="outline" 
           size="sm" 
-          className="h-8 px-2 bg-white hover:bg-amber-50 border-amber-200 text-amber-800" 
+          className="h-8 px-2 bg-white hover:bg-amber-200 border-amber-200 text-amber-800 hover:text-amber-900 hover:border-amber-300" 
           onClick={onEditPatient}
         >
           <Plus className="h-3.5 w-3.5 mr-1" />
