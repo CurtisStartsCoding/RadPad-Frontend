@@ -1,137 +1,182 @@
 import { useState } from 'react';
-import { 
-  Label 
-} from "@/components/ui/label";
-import { 
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
-} from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
-import { Mic, AlertCircle } from 'lucide-react';
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Info } from 'lucide-react';
 
 interface DictationFormProps {
-  onDictationSubmit?: (modalityValue: string, dictationText: string) => void;
-  onCancel?: () => void;
+  dictationText: string;
+  setDictationText: (text: string) => void;
+  patient: any;
+  onProcessed: (result: any) => void;
+  validationFeedback?: string;
+  onClearFeedback?: () => void;
+  attemptCount?: number;
+  onOverride?: () => void;
 }
 
-const DictationForm = ({ onDictationSubmit, onCancel }: DictationFormProps) => {
-  const [dictationText, setDictationText] = useState('');
-  const [modalityValue, setModalityValue] = useState('');
-  const [isRecording, setIsRecording] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+const DictationForm = ({ 
+  dictationText, 
+  setDictationText, 
+  onProcessed,
+  validationFeedback,
+  onClearFeedback,
+  attemptCount = 0,
+  onOverride
+}: DictationFormProps) => {
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const characterCount = dictationText.length;
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!modalityValue) {
-      setError('Please select a modality before submitting');
-      return;
-    }
-    
-    if (!dictationText || dictationText.trim().length < 10) {
-      setError('Please provide more detailed dictation before submitting');
-      return;
-    }
-    
-    if (onDictationSubmit) {
-      onDictationSubmit(modalityValue, dictationText);
+  // Handle clearing text
+  const handleClearText = () => {
+    setDictationText('');
+    if (onClearFeedback) {
+      onClearFeedback();
     }
   };
 
-  const toggleRecording = () => {
-    setIsRecording(!isRecording);
-    
-    // This is just for demo purposes
-    if (!isRecording) {
-      // Simulate recording for demo purposes
+  // Handle voice input
+  const toggleVoiceInput = () => {
+    setIsListening(!isListening);
+    // Simulate voice input for the mockup
+    if (!isListening) {
       setTimeout(() => {
-        setIsRecording(false);
+        setIsListening(false);
       }, 3000);
     }
   };
 
+  // Handle processing the order
+  const handleProcessOrder = () => {
+    if (dictationText.trim().length < 10) {
+      return;
+    }
+    
+    setIsProcessing(true);
+    
+    // Simulate a successful validation
+    setTimeout(() => {
+      setIsProcessing(false);
+      
+      // Mock validation result
+      const mockResult = {
+        validationStatus: 'valid',
+        modalityType: 'CT',
+        bodyPart: 'chest, abdomen and pelvis',
+        diagnosis: {
+          primary: 'C50.919 - Malignant neoplasm of unspecified site of unspecified female breast',
+          secondary: 'Z12.31 - Encounter for screening mammogram for malignant neoplasm of breast'
+        },
+        cptCodes: ['71260 - CT Thorax with contrast'],
+        aucScore: 9,
+        patientDemographics: {
+          age: '55 y/o',
+          gender: 'female'
+        }
+      };
+      
+      onProcessed(mockResult);
+    }, 1000);
+  };
+
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-4">
-      <form onSubmit={handleSubmit}>
-        <div className="space-y-4">
-          <div>
-            <Label htmlFor="modality" className="text-sm font-medium text-gray-700">
-              Modality
-            </Label>
-            <Select 
-              value={modalityValue} 
-              onValueChange={setModalityValue}
-            >
-              <SelectTrigger id="modality" className="mt-1">
-                <SelectValue placeholder="Select imaging modality" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="xray">X-Ray</SelectItem>
-                <SelectItem value="ct">CT Scan</SelectItem>
-                <SelectItem value="mri">MRI</SelectItem>
-                <SelectItem value="us">Ultrasound</SelectItem>
-                <SelectItem value="mammo">Mammography</SelectItem>
-                <SelectItem value="dexa">DEXA Scan</SelectItem>
-                <SelectItem value="nuclear">Nuclear Medicine</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          
-          <div>
-            <div className="flex justify-between items-center">
-              <Label htmlFor="dictation" className="text-sm font-medium text-gray-700">
-                Dictation
-              </Label>
-              <Button 
-                type="button" 
-                variant={isRecording ? "destructive" : "outline"}
-                size="sm"
-                className="h-8"
-                onClick={toggleRecording}
-              >
-                <Mic className={`h-4 w-4 ${isRecording ? 'animate-pulse' : ''} mr-1`} />
-                {isRecording ? 'Recording...' : 'Start Dictation'}
-              </Button>
-            </div>
-            <Textarea
-              id="dictation"
-              placeholder="Dictate order details here... (e.g., 'MRI of the right knee due to persistent pain following sports injury 3 weeks ago. Patient reports limited range of motion and swelling.')"
-              value={dictationText}
-              onChange={(e) => {
-                setDictationText(e.target.value);
-                if (error) setError(null);
-              }}
-              className="mt-1 h-32 resize-none"
-            />
-            <p className="text-xs text-gray-500 mt-1">
-              Dictate patient symptoms, medical history, and reason for this imaging study
-            </p>
-          </div>
-          
-          {error && (
-            <Alert variant="destructive" className="mt-2">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-          
-          <div className="flex justify-end space-x-3 pt-2">
-            {onCancel && (
-              <Button type="button" variant="outline" onClick={onCancel}>
-                Cancel
-              </Button>
-            )}
-            <Button type="submit">
-              Submit Dictation
-            </Button>
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center">
+          <span className="text-base font-medium text-gray-900">Clinical Dictation</span>
+          <div className="ml-2 bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-full text-xs font-medium flex items-center">
+            <Info className="h-3 w-3 mr-1" />
+            HIPAA Protected
           </div>
         </div>
-      </form>
+      </div>
+      
+      <p className="text-sm text-gray-600">
+        Include clinical indications, relevant history, and requested study details.
+        {dictationText.trim().length > 0 && validationFeedback && (
+          <span className="ml-1 text-blue-600 font-medium">
+            You may edit or append to your existing text.
+          </span>
+        )}
+      </p>
+      
+      {validationFeedback && (
+        <div className="text-sm text-red-500 flex items-start p-2 border border-red-200 rounded-md bg-red-50">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 mr-1 mt-0.5 flex-shrink-0">
+            <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path>
+            <path d="M12 9v4"></path>
+            <path d="M12 17h.01"></path>
+          </svg>
+          <div>
+            <div className="font-medium">Issues with Dictation</div>
+            <div>{validationFeedback}</div>
+            
+            <div className="mt-2 flex gap-2">
+              <button 
+                className="px-2 py-1 text-xs bg-white border border-gray-200 rounded hover:bg-gray-50"
+              >
+                + Add Clarification
+              </button>
+              <button 
+                className="px-2 py-1 text-xs bg-amber-50 text-amber-800 border border-amber-200 rounded hover:bg-amber-100"
+                onClick={onOverride}
+              >
+                Override
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      <div>
+        <textarea 
+          className="w-full h-48 p-3 border border-gray-200 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-none"
+          placeholder="Examples: '55-year-old female with newly diagnosed breast cancer. Request CT chest, abdomen and pelvis for staging.'"
+          value={dictationText}
+          onChange={(e) => setDictationText(e.target.value)}
+        />
+        
+        <div className="flex justify-between items-center mt-2">
+          <div className="flex space-x-2">
+            <button
+              className="flex items-center justify-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50"
+              onClick={handleClearText}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2">
+                <rect x="4" y="4" width="16" height="16" rx="1" stroke="currentColor" strokeWidth="2"/>
+                <path d="M9 9L15 15M15 9L9 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+              </svg>
+              Clear
+            </button>
+            
+            <button
+              className="flex items-center justify-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50"
+              onClick={toggleVoiceInput}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2">
+                <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path>
+                <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                <line x1="12" x2="12" y1="19" y2="22"></line>
+              </svg>
+              Voice Input
+            </button>
+          </div>
+          
+          <div className="text-xs text-gray-500">
+            {characterCount} characters
+          </div>
+        </div>
+      </div>
+      
+      <div className="flex justify-end border-t border-gray-200 pt-4 mt-4">
+        <button
+          className={`px-4 py-2 rounded-md font-medium ${isProcessing || dictationText.trim().length < 10 
+            ? 'bg-blue-300 text-white cursor-not-allowed' 
+            : 'bg-blue-700 hover:bg-blue-800 text-white'}`}
+          disabled={isProcessing || dictationText.trim().length < 10}
+          onClick={handleProcessOrder}
+        >
+          {isProcessing ? 'Processing...' : 'Process Order'}
+        </button>
+      </div>
     </div>
   );
 };

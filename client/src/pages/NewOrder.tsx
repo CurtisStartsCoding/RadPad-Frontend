@@ -196,7 +196,7 @@ const NewOrder = ({ userRole = UserRole.Physician }: NewOrderProps) => {
         {/* Patient Identification Dialog */}
         <PatientIdentificationDialog
           open={isPatientDialogOpen}
-          onClose={() => setIsPatientDialogOpen(false)}
+          onCancel={() => setIsPatientDialogOpen(false)}
           onIdentify={handlePatientIdentified}
         />
         
