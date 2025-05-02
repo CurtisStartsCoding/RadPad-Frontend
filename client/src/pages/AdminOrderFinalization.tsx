@@ -271,6 +271,8 @@ const AdminOrderFinalization: React.FC<AdminOrderFinalizationProps> = ({ navigat
     } else if (currentTab === "insurance") {
       setCurrentTab("supplemental");
     } else if (currentTab === "supplemental") {
+      setCurrentTab("documents");
+    } else if (currentTab === "documents") {
       setCurrentTab("review");
     }
   };
@@ -283,8 +285,10 @@ const AdminOrderFinalization: React.FC<AdminOrderFinalizationProps> = ({ navigat
       setCurrentTab("patient");
     } else if (currentTab === "supplemental") {
       setCurrentTab("insurance");
-    } else if (currentTab === "review") {
+    } else if (currentTab === "documents") {
       setCurrentTab("supplemental");
+    } else if (currentTab === "review") {
+      setCurrentTab("documents");
     }
   };
   
@@ -404,11 +408,12 @@ const AdminOrderFinalization: React.FC<AdminOrderFinalizationProps> = ({ navigat
           <Card>
             <CardContent className="pt-6">
               <Tabs value={currentTab} onValueChange={handleTabChange}>
-                <TabsList className="grid grid-cols-5 mb-6">
+                <TabsList className="grid grid-cols-6 mb-6">
                   <TabsTrigger value="emr-paste">EMR Paste</TabsTrigger>
                   <TabsTrigger value="patient">Patient Info</TabsTrigger>
                   <TabsTrigger value="insurance">Insurance</TabsTrigger>
                   <TabsTrigger value="supplemental">Order Details</TabsTrigger>
+                  <TabsTrigger value="documents">Documents</TabsTrigger>
                   <TabsTrigger value="review">Review & Send</TabsTrigger>
                 </TabsList>
                 
@@ -937,13 +942,31 @@ Referring Provider: Dr. Sarah Johnson`)}
                     </Button>
                   </div>
                   
-                  {/* Document Management Section */}
-                  <div className="mt-8">
-                    <h3 className="text-lg font-medium mb-4">Document Management</h3>
-                    <DocumentManager 
-                      orderId={order.id} 
-                      patientId={Number(order.patient.id)} 
-                    />
+                </TabsContent>
+                
+                <TabsContent value="documents">
+                  <div className="space-y-6">
+                    <div>
+                      <h3 className="text-lg font-medium mb-4">Document Management</h3>
+                      <p className="text-sm text-slate-600 mb-4">
+                        Upload and manage patient documents for this order. You can upload insurance cards, 
+                        referrals, and other relevant documents using drag-and-drop or copy-paste.
+                      </p>
+                      
+                      <DocumentManager 
+                        orderId={order.id} 
+                        patientId={Number(order.patient.id)} 
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="flex justify-between mt-6">
+                    <Button variant="outline" onClick={handlePreviousTab}>
+                      Back
+                    </Button>
+                    <Button onClick={handleNextTab}>
+                      Continue to Review
+                    </Button>
                   </div>
                 </TabsContent>
                 
