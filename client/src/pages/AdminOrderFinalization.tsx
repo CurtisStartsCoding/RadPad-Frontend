@@ -83,12 +83,14 @@ const AdminOrderFinalization: React.FC<AdminOrderFinalizationProps> = ({ navigat
   // Insurance information state
   const [insuranceInfo, setInsuranceInfo] = useState({
     insurerName: "Blue Cross Blue Shield",
+    planName: "BlueCare PPO",
     policyNumber: "BCBS123456789",
     groupNumber: "GRP12345",
     policyHolderName: order.patient.name,
     policyHolderRelationship: "self",
     policyHolderDateOfBirth: order.patient.dob,
     secondaryInsurerName: "",
+    secondaryPlanName: "",
     secondaryPolicyNumber: "",
     secondaryGroupNumber: ""
   });
@@ -224,12 +226,14 @@ const AdminOrderFinalization: React.FC<AdminOrderFinalizationProps> = ({ navigat
       setInsuranceInfo({
         ...insuranceInfo,
         insurerName: "Aetna Health Insurance",
+        planName: "Aetna Choice POS II",
         policyNumber: "AET12345678",
         groupNumber: "GRP-98765",
         policyHolderName: "Margaret Thompson",
         policyHolderRelationship: "self",
         policyHolderDateOfBirth: "1975-08-15",
         secondaryInsurerName: "Medicare Part B",
+        secondaryPlanName: "Original Medicare",
         secondaryPolicyNumber: "MED87654321",
         secondaryGroupNumber: "MEDGRP-54321"
       });
@@ -641,14 +645,25 @@ Referring Provider: Dr. Sarah Johnson`)}
                   <div className="space-y-4">
                     <h3 className="text-lg font-medium">Primary Insurance</h3>
                     
-                    <div>
-                      <Label htmlFor="insurerName">Insurance Company</Label>
-                      <Input 
-                        id="insurerName" 
-                        name="insurerName" 
-                        value={insuranceInfo.insurerName} 
-                        onChange={handleInsuranceInfoChange}
-                      />
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="insurerName">Insurance Company</Label>
+                        <Input 
+                          id="insurerName" 
+                          name="insurerName" 
+                          value={insuranceInfo.insurerName} 
+                          onChange={handleInsuranceInfoChange}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="planName">Plan Name</Label>
+                        <Input 
+                          id="planName" 
+                          name="planName" 
+                          value={insuranceInfo.planName} 
+                          onChange={handleInsuranceInfoChange}
+                        />
+                      </div>
                     </div>
                     
                     <div className="grid grid-cols-2 gap-4">
@@ -727,14 +742,25 @@ Referring Provider: Dr. Sarah Johnson`)}
                       
                       {insuranceInfo.secondaryInsurerName && (
                         <>
-                          <div className="mt-4">
-                            <Label htmlFor="secondaryInsurerName">Insurance Company</Label>
-                            <Input 
-                              id="secondaryInsurerName" 
-                              name="secondaryInsurerName" 
-                              value={insuranceInfo.secondaryInsurerName} 
-                              onChange={handleInsuranceInfoChange}
-                            />
+                          <div className="grid grid-cols-2 gap-4 mt-4">
+                            <div>
+                              <Label htmlFor="secondaryInsurerName">Insurance Company</Label>
+                              <Input 
+                                id="secondaryInsurerName" 
+                                name="secondaryInsurerName" 
+                                value={insuranceInfo.secondaryInsurerName} 
+                                onChange={handleInsuranceInfoChange}
+                              />
+                            </div>
+                            <div>
+                              <Label htmlFor="secondaryPlanName">Plan Name</Label>
+                              <Input 
+                                id="secondaryPlanName" 
+                                name="secondaryPlanName" 
+                                value={insuranceInfo.secondaryPlanName} 
+                                onChange={handleInsuranceInfoChange}
+                              />
+                            </div>
                           </div>
                           
                           <div className="grid grid-cols-2 gap-4 mt-4">
@@ -767,7 +793,7 @@ Referring Provider: Dr. Sarah Johnson`)}
                       Back
                     </Button>
                     <Button onClick={handleNextTab}>
-                      Continue to Supplemental Info
+                      Continue to Order Details
                     </Button>
                   </div>
                 </TabsContent>
