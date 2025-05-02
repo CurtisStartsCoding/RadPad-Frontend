@@ -1,94 +1,139 @@
-import { useState } from "react";
-import { Mic } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
+import { useState } from 'react';
+import { 
+  Label 
+} from "@/components/ui/label";
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { Mic, AlertCircle } from 'lucide-react';
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface DictationFormProps {
   onDictationSubmit?: (modalityValue: string, dictationText: string) => void;
   onCancel?: () => void;
 }
 
-export function DictationForm({ onDictationSubmit, onCancel }: DictationFormProps) {
-  const [modality, setModality] = useState<string>("");
-  const [dictationText, setDictationText] = useState<string>("");
+const DictationForm = ({ onDictationSubmit, onCancel }: DictationFormProps) => {
+  const [dictationText, setDictationText] = useState('');
+  const [modalityValue, setModalityValue] = useState('');
+  const [isRecording, setIsRecording] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // This is a visual-only mockup, so these handlers are just placeholders
-  const handleSubmit = () => {
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!modalityValue) {
+      setError('Please select a modality before submitting');
+      return;
+    }
+    
+    if (!dictationText || dictationText.trim().length < 10) {
+      setError('Please provide more detailed dictation before submitting');
+      return;
+    }
+    
     if (onDictationSubmit) {
-      onDictationSubmit(modality, dictationText);
+      onDictationSubmit(modalityValue, dictationText);
     }
   };
 
-  const handleCancel = () => {
-    if (onCancel) {
-      onCancel();
+  const toggleRecording = () => {
+    setIsRecording(!isRecording);
+    
+    // This is just for demo purposes
+    if (!isRecording) {
+      // Simulate recording for demo purposes
+      setTimeout(() => {
+        setIsRecording(false);
+      }, 3000);
     }
   };
 
   return (
-    <div className="border border-slate-200 rounded-lg p-4">
-      <div className="mb-4">
-        <Label htmlFor="modality" className="block text-sm font-medium text-slate-700 mb-1">
-          Imaging Modality<span className="text-red-500">*</span>
-        </Label>
-        <Select value={modality} onValueChange={setModality}>
-          <SelectTrigger className="w-full">
-            <SelectValue placeholder="Select a modality" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="x-ray">X-Ray</SelectItem>
-            <SelectItem value="ct">CT Scan</SelectItem>
-            <SelectItem value="mri">MRI</SelectItem>
-            <SelectItem value="ultrasound">Ultrasound</SelectItem>
-            <SelectItem value="nuclear">Nuclear Medicine</SelectItem>
-            <SelectItem value="pet">PET Scan</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-      
-      <div className="mb-4">
-        <Label htmlFor="dictation" className="block text-sm font-medium text-slate-700 mb-1">
-          Clinical Indication<span className="text-red-500">*</span>
-        </Label>
-        <div className="relative">
-          <Textarea 
-            id="dictation" 
-            rows={5} 
-            className="w-full resize-none pr-10" 
-            placeholder="Describe clinical indication for this imaging study..."
-            value={dictationText}
-            onChange={(e) => setDictationText(e.target.value)}
-          />
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="absolute right-3 bottom-3 text-primary hover:text-primary-light h-8 w-8 p-1"
-          >
-            <Mic className="h-5 w-5" />
-          </Button>
+    <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-4">
+      <form onSubmit={handleSubmit}>
+        <div className="space-y-4">
+          <div>
+            <Label htmlFor="modality" className="text-sm font-medium text-gray-700">
+              Modality
+            </Label>
+            <Select 
+              value={modalityValue} 
+              onValueChange={setModalityValue}
+            >
+              <SelectTrigger id="modality" className="mt-1">
+                <SelectValue placeholder="Select imaging modality" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="xray">X-Ray</SelectItem>
+                <SelectItem value="ct">CT Scan</SelectItem>
+                <SelectItem value="mri">MRI</SelectItem>
+                <SelectItem value="us">Ultrasound</SelectItem>
+                <SelectItem value="mammo">Mammography</SelectItem>
+                <SelectItem value="dexa">DEXA Scan</SelectItem>
+                <SelectItem value="nuclear">Nuclear Medicine</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div>
+            <div className="flex justify-between items-center">
+              <Label htmlFor="dictation" className="text-sm font-medium text-gray-700">
+                Dictation
+              </Label>
+              <Button 
+                type="button" 
+                variant={isRecording ? "destructive" : "outline"}
+                size="sm"
+                className="h-8"
+                onClick={toggleRecording}
+              >
+                <Mic className={`h-4 w-4 ${isRecording ? 'animate-pulse' : ''} mr-1`} />
+                {isRecording ? 'Recording...' : 'Start Dictation'}
+              </Button>
+            </div>
+            <Textarea
+              id="dictation"
+              placeholder="Dictate order details here... (e.g., 'MRI of the right knee due to persistent pain following sports injury 3 weeks ago. Patient reports limited range of motion and swelling.')"
+              value={dictationText}
+              onChange={(e) => {
+                setDictationText(e.target.value);
+                if (error) setError(null);
+              }}
+              className="mt-1 h-32 resize-none"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Dictate patient symptoms, medical history, and reason for this imaging study
+            </p>
+          </div>
+          
+          {error && (
+            <Alert variant="destructive" className="mt-2">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+          
+          <div className="flex justify-end space-x-3 pt-2">
+            {onCancel && (
+              <Button type="button" variant="outline" onClick={onCancel}>
+                Cancel
+              </Button>
+            )}
+            <Button type="submit">
+              Submit Dictation
+            </Button>
+          </div>
         </div>
-        <div className="mt-1 text-xs text-slate-500">
-          Describe the clinical indication for this imaging study. Include relevant history, symptoms, and physical findings.
-        </div>
-      </div>
-      
-      <div className="flex justify-end items-center space-x-3 border-t border-slate-200 pt-4 mt-4">
-        <Button
-          variant="outline"
-          onClick={handleCancel}
-        >
-          Cancel
-        </Button>
-        <Button 
-          onClick={handleSubmit}
-        >
-          Process Order
-        </Button>
-      </div>
+      </form>
     </div>
   );
-}
+};
 
 export default DictationForm;
