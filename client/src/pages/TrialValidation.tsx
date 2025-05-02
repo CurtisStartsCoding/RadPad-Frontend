@@ -22,7 +22,6 @@ import {
 const TrialValidation = () => {
   const { toast } = useToast();
   const [dictationText, setDictationText] = useState("");
-  const [selectedModality, setSelectedModality] = useState("");
   const [isValidating, setIsValidating] = useState(false);
   const [validationComplete, setValidationComplete] = useState(false);
   const [validationResults, setValidationResults] = useState<{
@@ -48,16 +47,6 @@ const TrialValidation = () => {
     }
   };
   
-  // Handle modality change
-  const handleModalityChange = (value: string) => {
-    setSelectedModality(value);
-    // Reset validation state when modality changes
-    if (validationComplete) {
-      setValidationComplete(false);
-      setValidationResults(null);
-    }
-  };
-  
   // Handle validation
   const handleValidate = () => {
     // Basic validation
@@ -70,22 +59,13 @@ const TrialValidation = () => {
       return;
     }
     
-    if (!selectedModality) {
-      toast({
-        title: "Validation Error",
-        description: "Please select a modality",
-        variant: "destructive",
-      });
-      return;
-    }
-    
     setIsValidating(true);
     
     // Simulate API call to validate order
     setTimeout(() => {
-      // Determine mock results based on modality and text content
-      const isMRIKnee = selectedModality === 'mri-knee';
+      // Determine mock results based on text content
       const mentionsKnee = dictationText.toLowerCase().includes('knee');
+      const mentionsBrain = dictationText.toLowerCase().includes('brain') || dictationText.toLowerCase().includes('headache') || dictationText.toLowerCase().includes('migraine');
       const mentionsPain = dictationText.toLowerCase().includes('pain');
       const mentionsHistory = dictationText.toLowerCase().includes('history');
       
@@ -93,16 +73,19 @@ const TrialValidation = () => {
       const feedback: string[] = [];
       
       // Calculate compliance score based on content
-      if (mentionsKnee) score += 3;
+      if (mentionsKnee || mentionsBrain) score += 3;
       if (mentionsPain) score += 2;
       if (mentionsHistory) score += 2;
       
+      // Determine which body part is being discussed to provide relevant feedback
+      const isKneeIssue = mentionsKnee && (!mentionsBrain || dictationText.toLowerCase().indexOf('knee') < dictationText.toLowerCase().indexOf('brain'));
+      
       // Add feedback messages
-      if (!mentionsKnee) {
-        feedback.push("Clinical indication should specifically mention the knee joint");
+      if (!mentionsKnee && !mentionsBrain) {
+        feedback.push("Clinical indication should specifically mention the anatomical region (e.g., knee, brain, chest)");
       }
       if (!mentionsPain) {
-        feedback.push("Include details about pain characteristics (location, severity, duration)");
+        feedback.push("Include details about symptoms or pain characteristics (location, severity, duration)");
       }
       if (!mentionsHistory) {
         feedback.push("Include relevant patient history and previous treatments");
@@ -110,12 +93,12 @@ const TrialValidation = () => {
       
       // Advanced mock validation
       const mockResults = {
-        aucScore: isMRIKnee && mentionsKnee ? Math.min(7, score) : Math.min(5, score),
-        isCompliant: isMRIKnee && mentionsKnee && score >= 5,
-        suggestedCptCode: isMRIKnee ? "73721" : "70551",
-        suggestedCptDescription: isMRIKnee ? "MRI knee without contrast" : "MRI brain without contrast",
-        suggestedIcd10Code: isMRIKnee ? "M25.561" : "G43.909",
-        suggestedIcd10Description: isMRIKnee ? "Pain in right knee" : "Migraine, unspecified, not intractable",
+        aucScore: Math.min(7, score),
+        isCompliant: score >= 5,
+        suggestedCptCode: isKneeIssue ? "73721" : "70551",
+        suggestedCptDescription: isKneeIssue ? "MRI knee without contrast" : "MRI brain without contrast",
+        suggestedIcd10Code: isKneeIssue ? "M25.561" : "G43.909",
+        suggestedIcd10Description: isKneeIssue ? "Pain in right knee" : "Migraine, unspecified, not intractable",
         feedback: feedback.length ? feedback : ["Order appears appropriate based on clinical indication"]
       };
       
@@ -139,7 +122,6 @@ const TrialValidation = () => {
   // Handle trying another validation
   const handleTryAnother = () => {
     setDictationText("");
-    setSelectedModality("");
     setValidationComplete(false);
     setValidationResults(null);
   };
@@ -169,24 +151,7 @@ const TrialValidation = () => {
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div>
-                <Select 
-                  value={selectedModality} 
-                  onValueChange={handleModalityChange}
-                  disabled={isValidating}
-                >
-                  <SelectTrigger className="w-full md:w-1/2">
-                    <SelectValue placeholder="Select imaging modality" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="mri-brain">MRI Brain</SelectItem>
-                    <SelectItem value="mri-knee">MRI Knee</SelectItem>
-                    <SelectItem value="ct-chest">CT Chest</SelectItem>
-                    <SelectItem value="ultrasound-abdomen">Ultrasound Abdomen</SelectItem>
-                    <SelectItem value="xray-chest">X-Ray Chest</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+
               
               <div className="relative">
                 <Textarea
@@ -227,7 +192,7 @@ const TrialValidation = () => {
                 </div>
                 <Button 
                   onClick={handleValidate} 
-                  disabled={isValidating || !dictationText.trim() || !selectedModality || remainingCredits <= 0}
+                  disabled={isValidating || !dictationText.trim() || remainingCredits <= 0}
                 >
                   {isValidating ? (
                     <>
@@ -284,7 +249,7 @@ const TrialValidation = () => {
                     Your Dictation
                   </h3>
                   <p className="text-sm bg-slate-50 p-3 rounded-md">
-                    {selectedModality.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}: {dictationText}
+                    {dictationText}
                   </p>
                 </div>
                 
@@ -344,7 +309,7 @@ const TrialValidation = () => {
               </div>
               <h3 className="text-lg font-medium text-slate-600 mb-2">Validation Results</h3>
               <p className="text-sm text-slate-500 text-center mb-4">
-                Enter a clinical dictation and select a modality, then click "Validate Order" to see results here.
+                Enter your clinical dictation, then click "Validate Order" to see results here.
               </p>
               <div className="flex flex-col items-center">
                 <span className="text-xs text-slate-400 mb-1">Example Validations:</span>
