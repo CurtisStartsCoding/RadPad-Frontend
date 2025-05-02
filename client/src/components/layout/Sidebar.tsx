@@ -15,7 +15,8 @@ import {
   Lock, 
   AlertCircle,
   UserCog,
-  ChevronDown
+  ChevronDown,
+  Beaker
 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -35,7 +36,8 @@ const navigationItems = [
       { page: AppPage.NewOrder, label: "New Order", icon: <PlusCircle /> },
       { page: AppPage.OrderList, label: "Order List", icon: <FileText /> },
       { page: AppPage.AdminQueue, label: "Admin Queue", icon: <CheckSquare /> },
-      { page: AppPage.RadiologyQueue, label: "Radiology Queue", icon: <List /> }
+      { page: AppPage.RadiologyQueue, label: "Radiology Queue", icon: <List /> },
+      { page: AppPage.TrialValidation, label: "Trial Validation", icon: <Beaker /> }
     ]
   },
   {

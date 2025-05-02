@@ -43,6 +43,9 @@ export const hasAccess = (role: UserRole, page: string): boolean => {
       UserRole.AdminReferring,
       UserRole.TrialPhysician
     ],
+    "trial-validation": [
+      UserRole.TrialPhysician
+    ],
     "admin-queue": [
       UserRole.AdminStaff, 
       UserRole.AdminReferring
