@@ -3,6 +3,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { UserRole } from "@/lib/roles";
 
 import Sidebar from "@/components/layout/Sidebar";
 import Dashboard from "@/pages/Dashboard";
@@ -17,6 +18,7 @@ import Connections from "@/pages/Connections";
 import BillingCredits from "@/pages/BillingCredits";
 import MyProfile from "@/pages/MyProfile";
 import Security from "@/pages/Security";
+import NotFound from "@/pages/not-found";
 
 // Enum for all available pages
 export enum AppPage {
@@ -36,6 +38,7 @@ export enum AppPage {
 
 function App() {
   const [currentPage, setCurrentPage] = useState<AppPage>(AppPage.Dashboard);
+  const [currentRole, setCurrentRole] = useState<UserRole>(UserRole.Physician);
 
   // Render the current page based on the state
   const renderCurrentPage = () => {
@@ -75,7 +78,9 @@ function App() {
         <div className="flex h-screen overflow-hidden">
           <Sidebar 
             currentPage={currentPage} 
-            onNavigate={(page) => setCurrentPage(page)} 
+            onNavigate={(page) => setCurrentPage(page)}
+            currentRole={currentRole}
+            onRoleChange={setCurrentRole}
           />
           <div className="flex-1 overflow-auto">
             <main className="min-h-screen">
