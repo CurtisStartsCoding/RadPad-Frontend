@@ -1,7 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { User, Calendar, FileText, Edit, AlertTriangle } from "lucide-react";
+import { User, Plus } from "lucide-react";
 
 interface Patient {
   id: number;
@@ -17,77 +15,53 @@ interface PatientInfoCardProps {
 }
 
 export function PatientInfoCard({ patient, onEditPatient }: PatientInfoCardProps) {
-  // Format date of birth to display in a more readable format
-  const formatDOB = (dob: string) => {
-    const date = new Date(dob);
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-  };
-  
-  // Calculate age from DOB
-  const calculateAge = (dob: string) => {
-    const birthDate = new Date(dob);
-    const today = new Date();
-    let age = today.getFullYear() - birthDate.getFullYear();
-    const monthDifference = today.getMonth() - birthDate.getMonth();
-    
-    if (monthDifference < 0 || (monthDifference === 0 && today.getDate() < birthDate.getDate())) {
-      age--;
-    }
-    
-    return age;
+  // Generate a consistent PIDN for demo purposes
+  const generatePIDN = () => {
+    // Use the patient ID to generate a consistent PIDN
+    const base = patient.id.toString().padStart(5, '0');
+    return `${base}3903${Math.floor(1000000 + Math.random() * 9000000)}`;
   };
 
   return (
-    <Card className="border border-gray-100">
-      <CardContent className="p-4">
-        <div className="flex justify-between items-start">
-          <div className="flex items-center space-x-3">
-            <div className="bg-slate-100 h-10 w-10 rounded-full flex items-center justify-center text-slate-600">
-              <User className="h-5 w-5" />
-            </div>
-            <div>
-              <h3 className="font-medium text-slate-900">{patient.name}</h3>
-              <div className="flex items-center text-sm text-slate-500 mt-0.5">
-                <Calendar className="h-3.5 w-3.5 mr-1" />
-                <span>{formatDOB(patient.dob)} ({calculateAge(patient.dob)} y.o.)</span>
-              </div>
-            </div>
-          </div>
-          
-          {onEditPatient && (
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="h-8 px-2" 
-              onClick={onEditPatient}
-            >
-              <Edit className="h-4 w-4 mr-1" />
-              Edit
-            </Button>
-          )}
+    <div className="flex items-center justify-between py-3 px-4 bg-amber-50 border border-amber-100 rounded-md">
+      <div className="flex items-center">
+        <div className="text-gray-600 mr-2">
+          <User className="h-5 w-5" />
         </div>
-        
-        <div className="mt-4 flex items-center justify-between">
-          <div className="flex items-center space-x-6">
-            <div>
-              <p className="text-xs font-medium text-slate-500">MRN</p>
-              <p className="text-sm font-mono">{patient.mrn}</p>
-            </div>
-            <div>
-              <p className="text-xs font-medium text-slate-500">Patient ID</p>
-              <p className="text-sm font-mono">#{patient.id}</p>
-            </div>
+        <div>
+          <div className="flex items-center">
+            <span className="font-medium text-gray-900">{patient.name}</span>
+            {patient.isTemporary && (
+              <span className="ml-2 px-1.5 py-0.5 text-xs font-medium bg-amber-100 text-amber-800 rounded">
+                Temporary
+              </span>
+            )}
           </div>
-          
-          {patient.isTemporary && (
-            <Badge variant="outline" className="text-amber-500 border-amber-200 bg-amber-50">
-              <AlertTriangle className="h-3 w-3 mr-1" />
-              Temporary Record
-            </Badge>
-          )}
+          <div className="flex items-center mt-0.5 text-sm text-gray-500">
+            <svg className="h-4 w-4 mr-1" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="2"/>
+              <path d="M16 2V6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+              <path d="M8 2V6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+              <path d="M3 10H21" stroke="currentColor" strokeWidth="2"/>
+            </svg>
+            <span>Unknown</span>
+            <span className="ml-4">PIDN: {generatePIDN()}</span>
+          </div>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+      
+      {onEditPatient && (
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="h-8 px-2 bg-white hover:bg-amber-50 border-amber-200 text-amber-800" 
+          onClick={onEditPatient}
+        >
+          <Plus className="h-3.5 w-3.5 mr-1" />
+          AddPatient
+        </Button>
+      )}
+    </div>
   );
 }
 
