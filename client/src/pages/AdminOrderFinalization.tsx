@@ -1055,7 +1055,7 @@ Referring Provider: Dr. Sarah Johnson`)}
                             </div>
                             <div className="flex mb-2">
                               <div className="w-40 font-medium">Insurance:</div>
-                              <div>{insuranceInfo.insurerName} — Policy #{insuranceInfo.policyNumber}</div>
+                              <div>{insuranceInfo.insurerName} ({insuranceInfo.planName}) — Policy #{insuranceInfo.policyNumber}</div>
                             </div>
                           </div>
                         </div>
