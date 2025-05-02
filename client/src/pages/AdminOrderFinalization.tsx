@@ -162,7 +162,7 @@ const AdminOrderFinalization: React.FC<AdminOrderFinalizationProps> = ({ navigat
   
   // Handle go back to queue
   const handleBackToQueue = () => {
-    setLocation("/admin-queue");
+    navigateTo && navigateTo(AppPage.AdminQueue);
   };
   
   return (

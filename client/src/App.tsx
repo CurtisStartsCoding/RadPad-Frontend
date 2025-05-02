@@ -54,7 +54,7 @@ function App() {
       case AppPage.AdminQueue:
         return <AdminQueue navigateTo={(page) => setCurrentPage(page)} />;
       case AppPage.AdminOrderFinalization:
-        return <AdminOrderFinalization />;
+        return <AdminOrderFinalization navigateTo={(page) => setCurrentPage(page)} />;
       case AppPage.RadiologyQueue:
         return <RadiologyQueue />;
       case AppPage.OrgProfile:
