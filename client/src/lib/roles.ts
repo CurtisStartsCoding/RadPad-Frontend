@@ -34,12 +34,14 @@ export const hasAccess = (role: UserRole, page: string): boolean => {
       UserRole.TrialPhysician
     ],
     "new-order": [
-      UserRole.Physician
+      UserRole.Physician,
+      UserRole.TrialPhysician
     ],
     "orders": [
       UserRole.Physician, 
       UserRole.AdminStaff, 
-      UserRole.AdminReferring
+      UserRole.AdminReferring,
+      UserRole.TrialPhysician
     ],
     "admin-queue": [
       UserRole.AdminStaff, 
