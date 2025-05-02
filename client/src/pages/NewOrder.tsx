@@ -59,6 +59,11 @@ const NewOrder = ({ userRole = UserRole.Physician }: NewOrderProps) => {
       return;
     }
     
+    // For trial users, decrement remaining credits
+    if (isTrialUser) {
+      setRemainingCredits(prev => Math.max(0, prev - 1));
+    }
+    
     // Simulate validation result
     if (attemptCount === 0) {
       // First attempt shows validation issues
@@ -131,17 +136,39 @@ const NewOrder = ({ userRole = UserRole.Physician }: NewOrderProps) => {
       </div>
       
       <div className="p-4">
+        {/* Trial User Banner */}
+        {isTrialUser && (
+          <Card className="mb-4 border-blue-200 bg-blue-50">
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <Beaker className="h-5 w-5 text-blue-500 mr-2" />
+                  <CardTitle className="text-lg text-blue-700">Trial Mode</CardTitle>
+                </div>
+                <Badge variant="outline" className="bg-white text-blue-700 border-blue-200">
+                  {remainingCredits} validation credits remaining
+                </Badge>
+              </div>
+              <CardDescription className="text-blue-700 mt-1">
+                You are using RadOrderPad in trial mode. In this mode, you can test the clinical validation features without sending orders to radiology groups.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+        )}
+      
         <div className="text-sm font-medium text-blue-600 mb-4">
           Step 1 of 3: Dictation
         </div>
         
-        {/* Patient Information */}
-        <div className="mb-6">
-          <PatientInfoCard 
-            patient={temporaryPatient} 
-            onEditPatient={() => console.log("Add patient clicked")}
-          />
-        </div>
+        {/* Patient Information - Only show if not trial user */}
+        {!isTrialUser && (
+          <div className="mb-6">
+            <PatientInfoCard 
+              patient={temporaryPatient} 
+              onEditPatient={() => console.log("Add patient clicked")}
+            />
+          </div>
+        )}
         
         {/* Dictation Form */}
         {orderStep === 'dictation' && (
@@ -272,64 +299,108 @@ const NewOrder = ({ userRole = UserRole.Physician }: NewOrderProps) => {
         {orderStep === 'signature' && (
           <Card>
             <CardContent className="p-6">
-              <h2 className="text-xl font-medium mb-4">Digital Signature</h2>
-              <Alert className="mb-6 bg-blue-50 border-blue-200 text-blue-800">
-                <AlertDescription>
-                  By electronically signing this order, I certify that this radiology study is medically necessary and appropriate according to AUC guidelines. This order has been validated with 0.9% compliance.
-                </AlertDescription>
-              </Alert>
+              <h2 className="text-xl font-medium mb-4">
+                {isTrialUser ? "Order Validation Complete" : "Digital Signature"}
+              </h2>
               
-              <div className="border border-gray-200 rounded-md p-4 mb-6">
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="col-span-1"></div>
-                  <div className="col-span-1 border border-gray-200 rounded-md min-h-[100px] flex items-center justify-center">
-                    <svg viewBox="0 0 100 50" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M 10 25 C 20 10, 40 10, 50 25" stroke="#1e3a8a" strokeWidth="2" fill="none"></path>
-                      <path d="M 50 25 C 60 40, 80 40, 90 25" stroke="#1e3a8a" strokeWidth="2" fill="none"></path>
-                    </svg>
+              {isTrialUser ? (
+                <>
+                  <Alert className="mb-6 bg-green-50 border-green-200 text-green-800">
+                    <div className="flex items-start">
+                      <div className="mr-2 flex-shrink-0">✓</div>
+                      <AlertDescription>
+                        Your order has been successfully validated! In a full account, you would be able to sign and submit this order to a radiology group.
+                      </AlertDescription>
+                    </div>
+                  </Alert>
+                  
+                  <Card className="mb-6 bg-blue-50 border-blue-200">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-md text-blue-700">Trial Validation Credits</CardTitle>
+                      <CardDescription className="text-blue-600">
+                        You have used 1 validation credit. You have {remainingCredits} credits remaining in your trial.
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="pt-0 pb-4">
+                      <p className="text-sm text-blue-700">
+                        To continue using RadOrderPad with unlimited validations and to submit orders to radiology groups, please sign up for a full account.
+                      </p>
+                      <Button className="mt-3 bg-blue-700 hover:bg-blue-800">
+                        Sign Up for Full Account
+                      </Button>
+                    </CardContent>
+                  </Card>
+                  
+                  <div className="flex justify-between">
+                    <Button variant="outline" onClick={handleBackToDictation}>
+                      Back to Dictation
+                    </Button>
+                    <Button className="bg-gray-800 hover:bg-gray-900 text-white">
+                      Start New Validation
+                    </Button>
                   </div>
-                  <div className="col-span-1 text-right text-sm text-gray-500">
-                    Type your full name to confirm
+                </>
+              ) : (
+                <>
+                  <Alert className="mb-6 bg-blue-50 border-blue-200 text-blue-800">
+                    <AlertDescription>
+                      By electronically signing this order, I certify that this radiology study is medically necessary and appropriate according to AUC guidelines. This order has been validated with 0.9% compliance.
+                    </AlertDescription>
+                  </Alert>
+                  
+                  <div className="border border-gray-200 rounded-md p-4 mb-6">
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="col-span-1"></div>
+                      <div className="col-span-1 border border-gray-200 rounded-md min-h-[100px] flex items-center justify-center">
+                        <svg viewBox="0 0 100 50" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M 10 25 C 20 10, 40 10, 50 25" stroke="#1e3a8a" strokeWidth="2" fill="none"></path>
+                          <path d="M 50 25 C 60 40, 80 40, 90 25" stroke="#1e3a8a" strokeWidth="2" fill="none"></path>
+                        </svg>
+                      </div>
+                      <div className="col-span-1 text-right text-sm text-gray-500">
+                        Type your full name to confirm
+                      </div>
+                    </div>
+                    <Button variant="outline" size="sm" className="mt-4">Clear</Button>
                   </div>
-                </div>
-                <Button variant="outline" size="sm" className="mt-4">Clear</Button>
-              </div>
-              
-              <div className="grid grid-cols-3 gap-4 mb-6">
-                <div className="col-span-1">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
-                  <input 
-                    type="text" 
-                    className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-                <div className="col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">CC</label>
-                  <input 
-                    type="text" 
-                    className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-              </div>
-              
-              <Alert className="mb-6 bg-amber-50 border-amber-200 text-amber-800">
-                <div className="flex items-start">
-                  <Info className="h-4 w-4 mt-0.5 mr-2" />
-                  <div>
-                    <div className="font-medium">Temporary Patient Detected</div>
-                    <div className="text-sm">This order will be queued for administrative staff to attach complete patient information.</div>
+                  
+                  <div className="grid grid-cols-3 gap-4 mb-6">
+                    <div className="col-span-1">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                      <input 
+                        type="text" 
+                        className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                      />
+                    </div>
+                    <div className="col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">CC</label>
+                      <input 
+                        type="text" 
+                        className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                      />
+                    </div>
                   </div>
-                </div>
-              </Alert>
-              
-              <div className="flex justify-between">
-                <Button variant="outline" onClick={handleBackToDictation}>
-                  Back
-                </Button>
-                <Button className="bg-blue-800 hover:bg-blue-900 text-white">
-                  Sign & Queue for Admin
-                </Button>
-              </div>
+                  
+                  <Alert className="mb-6 bg-amber-50 border-amber-200 text-amber-800">
+                    <div className="flex items-start">
+                      <Info className="h-4 w-4 mt-0.5 mr-2" />
+                      <div>
+                        <div className="font-medium">Temporary Patient Detected</div>
+                        <div className="text-sm">This order will be queued for administrative staff to attach complete patient information.</div>
+                      </div>
+                    </div>
+                  </Alert>
+                  
+                  <div className="flex justify-between">
+                    <Button variant="outline" onClick={handleBackToDictation}>
+                      Back
+                    </Button>
+                    <Button className="bg-blue-800 hover:bg-blue-900 text-white">
+                      Sign & Queue for Admin
+                    </Button>
+                  </div>
+                </>
+              )}
             </CardContent>
           </Card>
         )}
