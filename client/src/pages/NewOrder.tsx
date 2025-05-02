@@ -1,11 +1,13 @@
 import { useState } from "react";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { temporaryPatient } from "@/lib/mock-data";
 import PatientInfoCard from "@/components/order/PatientInfoCard";
 import ValidationView from "@/components/order/ValidationView";
-import { ArrowLeft, AlertCircle, Info, X } from "lucide-react";
+import { ArrowLeft, AlertCircle, Info, X, Beaker, InfoIcon } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { UserRole } from "@/lib/roles";
 
 // Mock validation result for demo
 const mockValidationResult = {
@@ -34,13 +36,21 @@ const mockValidationResult = {
   ]
 };
 
-const NewOrder = () => {
+interface NewOrderProps {
+  userRole?: UserRole;
+}
+
+const NewOrder = ({ userRole = UserRole.Physician }: NewOrderProps) => {
   const [orderStep, setOrderStep] = useState<'dictation' | 'validation' | 'signature'>('dictation');
   const [dictationText, setDictationText] = useState("");
   const [validationResult, setValidationResult] = useState<any>(null);
   const [validationFeedback, setValidationFeedback] = useState<string | null>(null);
   const [attemptCount, setAttemptCount] = useState(0);
   const [characterCount, setCharacterCount] = useState(0);
+  const [remainingCredits, setRemainingCredits] = useState(5);
+  
+  // Check if user is trial user
+  const isTrialUser = userRole === UserRole.TrialPhysician;
   
   // Process order
   const handleProcessOrder = () => {
