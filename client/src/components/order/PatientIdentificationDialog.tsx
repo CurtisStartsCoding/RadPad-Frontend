@@ -1,11 +1,15 @@
-import { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useState } from 'react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Mic, MicOff, Info, AlertCircle } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Mic, AlertTriangle, Check, X, Loader2 } from "lucide-react";
 
 interface PatientIdentificationDialogProps {
   open: boolean;
@@ -13,262 +17,278 @@ interface PatientIdentificationDialogProps {
   onIdentify: (patientInfo: { name: string; dob: string }) => void;
 }
 
-export function PatientIdentificationDialog({
+enum DialogState {
+  INITIAL = 'initial',
+  LISTENING = 'listening',
+  DICTATING = 'dictating',
+  PROCESSING = 'processing',
+  CONFIRMATION = 'confirmation',
+  ERROR = 'error',
+  SUCCESS = 'success',
+}
+
+export default function PatientIdentificationDialog({
   open,
   onClose,
-  onIdentify
+  onIdentify,
 }: PatientIdentificationDialogProps) {
-  const [transcript, setTranscript] = useState("");
-  const [isListening, setIsListening] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [suggestions, setSuggestions] = useState<{ name: string; dob: string }[]>([]);
-  const [selectedSuggestion, setSelectedSuggestion] = useState<number>(-1);
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const [isParsing, setIsParsing] = useState(false);
-
-  // Reset state when dialog opens
-  useEffect(() => {
-    if (open) {
-      setTranscript("");
-      setError(null);
-      setSelectedSuggestion(-1);
-      setShowSuggestions(false);
-      setIsParsing(false);
-    }
-  }, [open]);
-
-  // Simulate voice recognition
-  const toggleListening = () => {
-    if (isListening) {
-      setIsListening(false);
-      if (transcript) {
-        parsePatientInfo();
-      }
-    } else {
-      setIsListening(true);
-      setError(null);
-      
-      // Simulate speech input
-      const sampleTexts = [
-        "Patient John Smith, date of birth January 15, 1978",
-        "Sarah Johnson, born on March 22nd, 1985",
-        "Robert Williams, DOB 11/30/1967"
-      ];
-      
-      // Choose a random sample text
-      const randomText = sampleTexts[Math.floor(Math.random() * sampleTexts.length)];
-      
-      // Set a timeout to simulate processing
-      setTimeout(() => {
-        setTranscript(randomText);
-        setIsListening(false);
-        parsePatientInfo(randomText);
-      }, 2000);
-    }
-  };
-
-  // Simulate parsing patient information
-  const parsePatientInfo = (text: string = transcript) => {
-    setIsParsing(true);
-    setError(null);
+  const [dialogState, setDialogState] = useState<DialogState>(DialogState.INITIAL);
+  const [patientName, setPatientName] = useState<string>('');
+  const [patientDob, setPatientDob] = useState<string>('');
+  const [transcription, setTranscription] = useState<string>('');
+  const [error, setError] = useState<string>('');
+  
+  // Simulate starting the dictation
+  const handleStartDictation = () => {
+    setDialogState(DialogState.LISTENING);
     
-    // Simulate API call delay
+    // Simulate waiting for voice input
     setTimeout(() => {
-      setIsParsing(false);
+      setDialogState(DialogState.DICTATING);
+      setTranscription('John Smith, date of birth 4/15/1975');
       
-      try {
-        // Simple regex pattern matching for demo purposes
-        const nameMatch = text.match(/Patient\s+([A-Za-z]+\s+[A-Za-z]+)|([A-Za-z]+\s+[A-Za-z]+),\s+/);
-        const dobMatch = text.match(/(?:date of birth|DOB|born on)\s+([A-Za-z]+\s+\d{1,2}(?:st|nd|rd|th)?,\s+\d{4}|\d{1,2}\/\d{1,2}\/\d{4}|\d{1,2}-\d{1,2}-\d{4})/i);
+      // Simulate processing after voice input
+      setTimeout(() => {
+        setDialogState(DialogState.PROCESSING);
         
-        if (nameMatch && dobMatch) {
-          const name = nameMatch[1] || nameMatch[2];
-          let dob = dobMatch[1];
+        // Simulate result
+        setTimeout(() => {
+          const parsed = {
+            name: 'John Smith',
+            dob: '04/15/1975 (48)'
+          };
           
-          // Format DOB consistently
-          if (dob.match(/\d{1,2}\/\d{1,2}\/\d{4}/)) {
-            // Already in MM/DD/YYYY format
-          } else if (dob.match(/\d{1,2}-\d{1,2}-\d{4}/)) {
-            // Convert MM-DD-YYYY to MM/DD/YYYY
-            dob = dob.replace(/-/g, '/');
+          if (Math.random() > 0.2) { // 80% success rate for demo
+            setPatientName(parsed.name);
+            setPatientDob(parsed.dob);
+            setDialogState(DialogState.CONFIRMATION);
           } else {
-            // Convert text format to MM/DD/YYYY
-            const months = {
-              'january': '01', 'february': '02', 'march': '03', 'april': '04',
-              'may': '05', 'june': '06', 'july': '07', 'august': '08',
-              'september': '09', 'october': '10', 'november': '11', 'december': '12'
-            };
-            
-            for (const [month, num] of Object.entries(months)) {
-              if (dob.toLowerCase().includes(month)) {
-                const dayYear = dob.match(/(\d{1,2})(?:st|nd|rd|th)?,\s+(\d{4})/);
-                if (dayYear) {
-                  dob = `${num}/${dayYear[1].padStart(2, '0')}/${dayYear[2]}`;
-                }
-                break;
-              }
-            }
+            setError('Could not identify patient. Please try again or enter patient information manually.');
+            setDialogState(DialogState.ERROR);
           }
-          
-          // Generate multiple suggestions for demo purposes
-          const suggestions = [
-            { name, dob },
-            { name: name.split(' ')[0] + ' ' + name.split(' ')[1], dob }
-          ];
-          
-          setSuggestions(suggestions);
-          setShowSuggestions(true);
-        } else {
-          setError("Couldn't extract patient information. Please try again or enter manually.");
-        }
-      } catch (e) {
-        setError("Error parsing patient information. Please try again.");
-      }
-    }, 1000);
+        }, 1500);
+      }, 1000);
+    }, 1500);
   };
-
-  // Handle manual text input
-  const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setTranscript(e.target.value);
+  
+  // Handle confirmation
+  const handleConfirm = () => {
+    onIdentify({
+      name: patientName,
+      dob: patientDob
+    });
+    
+    // Go to success state
+    setDialogState(DialogState.SUCCESS);
+    
+    // Close after showing success message
+    setTimeout(() => {
+      handleClose();
+    }, 1500);
   };
-
-  // Handle parse button click
-  const handleParseClick = () => {
-    if (transcript.trim()) {
-      parsePatientInfo();
-    } else {
-      setError("Please enter or dictate patient information first.");
-    }
+  
+  // Handle dialog close
+  const handleClose = () => {
+    // Reset state
+    setTimeout(() => {
+      setDialogState(DialogState.INITIAL);
+      setPatientName('');
+      setPatientDob('');
+      setTranscription('');
+      setError('');
+    }, 300);
+    
+    onClose();
   };
-
-  // Handle selecting a suggestion
-  const handleSelectSuggestion = (index: number) => {
-    setSelectedSuggestion(index);
+  
+  // Handle trying again after error
+  const handleTryAgain = () => {
+    setDialogState(DialogState.INITIAL);
+    setError('');
   };
-
-  // Handle confirmation of selected suggestion
-  const handleConfirmSelection = () => {
-    if (selectedSuggestion >= 0 && selectedSuggestion < suggestions.length) {
-      onIdentify(suggestions[selectedSuggestion]);
-      onClose();
-    } else {
-      setError("Please select a suggestion first.");
-    }
-  };
-
+  
   return (
-    <Dialog open={open} onOpenChange={onClose}>
+    <Dialog open={open} onOpenChange={(open) => !open && handleClose()}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Patient Identification</DialogTitle>
-          <DialogDescription>
-            Dictate or type the patient's name and date of birth.
+          <DialogTitle className="text-center">Patient Identification</DialogTitle>
+          <DialogDescription className="text-center">
+            {dialogState === DialogState.INITIAL && "Identify a patient using voice recognition"}
+            {dialogState === DialogState.LISTENING && "Listening for patient information..."}
+            {dialogState === DialogState.DICTATING && "Recording patient information..."}
+            {dialogState === DialogState.PROCESSING && "Processing patient information..."}
+            {dialogState === DialogState.CONFIRMATION && "Please confirm patient information"}
+            {dialogState === DialogState.ERROR && "Error identifying patient"}
+            {dialogState === DialogState.SUCCESS && "Patient identified successfully!"}
           </DialogDescription>
         </DialogHeader>
         
-        {!showSuggestions ? (
-          <>
-            <div className="grid gap-4">
-              <Card className={`p-3 relative ${isListening ? 'border-blue-400 bg-blue-50' : ''}`}>
-                {isListening && (
-                  <Badge className="absolute top-2 right-2 bg-blue-100 text-blue-800 hover:bg-blue-100">
-                    Listening...
-                  </Badge>
-                )}
-                <Textarea
-                  placeholder="Example: 'Patient John Smith, date of birth January 15, 1978'"
-                  value={transcript}
-                  onChange={handleTextChange}
-                  rows={4}
-                  className="border-0 focus-visible:ring-0 resize-none p-0"
-                  disabled={isListening || isParsing}
-                />
-                {isParsing && (
-                  <div className="absolute inset-0 bg-white/80 flex items-center justify-center">
-                    <div className="flex flex-col items-center">
-                      <div className="h-6 w-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mb-2"></div>
-                      <p className="text-sm text-blue-700">Parsing patient information...</p>
-                    </div>
-                  </div>
-                )}
+        <div className="flex flex-col items-center justify-center py-4">
+          {/* Initial State */}
+          {dialogState === DialogState.INITIAL && (
+            <div className="text-center">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-100 mb-4">
+                <Mic className="h-8 w-8 text-blue-600" />
+              </div>
+              <p className="text-sm text-gray-600 mb-6 max-w-xs mx-auto">
+                Dictate the patient's name and date of birth to automatically identify them in your EMR system.
+              </p>
+              <Button 
+                onClick={handleStartDictation}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                Start Dictation
+              </Button>
+            </div>
+          )}
+          
+          {/* Listening State */}
+          {dialogState === DialogState.LISTENING && (
+            <div className="text-center">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-100 mb-4 relative">
+                <Mic className="h-8 w-8 text-blue-600" />
+                <div className="absolute inset-0 rounded-full border-4 border-blue-400 animate-ping opacity-75"></div>
+              </div>
+              <p className="text-sm text-gray-600 mb-2">
+                Ready to hear patient information
+              </p>
+              <p className="text-xs text-gray-500">
+                Say the patient's full name and date of birth...
+              </p>
+            </div>
+          )}
+          
+          {/* Dictating State */}
+          {dialogState === DialogState.DICTATING && (
+            <div className="text-center w-full">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-100 mb-4">
+                <Mic className="h-8 w-8 text-blue-600" />
+                <div className="absolute w-16 h-16 rounded-full border-4 border-blue-400 animate-pulse"></div>
+              </div>
+              <Card className="mb-4 border-blue-200 w-full">
+                <CardContent className="p-3">
+                  <p className="text-sm text-gray-800 font-medium">{transcription}</p>
+                </CardContent>
               </Card>
-              
-              {error && (
-                <Alert variant="destructive">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>
-                    {error}
-                  </AlertDescription>
-                </Alert>
-              )}
-              
-              <div className="flex gap-2">
+              <div className="flex justify-center">
                 <Button 
                   variant="outline" 
-                  className={isListening ? 'bg-blue-100 text-blue-800 border-blue-300' : ''}
-                  onClick={toggleListening}
-                  disabled={isParsing}
+                  size="sm" 
+                  className="text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
+                  onClick={handleClose}
                 >
-                  {isListening ? <MicOff className="h-4 w-4 mr-2" /> : <Mic className="h-4 w-4 mr-2" />}
-                  {isListening ? 'Stop Listening' : 'Voice Input'}
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          )}
+          
+          {/* Processing State */}
+          {dialogState === DialogState.PROCESSING && (
+            <div className="text-center">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-100 mb-4">
+                <Loader2 className="h-8 w-8 text-blue-600 animate-spin" />
+              </div>
+              <p className="text-sm text-gray-600">
+                Processing and validating patient information...
+              </p>
+            </div>
+          )}
+          
+          {/* Confirmation State */}
+          {dialogState === DialogState.CONFIRMATION && (
+            <div className="w-full">
+              <div className="flex items-center justify-center mb-4">
+                <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-amber-100">
+                  <AlertTriangle className="h-6 w-6 text-amber-600" />
+                </div>
+              </div>
+              
+              <div className="bg-white border border-gray-200 rounded-lg p-4 mb-4">
+                <h3 className="text-sm font-medium text-gray-900 mb-1">Patient Information</h3>
+                <div className="space-y-2">
+                  <div>
+                    <span className="text-xs text-gray-500">Name:</span>
+                    <p className="text-sm font-medium">{patientName}</p>
+                  </div>
+                  <div>
+                    <span className="text-xs text-gray-500">Date of Birth:</span>
+                    <p className="text-sm font-medium">{patientDob}</p>
+                  </div>
+                </div>
+              </div>
+              
+              <p className="text-sm text-gray-600 mb-4 text-center">
+                Is this information correct?
+              </p>
+              
+              <div className="flex justify-between">
+                <Button 
+                  variant="outline" 
+                  onClick={handleClose}
+                >
+                  Cancel
                 </Button>
                 <Button 
-                  onClick={handleParseClick}
-                  disabled={!transcript.trim() || isParsing || isListening}
+                  className="bg-blue-600 hover:bg-blue-700"
+                  onClick={handleConfirm}
                 >
-                  Parse Information
+                  Confirm
                 </Button>
               </div>
             </div>
-              
-            <DialogFooter className="sm:justify-between">
-              <div className="flex items-center text-sm text-gray-500">
-                <Info className="h-4 w-4 mr-1" />
-                Speak clearly for best results
+          )}
+          
+          {/* Error State */}
+          {dialogState === DialogState.ERROR && (
+            <div className="text-center">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-100 mb-4">
+                <X className="h-8 w-8 text-red-600" />
               </div>
-              <Button variant="outline" onClick={onClose}>
-                Cancel
-              </Button>
-            </DialogFooter>
-          </>
-        ) : (
-          <>
-            <div className="mb-4">
-              <p className="text-sm font-medium mb-2">Detected Patient Information:</p>
-              
-              <div className="space-y-2">
-                {suggestions.map((suggestion, index) => (
-                  <Card 
-                    key={index}
-                    className={`p-3 cursor-pointer ${selectedSuggestion === index ? 'border-blue-500 bg-blue-50' : ''}`}
-                    onClick={() => handleSelectSuggestion(index)}
-                  >
-                    <div className="font-medium">{suggestion.name}</div>
-                    <div className="text-sm text-gray-500">
-                      <span className="inline-block mr-2">DOB:</span>
-                      {suggestion.dob}
-                    </div>
-                  </Card>
-                ))}
+              <p className="text-sm text-red-600 mb-6 max-w-xs mx-auto">
+                {error}
+              </p>
+              <div className="flex space-x-3">
+                <Button 
+                  variant="outline"
+                  onClick={handleTryAgain}
+                >
+                  Try Again
+                </Button>
+                <Button 
+                  className="bg-blue-600 hover:bg-blue-700"
+                  onClick={handleClose}
+                >
+                  Close
+                </Button>
               </div>
             </div>
-            
-            <DialogFooter className="sm:justify-between">
-              <Button variant="outline" onClick={() => setShowSuggestions(false)}>
-                Back
-              </Button>
-              <Button 
-                disabled={selectedSuggestion < 0} 
-                onClick={handleConfirmSelection}
-              >
-                Confirm Selection
-              </Button>
-            </DialogFooter>
-          </>
+          )}
+          
+          {/* Success State */}
+          {dialogState === DialogState.SUCCESS && (
+            <div className="text-center">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-100 mb-4">
+                <Check className="h-8 w-8 text-green-600" />
+              </div>
+              <p className="text-sm text-green-600 mb-2 font-medium">
+                Patient identified successfully!
+              </p>
+              <p className="text-xs text-gray-500">
+                Patient information has been added to the order.
+              </p>
+            </div>
+          )}
+        </div>
+        
+        {dialogState === DialogState.INITIAL && (
+          <DialogFooter className="text-xs text-gray-500 text-center">
+            <p className="w-full">
+              You can also type in patient information manually by clicking the edit button after closing this dialog.
+            </p>
+          </DialogFooter>
         )}
       </DialogContent>
     </Dialog>
   );
 }
-
-export default PatientIdentificationDialog;
