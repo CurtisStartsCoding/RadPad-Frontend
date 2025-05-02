@@ -75,6 +75,8 @@ function App() {
         return <MyProfile />;
       case AppPage.Security:
         return <Security />;
+      case AppPage.TrialValidation:
+        return <TrialValidation />;
       default:
         return <Dashboard />;
     }
