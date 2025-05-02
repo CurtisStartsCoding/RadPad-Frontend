@@ -140,6 +140,24 @@ const AdminOrderFinalization: React.FC<AdminOrderFinalizationProps> = ({ navigat
     });
   };
   
+  // Handle order details change
+  const handleOrderDetailsChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setOrderDetails({
+      ...orderDetails,
+      [name]: value
+    });
+  };
+  
+  // Handle referring physician change
+  const handleReferringPhysicianChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setReferringPhysician({
+      ...referringPhysician,
+      [name]: value
+    });
+  };
+  
   // Handle tab change
   const handleTabChange = (value: string) => {
     setCurrentTab(value);
@@ -795,162 +813,141 @@ Referring Provider: Dr. Sarah Johnson`)}
                         Please review all information carefully before sending this order to {order.radiologyGroup}.
                       </p>
                       
-                      <div className="space-y-4">
-                        <Card className="bg-slate-50">
-                          <CardHeader className="pb-2">
-                            <CardTitle className="text-base">Patient Information</CardTitle>
-                          </CardHeader>
-                          <CardContent>
-                            <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-                              <div>
-                                <dt className="text-slate-500">Name</dt>
-                                <dd>{patientInfo.firstName} {patientInfo.lastName}</dd>
-                              </div>
-                              <div>
-                                <dt className="text-slate-500">Date of Birth</dt>
-                                <dd>{patientInfo.dateOfBirth}</dd>
-                              </div>
-                              <div>
-                                <dt className="text-slate-500">Gender</dt>
-                                <dd>{patientInfo.gender}</dd>
-                              </div>
-                              <div>
-                                <dt className="text-slate-500">MRN</dt>
-                                <dd>{patientInfo.mrn}</dd>
-                              </div>
-                              <div className="col-span-2">
-                                <dt className="text-slate-500">Address</dt>
-                                <dd>
-                                  {patientInfo.addressLine1} 
-                                  {patientInfo.addressLine2 && <>, {patientInfo.addressLine2}</>}<br />
-                                  {patientInfo.city}, {patientInfo.state} {patientInfo.zipCode}
-                                </dd>
-                              </div>
-                              <div>
-                                <dt className="text-slate-500">Phone</dt>
-                                <dd>{patientInfo.phoneNumber}</dd>
-                              </div>
-                              <div>
-                                <dt className="text-slate-500">Email</dt>
-                                <dd>{patientInfo.email || <span className="text-slate-400">Not provided</span>}</dd>
-                              </div>
-                            </dl>
-                          </CardContent>
-                        </Card>
+                      <div className="border border-slate-200 rounded-md p-6 bg-white font-sans">
+                        <h1 className="text-xl font-bold mb-3">RADORDERPAD — VALIDATED IMAGING ORDER</h1>
                         
-                        <Card className="bg-slate-50">
-                          <CardHeader className="pb-2">
-                            <CardTitle className="text-base">Insurance Information</CardTitle>
-                          </CardHeader>
-                          <CardContent>
-                            <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-                              <div>
-                                <dt className="text-slate-500">Primary Insurance</dt>
-                                <dd>{insuranceInfo.insurerName}</dd>
-                              </div>
-                              <div>
-                                <dt className="text-slate-500">Policy Number</dt>
-                                <dd>{insuranceInfo.policyNumber}</dd>
-                              </div>
-                              <div>
-                                <dt className="text-slate-500">Group Number</dt>
-                                <dd>{insuranceInfo.groupNumber}</dd>
-                              </div>
-                              <div>
-                                <dt className="text-slate-500">Policy Holder</dt>
-                                <dd>{insuranceInfo.policyHolderName}</dd>
-                              </div>
-                              <div>
-                                <dt className="text-slate-500">Relationship</dt>
-                                <dd>{insuranceInfo.policyHolderRelationship}</dd>
-                              </div>
-                              <div>
-                                <dt className="text-slate-500">Policy Holder DOB</dt>
-                                <dd>{insuranceInfo.policyHolderDateOfBirth}</dd>
-                              </div>
-                              
-                              {insuranceInfo.secondaryInsurerName && (
-                                <>
-                                  <div className="col-span-2 mt-2">
-                                    <dt className="text-slate-500 font-medium">Secondary Insurance</dt>
-                                  </div>
-                                  <div>
-                                    <dt className="text-slate-500">Insurance</dt>
-                                    <dd>{insuranceInfo.secondaryInsurerName}</dd>
-                                  </div>
-                                  <div>
-                                    <dt className="text-slate-500">Policy Number</dt>
-                                    <dd>{insuranceInfo.secondaryPolicyNumber || <span className="text-slate-400">Not provided</span>}</dd>
-                                  </div>
-                                  <div>
-                                    <dt className="text-slate-500">Group Number</dt>
-                                    <dd>{insuranceInfo.secondaryGroupNumber || <span className="text-slate-400">Not provided</span>}</dd>
-                                  </div>
-                                </>
-                              )}
-                            </dl>
-                          </CardContent>
-                        </Card>
+                        <div className="grid grid-cols-2 gap-6 mb-6">
+                          <div>
+                            <div className="flex mb-2">
+                              <div className="w-40 font-medium">Order #:</div>
+                              <div>{orderDetails.orderNumber}</div>
+                            </div>
+                            <div className="flex mb-2">
+                              <div className="w-40 font-medium">Study:</div>
+                              <div>{order.modality}</div>
+                            </div>
+                            <div className="flex mb-2">
+                              <div className="w-40 font-medium">Location:</div>
+                              <div>{orderDetails.location}</div>
+                            </div>
+                          </div>
+                          <div>
+                            <div className="flex mb-2">
+                              <div className="w-40 font-medium">Scheduling:</div>
+                              <div>{orderDetails.scheduling}</div>
+                            </div>
+                            <div className="flex mb-2">
+                              <div className="w-40 font-medium">Priority:</div>
+                              <div>{orderDetails.priority}</div>
+                            </div>
+                          </div>
+                        </div>
                         
-                        <Card className="bg-slate-50">
-                          <CardHeader className="pb-2">
-                            <CardTitle className="text-base">Clinical Information</CardTitle>
-                          </CardHeader>
-                          <CardContent>
-                            <dl className="space-y-2 text-sm">
-                              <div>
-                                <dt className="text-slate-500">Physician's Clinical Indication</dt>
-                                <dd className="mt-1 bg-white p-2 rounded border">
-                                  45-year-old female with chronic headaches persisting for over 3 months. 
-                                  Patient reports severe pain localized to the right temporal region with occasional 
-                                  visual disturbances. Not responsive to standard migraine medications. 
-                                  Request MRI brain to evaluate for structural abnormalities.
-                                </dd>
-                              </div>
-                              <div>
-                                <dt className="text-slate-500 mt-2">Supplemental EMR Information</dt>
-                                <dd className="mt-1 bg-white p-2 rounded border">
-                                  {supplementalInfo.text || <span className="text-slate-400">None provided</span>}
-                                </dd>
-                              </div>
-                            </dl>
-                          </CardContent>
-                        </Card>
+                        <h2 className="text-lg font-medium border-b border-slate-200 mb-3 pb-1">Clinical Summary</h2>
+                        <div className="bg-slate-50 p-3 rounded mb-6 font-mono text-sm whitespace-pre-wrap">
+                          {supplementalInfo.text}
+                        </div>
                         
-                        <Card className="bg-slate-50">
-                          <CardHeader className="pb-2">
-                            <CardTitle className="text-base">Order Details</CardTitle>
-                          </CardHeader>
-                          <CardContent>
-                            <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-                              <div>
-                                <dt className="text-slate-500">Modality</dt>
-                                <dd>{order.modality}</dd>
-                              </div>
-                              <div>
-                                <dt className="text-slate-500">Radiology Group</dt>
-                                <dd>{order.radiologyGroup}</dd>
-                              </div>
-                              <div>
-                                <dt className="text-slate-500">CPT Code</dt>
-                                <dd>70551 - MRI Brain without contrast</dd>
-                              </div>
-                              <div>
-                                <dt className="text-slate-500">ICD-10 Codes</dt>
-                                <dd>G43.909, R51.9</dd>
-                              </div>
-                            </dl>
-                          </CardContent>
-                        </Card>
+                        <h2 className="text-lg font-medium border-b border-slate-200 mb-3 pb-1">Diagnosis + CPT</h2>
+                        <div className="grid grid-cols-2 gap-6 mb-6">
+                          <div>
+                            <div className="flex mb-2">
+                              <div className="w-40 font-medium">Primary ICD-10:</div>
+                              <div>{orderDetails.primaryIcd10} — {orderDetails.primaryDescription}</div>
+                            </div>
+                            <div className="flex mb-2">
+                              <div className="w-40 font-medium">Secondary ICD-10:</div>
+                              <div>{orderDetails.secondaryIcd10} — {orderDetails.secondaryDescription}</div>
+                            </div>
+                          </div>
+                          <div>
+                            <div className="flex mb-2">
+                              <div className="w-40 font-medium">CPT Code:</div>
+                              <div>{orderDetails.cptCode} — {orderDetails.cptDescription}</div>
+                            </div>
+                          </div>
+                        </div>
                         
-                        <Alert className="bg-blue-50 border-blue-200">
-                          <InfoIcon className="h-4 w-4 text-blue-600" />
-                          <AlertDescription className="text-blue-700">
-                            <strong>Credit Usage:</strong> Sending this order will use 1 credit from your organization's balance. 
-                            You currently have 42 credits remaining.
-                          </AlertDescription>
-                        </Alert>
+                        <h2 className="text-lg font-medium border-b border-slate-200 mb-3 pb-1">Referring Physician</h2>
+                        <div className="grid grid-cols-2 gap-6 mb-6">
+                          <div>
+                            <div className="flex mb-2">
+                              <div className="w-40 font-medium">Name:</div>
+                              <div>{referringPhysician.name}</div>
+                            </div>
+                            <div className="flex mb-2">
+                              <div className="w-40 font-medium">NPI:</div>
+                              <div>{referringPhysician.npi}</div>
+                            </div>
+                          </div>
+                          <div>
+                            <div className="flex mb-2">
+                              <div className="w-40 font-medium">Clinic:</div>
+                              <div>{referringPhysician.clinic}</div>
+                            </div>
+                            <div className="flex mb-2">
+                              <div className="w-40 font-medium">Phone:</div>
+                              <div>{referringPhysician.phone}</div>
+                            </div>
+                            <div className="flex mb-2">
+                              <div className="w-40 font-medium">Signed:</div>
+                              <div>{referringPhysician.signedDate}</div>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <h2 className="text-lg font-medium border-b border-slate-200 mb-3 pb-1">Patient Information</h2>
+                        <div className="grid grid-cols-2 gap-6 mb-6">
+                          <div>
+                            <div className="flex mb-2">
+                              <div className="w-40 font-medium">Name:</div>
+                              <div>{patientInfo.firstName} {patientInfo.lastName}</div>
+                            </div>
+                            <div className="flex mb-2">
+                              <div className="w-40 font-medium">DOB:</div>
+                              <div>{patientInfo.dateOfBirth}</div>
+                            </div>
+                            <div className="flex mb-2">
+                              <div className="w-40 font-medium">Sex:</div>
+                              <div>{patientInfo.gender}</div>
+                            </div>
+                            <div className="flex mb-2">
+                              <div className="w-40 font-medium">Phone:</div>
+                              <div>{patientInfo.phoneNumber}</div>
+                            </div>
+                          </div>
+                          <div>
+                            <div className="flex mb-2">
+                              <div className="w-40 font-medium">Address:</div>
+                              <div>
+                                {patientInfo.addressLine1}
+                                {patientInfo.addressLine2 && <>, {patientInfo.addressLine2}</>}, {patientInfo.city}, {patientInfo.state} {patientInfo.zipCode}
+                              </div>
+                            </div>
+                            <div className="flex mb-2">
+                              <div className="w-40 font-medium">MRN:</div>
+                              <div>{patientInfo.mrn}</div>
+                            </div>
+                            <div className="flex mb-2">
+                              <div className="w-40 font-medium">Insurance:</div>
+                              <div>{insuranceInfo.insurerName} — Policy #{insuranceInfo.policyNumber}</div>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <h2 className="text-lg font-medium border-b border-slate-200 mb-3 pb-1">Instructions</h2>
+                        <div className="bg-slate-50 p-3 rounded mb-6 font-mono text-sm whitespace-pre-wrap">
+                          {orderDetails.instructions}
+                        </div>
                       </div>
+                        
+                      <Alert className="bg-blue-50 border-blue-200 mt-4">
+                        <InfoIcon className="h-4 w-4 text-blue-600" />
+                        <AlertDescription className="text-blue-700">
+                          <strong>Credit Usage:</strong> Sending this order will use 1 credit from your organization's balance. 
+                          You currently have 42 credits remaining.
+                        </AlertDescription>
+                      </Alert>
                     </div>
                   </div>
                   
@@ -963,7 +960,12 @@ Referring Provider: Dr. Sarah Johnson`)}
                       disabled={isSending}
                       className="bg-green-600 hover:bg-green-700"
                     >
-                      {isSending ? "Sending..." : "Send to Radiology"}
+                      {isSending ? (
+                        <>
+                          <span className="mr-2">Sending...</span>
+                          <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        </>
+                      ) : "Send to Radiology"}
                     </Button>
                   </div>
                 </TabsContent>
