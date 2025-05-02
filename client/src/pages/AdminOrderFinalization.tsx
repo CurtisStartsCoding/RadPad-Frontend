@@ -54,7 +54,15 @@ const AdminOrderFinalization: React.FC<AdminOrderFinalizationProps> = ({ navigat
   const { toast } = useToast();
   
   // Mock order data based on ID (in a real app, this would be fetched from API)
-  const order = allOrders[0]; // Just use first order for mock
+  const [order, setOrder] = useState({...allOrders[0]}); // Just use first order for mock
+  
+  // Function to update radiology group
+  const setRadiologyGroup = (group: string) => {
+    setOrder({
+      ...order,
+      radiologyGroup: group
+    });
+  };
   
   // Patient information state
   const [patientInfo, setPatientInfo] = useState({
@@ -765,7 +773,83 @@ Referring Provider: Dr. Sarah Johnson`)}
                 </TabsContent>
                 
                 <TabsContent value="supplemental">
-                  <div className="space-y-4">
+                  <div className="space-y-6">
+                    <div>
+                      <h3 className="text-lg font-medium mb-2">Order Details</h3>
+                      <div className="grid grid-cols-2 gap-4 mb-4">
+                        <div>
+                          <Label htmlFor="radiologyGroup">Radiology Group</Label>
+                          <Select 
+                            value={order.radiologyGroup} 
+                            onValueChange={(value) => setRadiologyGroup(value)}
+                          >
+                            <SelectTrigger id="radiologyGroup">
+                              <SelectValue placeholder="Select radiology group" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="University Radiology Partners">University Radiology Partners</SelectItem>
+                              <SelectItem value="Metro Imaging Associates">Metro Imaging Associates</SelectItem>
+                              <SelectItem value="East Coast Diagnostic Imaging">East Coast Diagnostic Imaging</SelectItem>
+                              <SelectItem value="Premier Radiology Group">Premier Radiology Group</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label htmlFor="location">Facility Location</Label>
+                          <Select 
+                            value={orderDetails.location} 
+                            onValueChange={(value) => setOrderDetails({...orderDetails, location: value})}
+                          >
+                            <SelectTrigger id="location">
+                              <SelectValue placeholder="Select facility location" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Advanced Imaging Center – East Campus">Advanced Imaging Center – East Campus</SelectItem>
+                              <SelectItem value="Medical Arts Building – Downtown">Medical Arts Building – Downtown</SelectItem>
+                              <SelectItem value="North County Imaging Center">North County Imaging Center</SelectItem>
+                              <SelectItem value="West Side Medical Plaza">West Side Medical Plaza</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="priority">Priority</Label>
+                          <Select 
+                            value={orderDetails.priority} 
+                            onValueChange={(value) => setOrderDetails({...orderDetails, priority: value})}
+                          >
+                            <SelectTrigger id="priority">
+                              <SelectValue placeholder="Select priority" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Routine">Routine</SelectItem>
+                              <SelectItem value="Urgent">Urgent</SelectItem>
+                              <SelectItem value="STAT">STAT</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label htmlFor="scheduling">Scheduling Timeframe</Label>
+                          <Select 
+                            value={orderDetails.scheduling} 
+                            onValueChange={(value) => setOrderDetails({...orderDetails, scheduling: value})}
+                          >
+                            <SelectTrigger id="scheduling">
+                              <SelectValue placeholder="Select timeframe" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Within 48 hours">Within 48 hours</SelectItem>
+                              <SelectItem value="Within 7 days">Within 7 days</SelectItem>
+                              <SelectItem value="Within 14 days">Within 14 days</SelectItem>
+                              <SelectItem value="Within 30 days">Within 30 days</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                    </div>
+                    
                     <div>
                       <div className="flex items-center mb-2">
                         <Label htmlFor="supplementalText" className="text-lg font-medium mr-2">
@@ -783,6 +867,20 @@ Referring Provider: Dr. Sarah Johnson`)}
                         className="min-h-[200px]"
                         value={supplementalInfo.text}
                         onChange={handleSupplementalInfoChange}
+                      />
+                    </div>
+                    
+                    <div>
+                      <h3 className="text-lg font-medium mb-2">Special Instructions</h3>
+                      <p className="text-sm text-slate-500 mb-2">
+                        Include any special instructions for the radiology facility (e.g., contrast allergies, claustrophobia, etc.)
+                      </p>
+                      <Textarea 
+                        id="instructions" 
+                        name="instructions"
+                        className="min-h-[100px]"
+                        value={orderDetails.instructions}
+                        onChange={handleOrderDetailsChange}
                       />
                     </div>
                     
