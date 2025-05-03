@@ -27,6 +27,7 @@ import {
   ArrowDownRight,
   ChevronDown,
   ChevronRight,
+  ChevronLeft,
   Search,
   Download,
   FileText,
