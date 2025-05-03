@@ -113,7 +113,8 @@ const BillingCredits = ({ userRole = UserRole.AdminReferring }: BillingCreditsPr
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',
-      minimumFractionDigits: 2
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
     }).format(amount);
   };
   
@@ -242,7 +243,7 @@ const BillingCredits = ({ userRole = UserRole.AdminReferring }: BillingCreditsPr
                       <p className="text-sm text-slate-500">Standard package</p>
                     </div>
                     <div className="text-right">
-                      <p className="font-bold">$1,000.00</p>
+                      <p className="font-bold">$1,000</p>
                       <p className="text-xs text-slate-500">$2 per credit</p>
                     </div>
                   </div>
@@ -258,7 +259,7 @@ const BillingCredits = ({ userRole = UserRole.AdminReferring }: BillingCreditsPr
                       <p className="text-sm text-slate-500">Standard package</p>
                     </div>
                     <div className="text-right">
-                      <p className="font-bold">$2,000.00</p>
+                      <p className="font-bold">$2,000</p>
                       <p className="text-xs text-slate-500">$2 per credit</p>
                     </div>
                   </div>
@@ -291,7 +292,7 @@ const BillingCredits = ({ userRole = UserRole.AdminReferring }: BillingCreditsPr
                         <p className="text-sm text-slate-500">Advanced package</p>
                       </div>
                       <div className="text-right">
-                        <p className="font-bold">$700.00</p>
+                        <p className="font-bold">$700</p>
                         <p className="text-xs text-slate-500">$7 per credit</p>
                       </div>
                     </div>
@@ -307,7 +308,7 @@ const BillingCredits = ({ userRole = UserRole.AdminReferring }: BillingCreditsPr
                         <p className="text-sm text-slate-500">Advanced package</p>
                       </div>
                       <div className="text-right">
-                        <p className="font-bold">$3,500.00</p>
+                        <p className="font-bold">$3,500</p>
                         <p className="text-xs text-slate-500">$7 per credit</p>
                       </div>
                     </div>
@@ -323,7 +324,7 @@ const BillingCredits = ({ userRole = UserRole.AdminReferring }: BillingCreditsPr
                         <p className="text-sm text-slate-500">Advanced package</p>
                       </div>
                       <div className="text-right">
-                        <p className="font-bold">$7,000.00</p>
+                        <p className="font-bold">$7,000</p>
                         <p className="text-xs text-slate-500">$7 per credit</p>
                       </div>
                     </div>
@@ -437,7 +438,7 @@ const BillingCredits = ({ userRole = UserRole.AdminReferring }: BillingCreditsPr
                           <div className="w-16 h-10 bg-slate-100 rounded flex items-center justify-center font-medium">
                             100
                           </div>
-                          <span className="text-sm text-slate-500">Purchase 100 credits ($700.00)</span>
+                          <span className="text-sm text-slate-500">Purchase 100 credits ($700)</span>
                         </div>
                       </div>
                     </>
