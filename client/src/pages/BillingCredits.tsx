@@ -247,9 +247,9 @@ const BillingCredits = () => {
                     <Label className="text-sm">Advanced Credits Purchase Amount</Label>
                     <div className="flex items-center space-x-2">
                       <div className="w-16 h-10 bg-slate-100 rounded flex items-center justify-center font-medium">
-                        50
+                        100
                       </div>
-                      <span className="text-sm text-slate-500">Purchase 50 credits ($350.00)</span>
+                      <span className="text-sm text-slate-500">Purchase 100 credits ($700.00)</span>
                     </div>
                   </div>
                   
@@ -266,98 +266,125 @@ const BillingCredits = () => {
         <div className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Credit Packages</CardTitle>
+              <CardTitle>Purchase Credits</CardTitle>
               <CardDescription>
-                Purchase credits in bulk for better pricing
+                Choose the quantity of credits to purchase
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="border rounded-lg p-4 space-y-3">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h3 className="font-medium">Standard Package</h3>
-                    <p className="text-sm text-slate-500">100 standard credits</p>
+            <CardContent className="space-y-6">
+              {/* Standard Credits */}
+              <div>
+                <h3 className="font-medium mb-3">Standard Credits</h3>
+                <div className="space-y-4">
+                  <div className="border rounded-lg p-4 space-y-3">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h4 className="font-medium">100 Credits</h4>
+                        <p className="text-sm text-slate-500">Standard package</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-bold">$200.00</p>
+                        <p className="text-xs text-slate-500">$2.00 per credit</p>
+                      </div>
+                    </div>
+                    <Button variant="outline" size="sm" className="w-full">
+                      Purchase
+                    </Button>
                   </div>
-                  <div className="text-right">
-                    <p className="font-bold">$200.00</p>
-                    <p className="text-xs text-slate-500">$2.00 per credit</p>
+                  
+                  <div className="border rounded-lg p-4 space-y-3">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h4 className="font-medium">500 Credits</h4>
+                        <p className="text-sm text-slate-500">Standard package</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-bold">$1,000.00</p>
+                        <p className="text-xs text-slate-500">$2.00 per credit</p>
+                      </div>
+                    </div>
+                    <Button variant="outline" size="sm" className="w-full">
+                      Purchase
+                    </Button>
+                  </div>
+                  
+                  <div className="border rounded-lg p-4 space-y-3">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h4 className="font-medium">1000 Credits</h4>
+                        <p className="text-sm text-slate-500">Standard package</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-bold">$2,000.00</p>
+                        <p className="text-xs text-slate-500">$2.00 per credit</p>
+                      </div>
+                    </div>
+                    <Button variant="outline" size="sm" className="w-full">
+                      Purchase
+                    </Button>
                   </div>
                 </div>
-                <Button variant="outline" size="sm" className="w-full">
-                  Purchase
-                </Button>
               </div>
               
-              <div className="border rounded-lg p-4 space-y-3">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h3 className="font-medium">Standard Plus</h3>
-                    <p className="text-sm text-slate-500">500 standard credits</p>
+              {/* Advanced Credits */}
+              <div>
+                <h3 className="font-medium mb-3">Advanced Credits</h3>
+                <div className="space-y-4">
+                  <div className="border rounded-lg p-4 space-y-3">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h4 className="font-medium">100 Credits</h4>
+                        <p className="text-sm text-slate-500">Advanced package</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-bold">$700.00</p>
+                        <p className="text-xs text-slate-500">$7.00 per credit</p>
+                      </div>
+                    </div>
+                    <Button variant="outline" size="sm" className="w-full">
+                      Purchase
+                    </Button>
                   </div>
-                  <div className="text-right">
-                    <p className="font-bold">$950.00</p>
-                    <p className="text-xs text-slate-500">$1.90 per credit</p>
+                  
+                  <div className="border rounded-lg p-4 space-y-3">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h4 className="font-medium">500 Credits</h4>
+                        <p className="text-sm text-slate-500">Advanced package</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-bold">$3,500.00</p>
+                        <p className="text-xs text-slate-500">$7.00 per credit</p>
+                      </div>
+                    </div>
+                    <Button variant="outline" size="sm" className="w-full">
+                      Purchase
+                    </Button>
                   </div>
-                </div>
-                <Button variant="outline" size="sm" className="w-full">
-                  Purchase
-                </Button>
-              </div>
-              
-              <div className="border rounded-lg p-4 space-y-3">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h3 className="font-medium">Advanced Package</h3>
-                    <p className="text-sm text-slate-500">50 advanced credits</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-bold">$350.00</p>
-                    <p className="text-xs text-slate-500">$7.00 per credit</p>
-                  </div>
-                </div>
-                <Button variant="outline" size="sm" className="w-full">
-                  Purchase
-                </Button>
-              </div>
-              
-              <div className="border rounded-lg p-4 space-y-3">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h3 className="font-medium">Advanced Plus</h3>
-                    <p className="text-sm text-slate-500">200 advanced credits</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-bold">$1,300.00</p>
-                    <p className="text-xs text-slate-500">$6.50 per credit</p>
-                  </div>
-                </div>
-                <Button variant="outline" size="sm" className="w-full">
-                  Purchase
-                </Button>
-              </div>
-              
-              <div className="border rounded-lg p-4 border-purple-200 bg-purple-50 space-y-3">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <Badge className="mb-1" variant="secondary">Best Value</Badge>
-                    <h3 className="font-medium">Premium Bundle</h3>
-                    <p className="text-sm text-slate-500">250 standard + 100 advanced</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-bold">$1,150.00</p>
-                    <p className="text-xs text-slate-500">Save $200.00</p>
+                  
+                  <div className="border rounded-lg p-4 space-y-3">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h4 className="font-medium">1000 Credits</h4>
+                        <p className="text-sm text-slate-500">Advanced package</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-bold">$7,000.00</p>
+                        <p className="text-xs text-slate-500">$7.00 per credit</p>
+                      </div>
+                    </div>
+                    <Button variant="outline" size="sm" className="w-full">
+                      Purchase
+                    </Button>
                   </div>
                 </div>
-                <Button size="sm" className="w-full">
-                  Purchase Bundle
-                </Button>
               </div>
             </CardContent>
             <CardFooter className="border-t p-4 bg-slate-50">
               <div className="w-full text-center">
-                <p className="text-sm text-slate-500">Need a custom package?</p>
+                <p className="text-sm text-slate-500">Need a custom quantity?</p>
                 <Button variant="link" className="p-0 h-auto">
-                  Contact our sales team
+                  Contact our support team
                 </Button>
               </div>
             </CardFooter>
