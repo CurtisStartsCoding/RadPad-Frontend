@@ -36,11 +36,19 @@ import {
   Camera,
   Upload,
   AtSign,
-  AlertCircle
+  AlertCircle,
+  Beaker
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { UserRole } from "@/lib/roles";
 
-const MyProfile = () => {
+interface MyProfileProps {
+  userRole?: UserRole;
+}
+
+const MyProfile = ({ userRole = UserRole.Physician }: MyProfileProps) => {
+  // Check if user is a trial user
+  const isTrialUser = userRole === UserRole.TrialPhysician;
   const [isEditing, setIsEditing] = useState(false);
   const [firstName, setFirstName] = useState("Sarah");
   const [lastName, setLastName] = useState("Johnson");
@@ -83,8 +91,85 @@ const MyProfile = () => {
     });
   };
 
+  // Trial user profile is simplified
+  if (isTrialUser) {
+    return (
+      <div className="p-6">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-2xl font-semibold">My Profile</h1>
+            <p className="text-sm text-slate-500">Your trial account information</p>
+          </div>
+          <Button variant="outline">
+            <Beaker className="h-4 w-4 mr-2" />
+            Trial User
+          </Button>
+        </div>
+        
+        <Card>
+          <CardHeader>
+            <CardTitle>Trial Account Information</CardTitle>
+            <CardDescription>
+              Access your trial account details and manage your notifications
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Basic Info */}
+            <div className="flex items-center space-x-4">
+              <Avatar className="h-16 w-16">
+                <AvatarFallback className="text-lg bg-amber-100 text-amber-800">
+                  {getInitials(firstName, lastName)}
+                </AvatarFallback>
+              </Avatar>
+              
+              <div>
+                <h2 className="text-xl font-semibold">{firstName} {lastName}</h2>
+                <div className="mt-1 flex items-center">
+                  <Badge variant="outline" className="bg-amber-100 border-amber-200 text-amber-800">Trial User</Badge>
+                </div>
+                
+                <div className="mt-3 grid grid-cols-1 gap-y-2">
+                  <div className="flex items-center text-sm">
+                    <Mail className="h-4 w-4 mr-2 text-slate-400" />
+                    <span>{userData.email}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <Separator />
+            
+            {/* Trial Information */}
+            <div>
+              <h3 className="text-sm font-medium mb-3">Trial Status</h3>
+              <div className="bg-amber-50 border border-amber-200 rounded-md p-4">
+                <div className="flex items-start">
+                  <div className="flex-shrink-0">
+                    <Beaker className="h-5 w-5 text-amber-700" />
+                  </div>
+                  <div className="ml-3">
+                    <h3 className="text-sm font-medium text-amber-800">Trial Account</h3>
+                    <div className="mt-2 text-sm text-amber-700">
+                      <p>You have 5 remaining order validations in your trial. Upgrade to a full account to access all features including dashboard, order history, and organization management.</p>
+                    </div>
+                    <div className="mt-4">
+                      <Button className="bg-amber-600 hover:bg-amber-700 text-white">
+                        Upgrade Account
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+  
+  // Regular user profile view
   return (
-    <div className="container mx-auto py-6 max-w-4xl">
+    <div className="p-6">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-semibold">My Profile</h1>

@@ -30,8 +30,7 @@ export const hasAccess = (role: UserRole, page: string): boolean => {
     "dashboard": [
       UserRole.Physician, 
       UserRole.AdminStaff, 
-      UserRole.AdminReferring, 
-      UserRole.TrialPhysician
+      UserRole.AdminReferring
     ],
     "new-order": [
       UserRole.Physician,
