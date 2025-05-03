@@ -144,33 +144,33 @@ const BillingCredits = ({ userRole = UserRole.AdminReferring }: BillingCreditsPr
       </div>
       
       {/* Credit Balance Cards - Always visible at the top */}
-      {isRadiologyUser ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-          <Card className="bg-white">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg flex items-center text-amber-800">
-                <div className="bg-amber-100 w-8 h-8 rounded-full flex items-center justify-center mr-2">
-                  <DollarSign className="h-4 w-4 text-amber-800" />
-                </div>
-                Standard Credits
-              </CardTitle>
-              <CardDescription>
-                Used for standard X-rays, basic ultrasound
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="pb-3">
-              <div className="text-3xl font-bold">158</div>
-              <p className="text-sm text-slate-500">$2.00 per order</p>
-            </CardContent>
-            <CardFooter className="pt-0">
-              <Button variant="outline" size="sm" className="w-full flex items-center justify-center">
-                <PlusCircle className="h-4 w-4 mr-2" />
-                Add Standard Credits
-              </Button>
-            </CardFooter>
-          </Card>
-          
-          <Card className="bg-white">
+      <div className={`grid grid-cols-1 ${isRadiologyUser ? 'md:grid-cols-2' : ''} gap-6 mb-6`}>
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg flex items-center text-amber-800">
+              <div className="bg-amber-100 w-8 h-8 rounded-full flex items-center justify-center mr-2">
+                <DollarSign className="h-4 w-4 text-amber-800" />
+              </div>
+              Standard Credits
+            </CardTitle>
+            <CardDescription>
+              Used for standard X-rays, basic ultrasound
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="pb-3">
+            <div className="text-3xl font-bold">158</div>
+            <p className="text-sm text-slate-500">$2.00 per order</p>
+          </CardContent>
+          <CardFooter className="pt-0">
+            <Button variant="outline" size="sm" className="w-full">
+              <PlusCircle className="h-4 w-4 mr-2" />
+              Add Standard Credits
+            </Button>
+          </CardFooter>
+        </Card>
+        
+        {isRadiologyUser && (
+          <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-lg flex items-center text-blue-800">
                 <div className="bg-blue-100 w-8 h-8 rounded-full flex items-center justify-center mr-2">
@@ -187,133 +187,47 @@ const BillingCredits = ({ userRole = UserRole.AdminReferring }: BillingCreditsPr
               <p className="text-sm text-slate-500">$7.00 per order</p>
             </CardContent>
             <CardFooter className="pt-0">
-              <Button variant="outline" size="sm" className="w-full flex items-center justify-center">
+              <Button variant="outline" size="sm" className="w-full">
                 <PlusCircle className="h-4 w-4 mr-2" />
                 Add Advanced Credits
               </Button>
             </CardFooter>
           </Card>
-        </div>
-      ) : (
-        <div className="mb-6">
-          <Card className="bg-white max-w-xl">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg flex items-center text-amber-800">
-                <div className="bg-amber-100 w-8 h-8 rounded-full flex items-center justify-center mr-2">
-                  <DollarSign className="h-4 w-4 text-amber-800" />
-                </div>
-                Standard Credits
-              </CardTitle>
-              <CardDescription>
-                Used for standard X-rays, basic ultrasound
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="pb-3">
-              <div className="text-3xl font-bold">158</div>
-              <p className="text-sm text-slate-500">$2.00 per order</p>
-            </CardContent>
-            <CardFooter className="pt-0">
-              <Button variant="outline" size="sm" className="w-full flex items-center justify-center">
-                <PlusCircle className="h-4 w-4 mr-2" />
-                Add Standard Credits
-              </Button>
-            </CardFooter>
-          </Card>
-        </div>
-      )}
+        )}
+      </div>
       
       {/* Tabbed Interface for the rest of the content */}
       <Tabs defaultValue="purchase" className="w-full">
-        <TabsList className="bg-slate-100 border-b-0 w-full mb-6 p-0">
-          <TabsTrigger value="purchase" className="flex-1 rounded-none data-[state=active]:bg-white data-[state=active]:shadow-none data-[state=active]:border-b-0 border-b-2 data-[state=active]:border-primary py-3">Purchase Credits</TabsTrigger>
-          <TabsTrigger value="settings" className="flex-1 rounded-none data-[state=active]:bg-white data-[state=active]:shadow-none data-[state=active]:border-b-0 border-b-2 data-[state=active]:border-primary py-3">Settings</TabsTrigger>
-          <TabsTrigger value="history" className="flex-1 rounded-none data-[state=active]:bg-white data-[state=active]:shadow-none data-[state=active]:border-b-0 border-b-2 data-[state=active]:border-primary py-3">Transaction History</TabsTrigger>
+        <TabsList className="grid grid-cols-3 mb-6">
+          <TabsTrigger value="purchase">Purchase Credits</TabsTrigger>
+          <TabsTrigger value="settings">Settings</TabsTrigger>
+          <TabsTrigger value="history">Transaction History</TabsTrigger>
         </TabsList>
         
         {/* Purchase Credits Tab */}
         <TabsContent value="purchase" className="space-y-6">
           {/* Standard Credits */}
-          <div>
-            <h3 className="text-sm font-medium text-amber-800 flex items-center mb-4">
-              <div className="bg-amber-100 w-6 h-6 rounded-full flex items-center justify-center mr-2">
-                <DollarSign className="h-3 w-3 text-amber-800" />
-              </div>
-              Standard Credits
-            </h3>
-            <p className="text-sm text-slate-500 mb-4">Choose the quantity of standard credits to purchase</p>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-              <div className="border rounded-lg p-4">
-                <div className="flex justify-between items-center mb-3">
-                  <div>
-                    <h4 className="font-medium">100 Credits</h4>
-                    <p className="text-sm text-slate-500">Standard package</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-bold">$200.00</p>
-                    <p className="text-xs text-slate-500">$2.00 per credit</p>
-                  </div>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center text-amber-800">
+                <div className="bg-amber-100 w-6 h-6 rounded-full flex items-center justify-center mr-2">
+                  <DollarSign className="h-3 w-3 text-amber-800" />
                 </div>
-                <Button variant="outline" size="sm" className="w-full">
-                  Purchase
-                </Button>
-              </div>
-              
-              <div className="border rounded-lg p-4">
-                <div className="flex justify-between items-center mb-3">
-                  <div>
-                    <h4 className="font-medium">500 Credits</h4>
-                    <p className="text-sm text-slate-500">Standard package</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-bold">$1,000.00</p>
-                    <p className="text-xs text-slate-500">$2.00 per credit</p>
-                  </div>
-                </div>
-                <Button variant="outline" size="sm" className="w-full">
-                  Purchase
-                </Button>
-              </div>
-              
-              <div className="border rounded-lg p-4">
-                <div className="flex justify-between items-center mb-3">
-                  <div>
-                    <h4 className="font-medium">1000 Credits</h4>
-                    <p className="text-sm text-slate-500">Standard package</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-bold">$2,000.00</p>
-                    <p className="text-xs text-slate-500">$2.00 per credit</p>
-                  </div>
-                </div>
-                <Button variant="outline" size="sm" className="w-full">
-                  Purchase
-                </Button>
-              </div>
-            </div>
-          </div>
-          
-          {/* Advanced Credits - Only for Radiology Users */}
-          {isRadiologyUser && (
-            <div className="mt-6">
-              <h3 className="text-sm font-medium text-blue-800 flex items-center mb-4">
-                <div className="bg-blue-100 w-6 h-6 rounded-full flex items-center justify-center mr-2">
-                  <DollarSign className="h-3 w-3 text-blue-800" />
-                </div>
-                Advanced Credits
-              </h3>
-              <p className="text-sm text-slate-500 mb-4">Choose the quantity of advanced credits to purchase</p>
-              
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                Standard Credits
+              </CardTitle>
+              <CardDescription>Choose the quantity of standard credits to purchase</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="border rounded-lg p-4">
                   <div className="flex justify-between items-center mb-3">
                     <div>
                       <h4 className="font-medium">100 Credits</h4>
-                      <p className="text-sm text-slate-500">Advanced package</p>
+                      <p className="text-sm text-slate-500">Standard package</p>
                     </div>
                     <div className="text-right">
-                      <p className="font-bold">$700.00</p>
-                      <p className="text-xs text-slate-500">$7.00 per credit</p>
+                      <p className="font-bold">$200.00</p>
+                      <p className="text-xs text-slate-500">$2.00 per credit</p>
                     </div>
                   </div>
                   <Button variant="outline" size="sm" className="w-full">
@@ -325,11 +239,11 @@ const BillingCredits = ({ userRole = UserRole.AdminReferring }: BillingCreditsPr
                   <div className="flex justify-between items-center mb-3">
                     <div>
                       <h4 className="font-medium">500 Credits</h4>
-                      <p className="text-sm text-slate-500">Advanced package</p>
+                      <p className="text-sm text-slate-500">Standard package</p>
                     </div>
                     <div className="text-right">
-                      <p className="font-bold">$3,500.00</p>
-                      <p className="text-xs text-slate-500">$7.00 per credit</p>
+                      <p className="font-bold">$1,000.00</p>
+                      <p className="text-xs text-slate-500">$2.00 per credit</p>
                     </div>
                   </div>
                   <Button variant="outline" size="sm" className="w-full">
@@ -341,11 +255,11 @@ const BillingCredits = ({ userRole = UserRole.AdminReferring }: BillingCreditsPr
                   <div className="flex justify-between items-center mb-3">
                     <div>
                       <h4 className="font-medium">1000 Credits</h4>
-                      <p className="text-sm text-slate-500">Advanced package</p>
+                      <p className="text-sm text-slate-500">Standard package</p>
                     </div>
                     <div className="text-right">
-                      <p className="font-bold">$7,000.00</p>
-                      <p className="text-xs text-slate-500">$7.00 per credit</p>
+                      <p className="font-bold">$2,000.00</p>
+                      <p className="text-xs text-slate-500">$2.00 per credit</p>
                     </div>
                   </div>
                   <Button variant="outline" size="sm" className="w-full">
@@ -353,7 +267,73 @@ const BillingCredits = ({ userRole = UserRole.AdminReferring }: BillingCreditsPr
                   </Button>
                 </div>
               </div>
-            </div>
+            </CardContent>
+          </Card>
+          
+          {/* Advanced Credits - Only for Radiology Users */}
+          {isRadiologyUser && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center text-blue-800">
+                  <div className="bg-blue-100 w-6 h-6 rounded-full flex items-center justify-center mr-2">
+                    <DollarSign className="h-3 w-3 text-blue-800" />
+                  </div>
+                  Advanced Credits
+                </CardTitle>
+                <CardDescription>Choose the quantity of advanced credits to purchase</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="border rounded-lg p-4">
+                    <div className="flex justify-between items-center mb-3">
+                      <div>
+                        <h4 className="font-medium">100 Credits</h4>
+                        <p className="text-sm text-slate-500">Advanced package</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-bold">$700.00</p>
+                        <p className="text-xs text-slate-500">$7.00 per credit</p>
+                      </div>
+                    </div>
+                    <Button variant="outline" size="sm" className="w-full">
+                      Purchase
+                    </Button>
+                  </div>
+                  
+                  <div className="border rounded-lg p-4">
+                    <div className="flex justify-between items-center mb-3">
+                      <div>
+                        <h4 className="font-medium">500 Credits</h4>
+                        <p className="text-sm text-slate-500">Advanced package</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-bold">$3,500.00</p>
+                        <p className="text-xs text-slate-500">$7.00 per credit</p>
+                      </div>
+                    </div>
+                    <Button variant="outline" size="sm" className="w-full">
+                      Purchase
+                    </Button>
+                  </div>
+                  
+                  <div className="border rounded-lg p-4">
+                    <div className="flex justify-between items-center mb-3">
+                      <div>
+                        <h4 className="font-medium">1000 Credits</h4>
+                        <p className="text-sm text-slate-500">Advanced package</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-bold">$7,000.00</p>
+                        <p className="text-xs text-slate-500">$7.00 per credit</p>
+                      </div>
+                    </div>
+                    <Button variant="outline" size="sm" className="w-full">
+                      Purchase
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           )}
           
           <Card>
