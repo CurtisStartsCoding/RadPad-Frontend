@@ -285,13 +285,20 @@ const BillingCredits = ({ userRole = UserRole.AdminReferring }: BillingCreditsPr
                 Choose the quantity of credits to purchase
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent className="space-y-4">
+              
               {/* Standard Credits */}
               <div>
-                <h3 className="font-medium mb-3">Standard Credits</h3>
+                <h3 className="font-medium text-amber-800 flex items-center mb-3">
+                  <div className="bg-amber-100 w-6 h-6 rounded-full flex items-center justify-center mr-2">
+                    <DollarSign className="h-3 w-3 text-amber-800" />
+                  </div>
+                  Standard Credits
+                </h3>
+                
                 <div className="space-y-4">
-                  <div className="border rounded-lg p-4 space-y-3">
-                    <div className="flex justify-between items-start">
+                  <div className="border rounded-lg p-4">
+                    <div className="flex justify-between items-center mb-3">
                       <div>
                         <h4 className="font-medium">100 Credits</h4>
                         <p className="text-sm text-slate-500">Standard package</p>
@@ -306,8 +313,8 @@ const BillingCredits = ({ userRole = UserRole.AdminReferring }: BillingCreditsPr
                     </Button>
                   </div>
                   
-                  <div className="border rounded-lg p-4 space-y-3">
-                    <div className="flex justify-between items-start">
+                  <div className="border rounded-lg p-4">
+                    <div className="flex justify-between items-center mb-3">
                       <div>
                         <h4 className="font-medium">500 Credits</h4>
                         <p className="text-sm text-slate-500">Standard package</p>
@@ -322,8 +329,8 @@ const BillingCredits = ({ userRole = UserRole.AdminReferring }: BillingCreditsPr
                     </Button>
                   </div>
                   
-                  <div className="border rounded-lg p-4 space-y-3">
-                    <div className="flex justify-between items-start">
+                  <div className="border rounded-lg p-4">
+                    <div className="flex justify-between items-center mb-3">
                       <div>
                         <h4 className="font-medium">1000 Credits</h4>
                         <p className="text-sm text-slate-500">Standard package</p>
@@ -342,11 +349,17 @@ const BillingCredits = ({ userRole = UserRole.AdminReferring }: BillingCreditsPr
               
               {/* Advanced Credits - Only for Radiology Users */}
               {isRadiologyUser && (
-                <div>
-                  <h3 className="font-medium mb-3">Advanced Credits</h3>
+                <div className="mt-6">
+                  <h3 className="font-medium text-blue-800 flex items-center mb-3">
+                    <div className="bg-blue-100 w-6 h-6 rounded-full flex items-center justify-center mr-2">
+                      <DollarSign className="h-3 w-3 text-blue-800" />
+                    </div>
+                    Advanced Credits
+                  </h3>
+                  
                   <div className="space-y-4">
-                    <div className="border rounded-lg p-4 space-y-3">
-                      <div className="flex justify-between items-start">
+                    <div className="border rounded-lg p-4">
+                      <div className="flex justify-between items-center mb-3">
                         <div>
                           <h4 className="font-medium">100 Credits</h4>
                           <p className="text-sm text-slate-500">Advanced package</p>
@@ -361,8 +374,8 @@ const BillingCredits = ({ userRole = UserRole.AdminReferring }: BillingCreditsPr
                       </Button>
                     </div>
                     
-                    <div className="border rounded-lg p-4 space-y-3">
-                      <div className="flex justify-between items-start">
+                    <div className="border rounded-lg p-4">
+                      <div className="flex justify-between items-center mb-3">
                         <div>
                           <h4 className="font-medium">500 Credits</h4>
                           <p className="text-sm text-slate-500">Advanced package</p>
@@ -377,8 +390,8 @@ const BillingCredits = ({ userRole = UserRole.AdminReferring }: BillingCreditsPr
                       </Button>
                     </div>
                     
-                    <div className="border rounded-lg p-4 space-y-3">
-                      <div className="flex justify-between items-start">
+                    <div className="border rounded-lg p-4">
+                      <div className="flex justify-between items-center mb-3">
                         <div>
                           <h4 className="font-medium">1000 Credits</h4>
                           <p className="text-sm text-slate-500">Advanced package</p>
