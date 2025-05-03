@@ -37,7 +37,13 @@ export enum AppPage {
   Billing = "billing",
   BillingTest = "billing-test",
   Profile = "profile",
-  Security = "security"
+  Security = "security",
+  // Super Admin pages
+  SuperAdminDashboard = "superadmin-dashboard",
+  SuperAdminOrganizations = "superadmin-organizations",
+  SuperAdminUsers = "superadmin-users",
+  SuperAdminLogs = "superadmin-logs",
+  SuperAdminBilling = "superadmin-billing"
 }
 
 function App() {
