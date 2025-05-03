@@ -22,6 +22,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Search, Filter, Calendar, Clock, ArrowUpDown, FileText, CheckCircle2 } from "lucide-react";
 import { allOrders } from "@/lib/mock-data";
 import { AppPage } from "@/App";
+import PageHeader from "@/components/layout/PageHeader";
 
 interface AdminQueueProps {
   navigateTo?: (page: AppPage) => void;
@@ -85,13 +86,11 @@ const AdminQueue: React.FC<AdminQueueProps> = ({ navigateTo }) => {
   };
 
   return (
-    <div className="container mx-auto py-6 max-w-7xl">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-semibold">Admin Queue</h1>
-          <p className="text-sm text-slate-500">Complete order information and prepare for scheduling</p>
-        </div>
-      </div>
+    <div className="p-6">
+      <PageHeader
+        title="Admin Queue"
+        description="Complete order information and prepare for scheduling"
+      />
       
       <Card>
         <CardHeader className="pb-3">

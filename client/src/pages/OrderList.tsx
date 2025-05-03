@@ -33,6 +33,7 @@ import {
   PlusCircle
 } from "lucide-react";
 import { allOrders } from "@/lib/mock-data";
+import PageHeader from "@/components/layout/PageHeader";
 
 const OrderList = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -146,17 +147,16 @@ const OrderList = () => {
   };
 
   return (
-    <div className="container mx-auto py-6 max-w-7xl">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-semibold">Orders</h1>
-          <p className="text-sm text-slate-500">View and track all imaging orders</p>
-        </div>
+    <div className="p-6">
+      <PageHeader
+        title="Orders"
+        description="View and track all imaging orders"
+      >
         <Button>
           <PlusCircle className="h-4 w-4 mr-2" />
           New Order
         </Button>
-      </div>
+      </PageHeader>
       
       <Card>
         <CardHeader className="pb-3">
