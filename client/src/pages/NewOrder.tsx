@@ -9,6 +9,7 @@ import PatientIdentificationDialog from "@/components/order/PatientIdentificatio
 import { ArrowLeft, AlertCircle, Info, X, Beaker, InfoIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { UserRole } from "@/lib/roles";
+import PageHeader from "@/components/layout/PageHeader";
 
 // Mock validation result for demo
 const mockValidationResult = {
@@ -139,11 +140,10 @@ const NewOrder = ({ userRole = UserRole.Physician }: NewOrderProps) => {
   };
 
   return (
-    <div className="max-w-5xl mx-auto bg-gray-50 rounded-lg">
-      <div className="flex items-center justify-between py-4 border-b border-gray-200 px-4">
-        <h1 className="text-xl font-medium">
-          Radiology Order - {patient.name === "Unknown Patient" ? "Unknown Patient" : patient.name}
-        </h1>
+    <div className="p-6">
+      <PageHeader
+        title={`Radiology Order - ${patient.name === "Unknown Patient" ? "Unknown Patient" : patient.name}`}
+      >
         <div className="flex items-center space-x-2">
           <div className="flex items-center">
             <span className="h-2 w-2 bg-blue-600 rounded-full mr-1"></span>
@@ -156,9 +156,9 @@ const NewOrder = ({ userRole = UserRole.Physician }: NewOrderProps) => {
             </svg>
           </Button>
         </div>
-      </div>
+      </PageHeader>
       
-      <div className="p-4">
+      <div>
         {/* Trial User Banner */}
         {isTrialUser && (
           <Card className="mb-4 border-blue-200 bg-blue-50">

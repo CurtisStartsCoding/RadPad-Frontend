@@ -316,24 +316,21 @@ const AdminOrderFinalization: React.FC<AdminOrderFinalizationProps> = ({ navigat
   };
   
   return (
-    <div className="container mx-auto py-6 max-w-5xl">
-      <div className="flex items-center mb-6">
-        <Button 
-          variant="ghost" 
-          size="sm" 
-          className="mr-2" 
-          onClick={handleBackToQueue}
-        >
-          <ArrowLeft className="h-4 w-4 mr-1" />
-          Back to Queue
-        </Button>
-        <div>
-          <h1 className="text-2xl font-semibold">Complete Order Information</h1>
-          <p className="text-sm text-slate-500">
-            Add required patient details to send this order to radiology
-          </p>
-        </div>
-      </div>
+    <div className="p-6">
+      <PageHeader
+        title="Complete Order Information"
+        description="Add required patient details to send this order to radiology"
+        backButton={
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={handleBackToQueue}
+          >
+            <ArrowLeft className="h-4 w-4 mr-1" />
+            Back to Queue
+          </Button>
+        }
+      />
       
       {orderSent ? (
         <Card>
