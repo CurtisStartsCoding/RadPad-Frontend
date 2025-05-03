@@ -22,6 +22,12 @@ import MyProfile from "@/pages/MyProfile";
 import Security from "@/pages/Security";
 import NotFound from "@/pages/not-found";
 
+// Super Admin imports
+import SuperAdminDashboard from "@/pages/SuperAdminDashboard";
+import SuperAdminOrganizations from "@/pages/SuperAdminOrganizations";
+import SuperAdminUsers from "@/pages/SuperAdminUsers";
+import SuperAdminLogs from "@/pages/SuperAdminLogs";
+
 // Enum for all available pages
 export enum AppPage {
   Dashboard = "dashboard",
@@ -78,9 +84,20 @@ function App() {
       case AppPage.BillingTest:
         return <BillingTest />;
       case AppPage.Profile:
-        return <MyProfile />;
+        return <MyProfile userRole={currentRole} />;
       case AppPage.Security:
         return <Security />;
+      // Super Admin pages
+      case AppPage.SuperAdminDashboard:
+        return <SuperAdminDashboard navigateTo={(page) => setCurrentPage(page as AppPage)} />;
+      case AppPage.SuperAdminOrganizations:
+        return <SuperAdminOrganizations />;
+      case AppPage.SuperAdminUsers:
+        return <SuperAdminUsers />;
+      case AppPage.SuperAdminLogs:
+        return <SuperAdminLogs />;
+      case AppPage.SuperAdminBilling:
+        return <BillingCredits userRole={UserRole.SuperAdmin} />;
       default:
         return <Dashboard />;
     }

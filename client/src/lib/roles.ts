@@ -107,10 +107,11 @@ export const hasAccess = (role: UserRole, page: string): boolean => {
     ],
     
     // Super Admin specific pages
-    "super-admin-dashboard": [UserRole.SuperAdmin],
-    "organizations": [UserRole.SuperAdmin],
-    "all-users": [UserRole.SuperAdmin],
-    "logs": [UserRole.SuperAdmin]
+    "superadmin-dashboard": [UserRole.SuperAdmin],
+    "superadmin-organizations": [UserRole.SuperAdmin],
+    "superadmin-users": [UserRole.SuperAdmin],
+    "superadmin-logs": [UserRole.SuperAdmin],
+    "superadmin-billing": [UserRole.SuperAdmin]
   };
   
   // Return true if the role is in the list of roles for this page

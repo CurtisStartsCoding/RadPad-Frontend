@@ -16,7 +16,10 @@ import {
   AlertCircle,
   UserCog,
   ChevronDown,
-  Beaker
+  Beaker,
+  Building,
+  Database,
+  BarChart
 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -134,15 +137,47 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onNavigate, currentRole,
         {currentRole === UserRole.SuperAdmin && (
           <div>
             <div className="mt-4 mb-2 px-3 text-xs font-medium uppercase text-slate-500">
-              Administration
+              Super Admin
             </div>
             <a 
               href="#" 
-              onClick={(e) => { e.preventDefault(); }}
-              className="sidebar-link"
+              onClick={(e) => { e.preventDefault(); onNavigate(AppPage.SuperAdminDashboard); }}
+              className={`sidebar-link ${isActive(AppPage.SuperAdminDashboard) ? 'active' : ''}`}
             >
-              <UserCog />
-              Super Admin Panel
+              <BarChart className="h-4 w-4" />
+              Dashboard
+            </a>
+            <a 
+              href="#" 
+              onClick={(e) => { e.preventDefault(); onNavigate(AppPage.SuperAdminOrganizations); }}
+              className={`sidebar-link ${isActive(AppPage.SuperAdminOrganizations) ? 'active' : ''}`}
+            >
+              <Building className="h-4 w-4" />
+              Organizations
+            </a>
+            <a 
+              href="#" 
+              onClick={(e) => { e.preventDefault(); onNavigate(AppPage.SuperAdminUsers); }}
+              className={`sidebar-link ${isActive(AppPage.SuperAdminUsers) ? 'active' : ''}`}
+            >
+              <Users className="h-4 w-4" />
+              Users
+            </a>
+            <a 
+              href="#" 
+              onClick={(e) => { e.preventDefault(); onNavigate(AppPage.SuperAdminLogs); }}
+              className={`sidebar-link ${isActive(AppPage.SuperAdminLogs) ? 'active' : ''}`}
+            >
+              <Database className="h-4 w-4" />
+              System Logs
+            </a>
+            <a 
+              href="#" 
+              onClick={(e) => { e.preventDefault(); onNavigate(AppPage.SuperAdminBilling); }}
+              className={`sidebar-link ${isActive(AppPage.SuperAdminBilling) ? 'active' : ''}`}
+            >
+              <CreditCard className="h-4 w-4" />
+              Billing
             </a>
           </div>
         )}
