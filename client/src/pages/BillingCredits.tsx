@@ -40,15 +40,16 @@ import {
 import { UserRole } from "@/lib/roles";
 import PageHeader from "@/components/layout/PageHeader";
 
-// Mock transaction history
-const transactions = [
+// Mock transaction history for radiology users
+const radiologyTransactions = [
   { 
     id: 1, 
     date: '2023-07-15T10:30:00', 
     description: 'Credit Purchase - 100 Advanced Credits', 
     amount: 700.00, 
     type: 'purchase', 
-    invoiceId: 'INV-2023-0124'
+    invoiceId: 'INV-2023-0124',
+    creditType: 'advanced'
   },
   { 
     id: 2, 
@@ -56,7 +57,8 @@ const transactions = [
     description: 'Credit Purchase - 200 Standard Credits', 
     amount: 400.00, 
     type: 'purchase', 
-    invoiceId: 'INV-2023-0095'
+    invoiceId: 'INV-2023-0095',
+    creditType: 'standard'
   },
   { 
     id: 3, 
@@ -64,7 +66,8 @@ const transactions = [
     description: 'Credit Usage - MRI Order #4592', 
     amount: -7.00, 
     type: 'usage', 
-    invoiceId: null
+    invoiceId: null,
+    creditType: 'advanced'
   },
   { 
     id: 4, 
@@ -72,7 +75,8 @@ const transactions = [
     description: 'Credit Usage - X-Ray Order #4587', 
     amount: -2.00, 
     type: 'usage', 
-    invoiceId: null
+    invoiceId: null,
+    creditType: 'standard'
   },
   { 
     id: 5, 
@@ -80,7 +84,8 @@ const transactions = [
     description: 'Credit Usage - CT Scan Order #4581', 
     amount: -7.00, 
     type: 'usage', 
-    invoiceId: null
+    invoiceId: null,
+    creditType: 'advanced'
   },
   { 
     id: 6, 
@@ -88,9 +93,69 @@ const transactions = [
     description: 'Credit Purchase - 50 Advanced Credits', 
     amount: 350.00, 
     type: 'purchase', 
-    invoiceId: 'INV-2023-0072'
+    invoiceId: 'INV-2023-0072',
+    creditType: 'advanced'
   },
 ];
+
+// Mock transaction history for referring admins
+const referringTransactions = [
+  { 
+    id: 1, 
+    date: '2023-07-02T13:30:00', 
+    description: 'Credit Purchase - 300 Standard Credits', 
+    amount: 600.00, 
+    type: 'purchase', 
+    invoiceId: 'INV-2023-0098',
+    creditType: 'standard'
+  },
+  { 
+    id: 2, 
+    date: '2023-06-25T11:20:00', 
+    description: 'Credit Usage - X-Ray Order #4587', 
+    amount: -2.00, 
+    type: 'usage', 
+    invoiceId: null,
+    creditType: 'standard'
+  },
+  { 
+    id: 3, 
+    date: '2023-06-18T09:45:00', 
+    description: 'Credit Usage - Ultrasound Order #4571', 
+    amount: -2.00, 
+    type: 'usage', 
+    invoiceId: null,
+    creditType: 'standard'
+  },
+  { 
+    id: 4, 
+    date: '2023-06-10T16:20:00', 
+    description: 'Credit Purchase - 100 Standard Credits', 
+    amount: 200.00, 
+    type: 'purchase', 
+    invoiceId: 'INV-2023-0055',
+    creditType: 'standard'
+  },
+  { 
+    id: 5, 
+    date: '2023-06-05T14:10:00', 
+    description: 'Credit Usage - X-Ray Order #4562', 
+    amount: -2.00, 
+    type: 'usage', 
+    invoiceId: null,
+    creditType: 'standard'
+  },
+];
+
+interface Transaction {
+  id: number;
+  date: string;
+  description: string;
+  amount: number;
+  type: 'purchase' | 'usage' | 'refund';
+  invoiceId: string | null;
+  creditType: 'standard' | 'advanced';
+}
 
 interface BillingCreditsProps {
   userRole?: UserRole;
@@ -474,7 +539,7 @@ const BillingCredits = ({ userRole = UserRole.AdminReferring }: BillingCreditsPr
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {transactions.map((transaction) => (
+                  {(isRadiologyUser ? radiologyTransactions : referringTransactions).map((transaction) => (
                     <TableRow key={transaction.id}>
                       <TableCell>
                         <div className="flex items-center">
