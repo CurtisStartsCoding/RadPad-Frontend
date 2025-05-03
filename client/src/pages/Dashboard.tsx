@@ -37,6 +37,7 @@ import {
   Legend
 } from "recharts";
 import { recentOrders } from "@/lib/mock-data";
+import PageHeader from "@/components/layout/PageHeader";
 import { 
   Activity, 
   Users, 
@@ -109,17 +110,16 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="container mx-auto py-6 max-w-7xl">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-semibold">Dashboard</h1>
-          <p className="text-sm text-slate-500">Welcome back to RadOrderPad</p>
-        </div>
+    <div className="p-6">
+      <PageHeader
+        title="Dashboard"
+        description="Welcome back to RadOrderPad"
+      >
         <Button>
           <PlusCircle className="h-4 w-4 mr-2" />
           New Order
         </Button>
-      </div>
+      </PageHeader>
       
       <Tabs defaultValue="overview" value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className="bg-slate-50 p-1">
