@@ -22,6 +22,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Search, Filter, Calendar, Clock, ArrowUpDown, FileText, CheckCircle2, Calendar as CalendarIcon } from "lucide-react";
 import { allOrders } from "@/lib/mock-data";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import PageHeader from "@/components/layout/PageHeader";
 
 const RadiologyQueue = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -87,17 +88,16 @@ const RadiologyQueue = () => {
   };
 
   return (
-    <div className="container mx-auto py-6 max-w-7xl">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-semibold">Radiology Queue</h1>
-          <p className="text-sm text-slate-500">Review and schedule pending orders</p>
-        </div>
+    <div className="p-6">
+      <PageHeader
+        title="Radiology Queue"
+        description="Review and schedule pending orders"
+      >
         <Button size="sm">
           <CalendarIcon className="h-4 w-4 mr-2" />
           View Schedule
         </Button>
-      </div>
+      </PageHeader>
       
       <Card>
         <CardHeader className="pb-3">

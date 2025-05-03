@@ -43,6 +43,7 @@ import { InfoIcon, FileText, ArrowLeft, CheckCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { allOrders } from "@/lib/mock-data";
 import DocumentManager from "@/components/upload/DocumentManager";
+import PageHeader from "@/components/layout/PageHeader";
 
 interface AdminOrderFinalizationProps {
   navigateTo?: (page: AppPage) => void;
