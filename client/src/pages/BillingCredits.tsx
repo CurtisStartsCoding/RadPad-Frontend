@@ -38,6 +38,7 @@ import {
   ExternalLink
 } from "lucide-react";
 import { UserRole } from "@/lib/roles";
+import PageHeader from "@/components/layout/PageHeader";
 
 // Mock transaction history
 const transactions = [
@@ -131,17 +132,16 @@ const BillingCredits = ({ userRole = UserRole.AdminReferring }: BillingCreditsPr
   };
 
   return (
-    <div className="container mx-auto py-6 max-w-7xl">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-semibold">Billing & Credits</h1>
-          <p className="text-sm text-slate-500">Manage your credit balance and view transaction history</p>
-        </div>
+    <div className="p-6">
+      <PageHeader
+        title="Billing & Credits"
+        description="Manage your credit balance and view transaction history"
+      >
         <Button>
           <DollarSign className="h-4 w-4 mr-2" />
           Purchase Credits
         </Button>
-      </div>
+      </PageHeader>
       
       {/* Credit Balance Cards - Always visible at the top */}
       <div className={`grid grid-cols-1 ${isRadiologyUser ? 'md:grid-cols-2' : ''} gap-6 mb-6`}>
