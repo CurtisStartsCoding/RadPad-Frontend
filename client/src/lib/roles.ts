@@ -77,6 +77,13 @@ export const hasAccess = (role: UserRole, page: string): boolean => {
       UserRole.AdminReferring, 
       UserRole.AdminRadiology
     ],
+    "billing-test": [
+      UserRole.AdminReferring, 
+      UserRole.AdminRadiology,
+      UserRole.Physician,
+      UserRole.Radiologist,
+      UserRole.SuperAdmin
+    ],
     
     // User Settings (available for all authenticated users)
     "profile": [

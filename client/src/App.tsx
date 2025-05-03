@@ -17,6 +17,7 @@ import Locations from "@/pages/Locations";
 import Users from "@/pages/Users";
 import Connections from "@/pages/Connections";
 import BillingCredits from "@/pages/BillingCredits";
+import BillingTest from "@/pages/BillingTest";
 import MyProfile from "@/pages/MyProfile";
 import Security from "@/pages/Security";
 import NotFound from "@/pages/not-found";
@@ -34,6 +35,7 @@ export enum AppPage {
   Users = "users",
   Connections = "connections",
   Billing = "billing",
+  BillingTest = "billing-test",
   Profile = "profile",
   Security = "security"
 }
@@ -66,7 +68,9 @@ function App() {
       case AppPage.Connections:
         return <Connections />;
       case AppPage.Billing:
-        return <BillingCredits />;
+        return <BillingCredits userRole={currentRole} />;
+      case AppPage.BillingTest:
+        return <BillingTest />;
       case AppPage.Profile:
         return <MyProfile />;
       case AppPage.Security:
