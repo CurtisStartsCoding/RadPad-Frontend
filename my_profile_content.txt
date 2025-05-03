@@ -333,8 +333,71 @@ const MyProfile = () => {
           </CardFooter>
         </Card>
         
-        {/* Right Column */}
+        {/* Connected Accounts & Options */}
         <div className="space-y-6">
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle>Connected Accounts</CardTitle>
+              <CardDescription>
+                Manage your connected accounts and integrations
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg border border-green-100">
+                <div className="flex items-center">
+                  <div className="bg-white rounded-full p-1.5 mr-3">
+                    <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none">
+                      <path d="M12 0C5.372 0 0 5.373 0 12s5.372 12 12 12c6.627 0 12-5.373 12-12S18.627 0 12 0zm5.82 8.52v2.16h-4.1c-.094 0-.21.086-.21.19v1.83H15c.29 0 .53.255.53.57v1.8H12.6c-.094 0-.194.087-.194.194v3.14c0 .107-.09.196-.2.196h-1.97c-.11 0-.2-.09-.2-.196v-3.138c0-.107-.09-.194-.2-.194H7.76v-1.8c0-.298.21-.57.5-.57h2.147c.07 0 .19-.086.19-.19V8.513h3.03c.1 0 .193-.086.193-.19V6.7h-3.03c-.11 0-.193-.086-.193-.192v-2c0-.106.083-.193.193-.193h4.1v2c0 .106.105.192.21.192h1.31V8.52h-1.31c-.105 0-.21.087-.21.19z" fill="#27AE60"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-green-800">Epic</p>
+                    <p className="text-xs text-green-600">Connected</p>
+                  </div>
+                </div>
+                <Button variant="outline" size="sm" className="h-8">Disconnect</Button>
+              </div>
+              
+              <div className="flex items-center justify-between p-3 rounded-lg border">
+                <div className="flex items-center">
+                  <div className="bg-slate-100 rounded-full p-1.5 mr-3">
+                    <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none">
+                      <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z" fill="#E2E8F0"/>
+                      <path d="M9 11.5c0-.828.672-1.5 1.5-1.5s1.5.672 1.5 1.5-.672 1.5-1.5 1.5S9 12.328 9 11.5zm4.5 0c0-.828.672-1.5 1.5-1.5s1.5.672 1.5 1.5-.672 1.5-1.5 1.5-1.5-.672-1.5-1.5z" fill="#718096"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">Cerner</p>
+                    <p className="text-xs text-slate-500">Not connected</p>
+                  </div>
+                </div>
+                <Button variant="outline" size="sm" className="h-8">Connect</Button>
+              </div>
+              
+              <div className="flex items-center justify-between p-3 rounded-lg border">
+                <div className="flex items-center">
+                  <div className="bg-slate-100 rounded-full p-1.5 mr-3">
+                    <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none">
+                      <rect width="24" height="24" rx="12" fill="#E2E8F0"/>
+                      <path d="M16.949 17.218H7.051c-.435 0-.808-.373-.808-.808V7.59c0-.435.373-.808.808-.808h9.898c.435 0 .808.373.808.808v8.82c0 .435-.373.808-.808.808zm-3.346-5.756l-.756-.756.756-.756-1.603-1.604-.756.756-.756-.756-1.603 1.604.756.756-.756.756 1.603 1.603.756-.756.756.756 1.603-1.603z" fill="#718096"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">Athena Health</p>
+                    <p className="text-xs text-slate-500">Not connected</p>
+                  </div>
+                </div>
+                <Button variant="outline" size="sm" className="h-8">Connect</Button>
+              </div>
+            </CardContent>
+            <CardFooter className="border-t px-6 py-4">
+              <Button variant="outline" className="w-full">
+                <Upload className="h-4 w-4 mr-2" />
+                Connect New Integration
+              </Button>
+            </CardFooter>
+          </Card>
+          
           <Card>
             <CardHeader className="pb-3">
               <CardTitle>Notification Preferences</CardTitle>
@@ -351,25 +414,37 @@ const MyProfile = () => {
                 <TabsContent value="email" className="space-y-4 mt-4">
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <Label className="text-sm">Order Notifications</Label>
+                      <Label className="text-sm">Order Status Updates</Label>
                       <div className="h-5 w-10 bg-primary rounded-full relative">
                         <div className="h-4 w-4 bg-white rounded-full absolute top-0.5 right-0.5" />
                       </div>
                     </div>
                     <p className="text-xs text-slate-500">
-                      Receive email notifications for order updates
+                      Receive updates when your orders change status
                     </p>
                   </div>
                   
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <Label className="text-sm">Urgent Alerts</Label>
+                      <Label className="text-sm">Billing Notifications</Label>
                       <div className="h-5 w-10 bg-primary rounded-full relative">
                         <div className="h-4 w-4 bg-white rounded-full absolute top-0.5 right-0.5" />
                       </div>
                     </div>
                     <p className="text-xs text-slate-500">
-                      Receive urgent alerts by email
+                      Receive updates about your billing and credits
+                    </p>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-sm">Marketing & News</Label>
+                      <div className="h-5 w-10 bg-slate-200 rounded-full relative">
+                        <div className="h-4 w-4 bg-white rounded-full absolute top-0.5 left-0.5" />
+                      </div>
+                    </div>
+                    <p className="text-xs text-slate-500">
+                      Receive updates about new features and improvements
                     </p>
                   </div>
                 </TabsContent>
