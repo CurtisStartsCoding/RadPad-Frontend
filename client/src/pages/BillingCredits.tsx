@@ -37,6 +37,7 @@ import {
   FileText,
   ExternalLink
 } from "lucide-react";
+import { UserRole } from "@/lib/roles";
 
 // Mock transaction history
 const transactions = [
@@ -90,8 +91,15 @@ const transactions = [
   },
 ];
 
-const BillingCredits = () => {
+interface BillingCreditsProps {
+  userRole?: UserRole;
+}
+
+const BillingCredits = ({ userRole = UserRole.AdminReferring }: BillingCreditsProps) => {
   const [autoReload, setAutoReload] = useState(false);
+  
+  // Determine if user is a radiologist or radiology admin
+  const isRadiologyUser = userRole === UserRole.AdminRadiology || userRole === UserRole.Radiologist;
   
   // Format date for display
   const formatDate = (dateString: string) => {
@@ -138,7 +146,7 @@ const BillingCredits = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Credit Balance Cards */}
         <div className="space-y-6 md:col-span-2">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className={`grid grid-cols-1 ${isRadiologyUser ? 'md:grid-cols-2' : ''} gap-6`}>
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg flex items-center text-amber-800">
@@ -163,29 +171,31 @@ const BillingCredits = () => {
               </CardFooter>
             </Card>
             
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg flex items-center text-blue-800">
-                  <div className="bg-blue-100 w-8 h-8 rounded-full flex items-center justify-center mr-2">
-                    <DollarSign className="h-4 w-4 text-blue-800" />
-                  </div>
-                  Advanced Credits
-                </CardTitle>
-                <CardDescription>
-                  Used for CT scans, MRIs, advanced imaging
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="pb-3">
-                <div className="text-3xl font-bold">72</div>
-                <p className="text-sm text-slate-500">$7.00 per order</p>
-              </CardContent>
-              <CardFooter className="pt-0">
-                <Button variant="outline" size="sm" className="w-full">
-                  <PlusCircle className="h-4 w-4 mr-2" />
-                  Add Advanced Credits
-                </Button>
-              </CardFooter>
-            </Card>
+            {isRadiologyUser && (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg flex items-center text-blue-800">
+                    <div className="bg-blue-100 w-8 h-8 rounded-full flex items-center justify-center mr-2">
+                      <DollarSign className="h-4 w-4 text-blue-800" />
+                    </div>
+                    Advanced Credits
+                  </CardTitle>
+                  <CardDescription>
+                    Used for CT scans, MRIs, advanced imaging
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="pb-3">
+                  <div className="text-3xl font-bold">72</div>
+                  <p className="text-sm text-slate-500">$7.00 per order</p>
+                </CardContent>
+                <CardFooter className="pt-0">
+                  <Button variant="outline" size="sm" className="w-full">
+                    <PlusCircle className="h-4 w-4 mr-2" />
+                    Add Advanced Credits
+                  </Button>
+                </CardFooter>
+              </Card>
+            )}
           </div>
           
           {/* Auto-Reload Settings */}
@@ -233,25 +243,29 @@ const BillingCredits = () => {
                     </div>
                   </div>
                   
-                  <div className="space-y-2">
-                    <Label className="text-sm">Advanced Credits Threshold</Label>
-                    <div className="flex items-center space-x-2">
-                      <div className="w-16 h-10 bg-slate-100 rounded flex items-center justify-center font-medium">
-                        10
+                  {isRadiologyUser && (
+                    <>
+                      <div className="space-y-2">
+                        <Label className="text-sm">Advanced Credits Threshold</Label>
+                        <div className="flex items-center space-x-2">
+                          <div className="w-16 h-10 bg-slate-100 rounded flex items-center justify-center font-medium">
+                            10
+                          </div>
+                          <span className="text-sm text-slate-500">Auto-purchase when balance falls below 10 credits</span>
+                        </div>
                       </div>
-                      <span className="text-sm text-slate-500">Auto-purchase when balance falls below 10 credits</span>
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label className="text-sm">Advanced Credits Purchase Amount</Label>
-                    <div className="flex items-center space-x-2">
-                      <div className="w-16 h-10 bg-slate-100 rounded flex items-center justify-center font-medium">
-                        100
+                      
+                      <div className="space-y-2">
+                        <Label className="text-sm">Advanced Credits Purchase Amount</Label>
+                        <div className="flex items-center space-x-2">
+                          <div className="w-16 h-10 bg-slate-100 rounded flex items-center justify-center font-medium">
+                            100
+                          </div>
+                          <span className="text-sm text-slate-500">Purchase 100 credits ($700.00)</span>
+                        </div>
                       </div>
-                      <span className="text-sm text-slate-500">Purchase 100 credits ($700.00)</span>
-                    </div>
-                  </div>
+                    </>
+                  )}
                   
                   <div className="pt-2">
                     <Button size="sm">Save Auto-Reload Settings</Button>
@@ -326,59 +340,61 @@ const BillingCredits = () => {
                 </div>
               </div>
               
-              {/* Advanced Credits */}
-              <div>
-                <h3 className="font-medium mb-3">Advanced Credits</h3>
-                <div className="space-y-4">
-                  <div className="border rounded-lg p-4 space-y-3">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h4 className="font-medium">100 Credits</h4>
-                        <p className="text-sm text-slate-500">Advanced package</p>
+              {/* Advanced Credits - Only for Radiology Users */}
+              {isRadiologyUser && (
+                <div>
+                  <h3 className="font-medium mb-3">Advanced Credits</h3>
+                  <div className="space-y-4">
+                    <div className="border rounded-lg p-4 space-y-3">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h4 className="font-medium">100 Credits</h4>
+                          <p className="text-sm text-slate-500">Advanced package</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-bold">$700.00</p>
+                          <p className="text-xs text-slate-500">$7.00 per credit</p>
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <p className="font-bold">$700.00</p>
-                        <p className="text-xs text-slate-500">$7.00 per credit</p>
-                      </div>
+                      <Button variant="outline" size="sm" className="w-full">
+                        Purchase
+                      </Button>
                     </div>
-                    <Button variant="outline" size="sm" className="w-full">
-                      Purchase
-                    </Button>
-                  </div>
-                  
-                  <div className="border rounded-lg p-4 space-y-3">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h4 className="font-medium">500 Credits</h4>
-                        <p className="text-sm text-slate-500">Advanced package</p>
+                    
+                    <div className="border rounded-lg p-4 space-y-3">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h4 className="font-medium">500 Credits</h4>
+                          <p className="text-sm text-slate-500">Advanced package</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-bold">$3,500.00</p>
+                          <p className="text-xs text-slate-500">$7.00 per credit</p>
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <p className="font-bold">$3,500.00</p>
-                        <p className="text-xs text-slate-500">$7.00 per credit</p>
-                      </div>
+                      <Button variant="outline" size="sm" className="w-full">
+                        Purchase
+                      </Button>
                     </div>
-                    <Button variant="outline" size="sm" className="w-full">
-                      Purchase
-                    </Button>
-                  </div>
-                  
-                  <div className="border rounded-lg p-4 space-y-3">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h4 className="font-medium">1000 Credits</h4>
-                        <p className="text-sm text-slate-500">Advanced package</p>
+                    
+                    <div className="border rounded-lg p-4 space-y-3">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h4 className="font-medium">1000 Credits</h4>
+                          <p className="text-sm text-slate-500">Advanced package</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-bold">$7,000.00</p>
+                          <p className="text-xs text-slate-500">$7.00 per credit</p>
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <p className="font-bold">$7,000.00</p>
-                        <p className="text-xs text-slate-500">$7.00 per credit</p>
-                      </div>
+                      <Button variant="outline" size="sm" className="w-full">
+                        Purchase
+                      </Button>
                     </div>
-                    <Button variant="outline" size="sm" className="w-full">
-                      Purchase
-                    </Button>
                   </div>
                 </div>
-              </div>
+              )}
             </CardContent>
             <CardFooter className="border-t p-4 bg-slate-50">
               <div className="w-full text-center">
