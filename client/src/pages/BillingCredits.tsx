@@ -39,6 +39,7 @@ import {
 } from "lucide-react";
 import { UserRole } from "@/lib/roles";
 import PageHeader from "@/components/layout/PageHeader";
+import { PaymentMethodsManager } from "@/components/billing/PaymentMethodsManager";
 
 // Mock transaction history for radiology users
 const radiologyTransactions = [
@@ -264,8 +265,9 @@ const BillingCredits = ({ userRole = UserRole.AdminReferring }: BillingCreditsPr
       
       {/* Tabbed Interface for the rest of the content */}
       <Tabs defaultValue="purchase" className="w-full">
-        <TabsList className="grid grid-cols-3 mb-6">
+        <TabsList className="grid grid-cols-4 mb-6">
           <TabsTrigger value="purchase">Purchase Credits</TabsTrigger>
+          <TabsTrigger value="payment-methods">Payment Methods</TabsTrigger>
           <TabsTrigger value="settings">Settings</TabsTrigger>
           <TabsTrigger value="history">Transaction History</TabsTrigger>
         </TabsList>
@@ -403,31 +405,6 @@ const BillingCredits = ({ userRole = UserRole.AdminReferring }: BillingCreditsPr
           )}
           
           <Card>
-            <CardHeader>
-              <CardTitle>Payment Methods</CardTitle>
-              <CardDescription>
-                Manage your payment methods
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between p-3 border rounded-lg">
-                <div className="flex items-center space-x-3">
-                  <div className="bg-slate-100 w-10 h-10 rounded flex items-center justify-center">
-                    <CreditCard className="h-5 w-5 text-slate-600" />
-                  </div>
-                  <div>
-                    <p className="font-medium">Visa ending in 4242</p>
-                    <p className="text-xs text-slate-500">Expires 12/24</p>
-                  </div>
-                </div>
-                <Badge variant="outline" className="bg-green-50 border-green-200 text-green-700">Default</Badge>
-              </div>
-              
-              <Button variant="outline" size="sm" className="w-full">
-                <PlusCircle className="h-4 w-4 mr-2" />
-                Add Payment Method
-              </Button>
-            </CardContent>
             <CardFooter className="border-t p-4 bg-slate-50">
               <div className="w-full text-center">
                 <p className="text-sm text-slate-500">Need a custom quantity?</p>
@@ -436,6 +413,15 @@ const BillingCredits = ({ userRole = UserRole.AdminReferring }: BillingCreditsPr
                 </Button>
               </div>
             </CardFooter>
+          </Card>
+        </TabsContent>
+        
+        {/* Payment Methods Tab */}
+        <TabsContent value="payment-methods" className="space-y-6">
+          <Card>
+            <CardContent className="p-6">
+              <PaymentMethodsManager />
+            </CardContent>
           </Card>
         </TabsContent>
         
