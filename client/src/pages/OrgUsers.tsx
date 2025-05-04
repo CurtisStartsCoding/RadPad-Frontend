@@ -48,10 +48,19 @@ const initialUsers = [
   }
 ];
 
-// CSV template structure
-const csvTemplate = `first_name,last_name,email,role,npi,phone_number,specialty,primary_location_name
-John,Doe,john.doe@example.com,physician,1234567890,555-123-4567,Family Medicine,Main Office
-Jane,Smith,jane.smith@example.com,admin_staff,,555-987-6543,,Main Office`;
+// CSV template structure - based on USER_ONBOARDING_PROCESS.md
+const physicianCsvTemplate = `first_name,last_name,email,npi,specialty,role
+John,Smith,jsmith@groupname.com,1234567890,Cardiology,physician
+Sarah,Johnson,sjohnson@groupname.com,0987654321,Neurology,physician
+Michael,Williams,mwilliams@groupname.com,5678901234,Internal Medicine,admin_staff`;
+
+const radiologyCsvTemplate = `first_name,last_name,email,role
+Robert,Jones,rjones@radiology.com,radiologist
+Jennifer,Davis,jdavis@radiology.com,technologist
+Thomas,Wilson,twilson@radiology.com,admin`;
+
+// Use the appropriate template based on organization type
+const csvTemplate = physicianCsvTemplate; // Change this for radiology groups
 
 export default function OrgUsers() {
   const [users, setUsers] = useState(initialUsers);
@@ -59,7 +68,28 @@ export default function OrgUsers() {
   const [activeTab, setActiveTab] = useState("users");
   const [csvFile, setCsvFile] = useState<File | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
+  const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'validating' | 'preview' | 'success' | 'error'>('idle');
+  const [previewData, setPreviewData] = useState<{
+    total: number;
+    valid: number;
+    invalid: number;
+    records: Array<{
+      row: number;
+      isValid: boolean;
+      firstName: string;
+      lastName: string;
+      email: string;
+      role: string;
+      npi?: string;
+      specialty?: string;
+      errorMessage?: string;
+    }>;
+  }>({
+    total: 0,
+    valid: 0,
+    invalid: 0,
+    records: []
+  });
   
   // New user form state
   const [newUser, setNewUser] = useState({
@@ -89,6 +119,82 @@ export default function OrgUsers() {
     setOpenInviteDialog(false);
   };
   
+  // Validate a single user record
+  const validateUserRecord = (record: any, rowIndex: number) => {
+    const errors = [];
+    // Required fields validation
+    if (!record.first_name) errors.push("First name is required");
+    if (!record.last_name) errors.push("Last name is required");
+    if (!record.email) errors.push("Email is required");
+    
+    // Email format validation
+    if (record.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(record.email)) {
+      errors.push("Invalid email format");
+    }
+    
+    // NPI validation for physicians
+    if (record.role === 'physician' && record.npi) {
+      if (!/^\d{10}$/.test(record.npi)) {
+        errors.push("NPI must be 10 digits");
+      }
+    }
+    
+    return {
+      row: rowIndex,
+      isValid: errors.length === 0,
+      firstName: record.first_name || "",
+      lastName: record.last_name || "",
+      email: record.email || "",
+      role: record.role || "physician",
+      npi: record.npi || "",
+      specialty: record.specialty || "",
+      errorMessage: errors.length > 0 ? errors.join(", ") : undefined
+    };
+  };
+  
+  // Process CSV data
+  const processCsvData = (csvText: string) => {
+    // Simple CSV parsing - in a real app, use a proper CSV parser
+    const lines = csvText.split('\n');
+    const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+    
+    const records = [];
+    let validCount = 0;
+    let invalidCount = 0;
+    
+    // Skip header row
+    for (let i = 1; i < lines.length; i++) {
+      if (!lines[i].trim()) continue; // Skip empty lines
+      
+      const values = lines[i].split(',').map(v => v.trim());
+      const record: Record<string, string> = {};
+      
+      headers.forEach((header, index) => {
+        if (index < values.length) {
+          record[header] = values[index];
+        } else {
+          record[header] = '';
+        }
+      });
+      
+      const validatedRecord = validateUserRecord(record, i);
+      if (validatedRecord.isValid) {
+        validCount++;
+      } else {
+        invalidCount++;
+      }
+      
+      records.push(validatedRecord);
+    }
+    
+    return {
+      total: records.length,
+      valid: validCount,
+      invalid: invalidCount,
+      records
+    };
+  };
+  
   const handleCsvUpload = () => {
     if (!csvFile) return;
     
@@ -100,44 +206,72 @@ export default function OrgUsers() {
       setUploadProgress(prev => {
         if (prev >= 100) {
           clearInterval(uploadInterval);
-          setUploadStatus('success');
+          setUploadStatus('validating');
+          
+          // Simulate processing delay
+          setTimeout(() => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+              if (e.target?.result) {
+                const csvText = e.target.result as string;
+                const processedData = processCsvData(csvText);
+                setPreviewData(processedData);
+                setUploadStatus('preview');
+              }
+            };
+            reader.readAsText(csvFile);
+          }, 500);
+          
           return 100;
         }
         return prev + 20;
       });
-    }, 500);
+    }, 300);
+  };
+  
+  const handleConfirmImport = () => {
+    // Only import valid records
+    const validRecords = previewData.records.filter(record => record.isValid);
+    const newUsersList = validRecords.map((record, index) => {
+      return {
+        id: users.length + index + 1,
+        firstName: record.firstName,
+        lastName: record.lastName,
+        email: record.email,
+        role: record.role as UserRole,
+        invitationStatus: "pending",
+        primaryLocation: "Main Office",
+        lastLogin: null
+      };
+    });
     
-    // Simulate adding new users after upload
+    setUsers([...users, ...newUsersList]);
+    setUploadStatus('success');
+    setCsvFile(null);
+    
+    // Reset after success message displays for a few seconds
     setTimeout(() => {
-      setUsers([
-        ...users,
-        {
-          id: users.length + 1,
-          firstName: "John",
-          lastName: "Doe",
-          email: "john.doe@example.com",
-          role: UserRole.Physician,
-          invitationStatus: "pending",
-          primaryLocation: "Main Office",
-          lastLogin: null
-        },
-        {
-          id: users.length + 2,
-          firstName: "Jane",
-          lastName: "Smith",
-          email: "jane.smith@example.com",
-          role: UserRole.AdminStaff,
-          invitationStatus: "pending",
-          primaryLocation: "Main Office",
-          lastLogin: null
-        }
-      ]);
+      setUploadStatus('idle');
     }, 3000);
+  };
+  
+  const handleCancelImport = () => {
+    setUploadStatus('idle');
+    setCsvFile(null);
+    setPreviewData({
+      total: 0,
+      valid: 0,
+      invalid: 0,
+      records: []
+    });
   };
   
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       setCsvFile(e.target.files[0]);
+      // Reset states when a new file is selected
+      setUploadStatus('idle');
+      setUploadProgress(0);
     }
   };
   
@@ -388,6 +522,28 @@ export default function OrgUsers() {
                     <p className="text-sm text-blue-700 mb-3">
                       Download our CSV template to get started. Fill it with your user details.
                     </p>
+                    
+                    <div className="mb-3 border border-blue-100 rounded bg-white overflow-hidden">
+                      <div className="text-xs p-2 font-mono text-blue-800">
+                        <div className="grid grid-cols-6 gap-2 text-blue-700 font-semibold border-b border-blue-50 pb-1 mb-1">
+                          <div>first_name</div>
+                          <div>last_name</div>
+                          <div>email</div>
+                          <div>npi</div>
+                          <div>specialty</div>
+                          <div>role</div>
+                        </div>
+                        <div className="grid grid-cols-6 gap-2">
+                          <div>John</div>
+                          <div>Smith</div>
+                          <div>jsmith@group.com</div>
+                          <div>1234567890</div>
+                          <div>Cardiology</div>
+                          <div>physician</div>
+                        </div>
+                      </div>
+                    </div>
+                    
                     <Button 
                       variant="outline" 
                       size="sm" 
@@ -428,12 +584,93 @@ export default function OrgUsers() {
                     </div>
                   )}
                   
+                  {uploadStatus === 'preview' && (
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <h3 className="font-medium">Preview Import Results</h3>
+                        <Badge variant={previewData.invalid > 0 ? "destructive" : "outline"} className="ml-2">
+                          {previewData.valid} valid, {previewData.invalid} invalid records
+                        </Badge>
+                      </div>
+                      
+                      <div className="border rounded overflow-hidden">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead className="w-12"></TableHead>
+                              <TableHead>First Name</TableHead>
+                              <TableHead>Last Name</TableHead>
+                              <TableHead>Email</TableHead>
+                              <TableHead>Role</TableHead>
+                              {/* Show NPI column for physician practices */}
+                              <TableHead>NPI</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {previewData.records.slice(0, 10).map((record) => (
+                              <TableRow key={record.row} className={record.isValid ? "" : "bg-red-50"}>
+                                <TableCell>
+                                  {record.isValid ? (
+                                    <CheckCircle2 className="h-4 w-4 text-green-600" />
+                                  ) : (
+                                    <XCircle className="h-4 w-4 text-red-600" />
+                                  )}
+                                </TableCell>
+                                <TableCell>{record.firstName}</TableCell>
+                                <TableCell>{record.lastName}</TableCell>
+                                <TableCell>{record.email}</TableCell>
+                                <TableCell>{record.role}</TableCell>
+                                <TableCell>{record.npi}</TableCell>
+                              </TableRow>
+                            ))}
+                            {previewData.records.length > 10 && (
+                              <TableRow>
+                                <TableCell colSpan={6} className="text-center text-sm text-slate-500">
+                                  ... {previewData.records.length - 10} more records
+                                </TableCell>
+                              </TableRow>
+                            )}
+                          </TableBody>
+                        </Table>
+                      </div>
+                      
+                      {previewData.invalid > 0 && (
+                        <div className="space-y-2">
+                          <h4 className="text-sm font-medium text-red-700">Errors</h4>
+                          <div className="border border-red-200 rounded p-3 bg-red-50 max-h-40 overflow-y-auto">
+                            <ul className="text-sm space-y-1 text-red-700">
+                              {previewData.records
+                                .filter(r => !r.isValid)
+                                .map((record) => (
+                                  <li key={record.row}>
+                                    <strong>Row {record.row}:</strong> {record.errorMessage}
+                                  </li>
+                                ))}
+                            </ul>
+                          </div>
+                        </div>
+                      )}
+                      
+                      <div className="flex justify-end space-x-3">
+                        <Button variant="outline" onClick={handleCancelImport}>
+                          Cancel
+                        </Button>
+                        <Button 
+                          onClick={handleConfirmImport} 
+                          disabled={previewData.valid === 0}
+                        >
+                          Import {previewData.valid} Users
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                  
                   {uploadStatus === 'success' && (
                     <Alert className="bg-green-50 border-green-100 text-green-800">
                       <CheckCircle2 className="h-4 w-4 text-green-600" />
                       <AlertTitle>Upload successful</AlertTitle>
                       <AlertDescription>
-                        2 users have been added to your organization.
+                        {previewData.valid} users have been added to your organization.
                       </AlertDescription>
                     </Alert>
                   )}
