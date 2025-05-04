@@ -52,6 +52,14 @@ const HeaderTest: React.FC = () => {
         >
           Super Admin
         </Button>
+        <Button 
+          size="sm" 
+          variant={currentRole === UserRole.TrialPhysician ? "default" : "outline"}
+          onClick={() => setCurrentRole(UserRole.TrialPhysician)}
+          className="bg-blue-500 hover:bg-blue-600 text-white"
+        >
+          Trial User
+        </Button>
       </div>
       
       <main className="flex-1 p-4 max-w-2xl mx-auto w-full">
