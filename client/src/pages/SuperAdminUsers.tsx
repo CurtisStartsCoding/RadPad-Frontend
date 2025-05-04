@@ -409,34 +409,29 @@ const SuperAdminUsers = () => {
                 filteredUsers.map(user => (
                   <div 
                     key={user.id} 
-                    className={`border rounded-lg p-3 cursor-pointer hover:bg-slate-50 transition-colors overflow-hidden ${selectedUserId === user.id ? 'bg-slate-50 border-primary' : ''}`}
+                    className={`border rounded-lg p-3 cursor-pointer hover:bg-slate-50 transition-colors ${selectedUserId === user.id ? 'bg-slate-50 border-primary' : ''}`}
                     onClick={() => handleSelectUser(user.id)}
+                    title={user.email} // Email tooltip on hover
                   >
-                    <div className="flex justify-between items-center">
-                      <div className="flex items-center flex-1 min-w-0">
-                        <Avatar className="h-10 w-10 shrink-0 mr-3">
-                          <AvatarFallback className="bg-primary/10 text-primary">
-                            {getInitials(user.firstName, user.lastName)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="min-w-0 flex-1 mr-3">
+                    <div className="flex items-center gap-3">
+                      <Avatar className="h-10 w-10 shrink-0">
+                        <AvatarFallback className="bg-primary/10 text-primary">
+                          {getInitials(user.firstName, user.lastName)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between">
                           <h3 className="font-medium truncate">{user.firstName} {user.lastName}</h3>
-                          <p className="text-sm text-slate-500 truncate">{user.email}</p>
+                          <ChevronRight className="h-4 w-4 ml-1 text-slate-400 shrink-0" />
                         </div>
-                      </div>
-                      <ChevronRight className="h-5 w-5 text-slate-400" />
-                    </div>
-                    <div className="mt-2">
-                      <div className="flex flex-wrap gap-2">
-                        <Badge variant="outline" className={getRoleBadgeColor(user.role)}>
-                          {roleDisplayNames[user.role]}
-                        </Badge>
-                        {getStatusBadge(user.active)}
-                        {user.organizationName && (
-                          <Badge variant="outline" className="bg-slate-100 border-slate-200 text-slate-700">
-                            {user.organizationName}
+                        <div className="flex flex-wrap gap-1.5 mt-1">
+                          <Badge variant="outline" className={`${getRoleBadgeColor(user.role)} text-xs`}>
+                            {roleDisplayNames[user.role]}
                           </Badge>
-                        )}
+                          <Badge variant="outline" className="text-xs">
+                            {user.active ? 'Active' : 'Inactive'}
+                          </Badge>
+                        </div>
                       </div>
                     </div>
                   </div>
