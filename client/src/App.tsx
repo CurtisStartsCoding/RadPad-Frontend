@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Route, Switch, useLocation } from "wouter";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
@@ -20,6 +21,8 @@ import BillingCredits from "@/pages/BillingCredits";
 import BillingTest from "@/pages/BillingTest";
 import MyProfile from "@/pages/MyProfile";
 import Security from "@/pages/Security";
+import AuthPage from "@/pages/auth-page";
+import TrialAuth from "@/pages/trial-auth";
 import NotFound from "@/pages/not-found";
 
 // Super Admin imports
