@@ -128,6 +128,33 @@ export const hasAccess = (role: UserRole, page: string): boolean => {
       UserRole.SuperAdmin
     ],
     
+    // Onboarding pages (primarily for admins)
+    "org-signup": [
+      UserRole.AdminReferring,
+      UserRole.AdminRadiology,
+      UserRole.SuperAdmin
+    ],
+    "org-verification": [
+      UserRole.AdminReferring,
+      UserRole.AdminRadiology,
+      UserRole.SuperAdmin
+    ],
+    "org-setup": [
+      UserRole.AdminReferring,
+      UserRole.AdminRadiology,
+      UserRole.SuperAdmin
+    ],
+    "org-locations": [
+      UserRole.AdminReferring,
+      UserRole.AdminRadiology,
+      UserRole.SuperAdmin
+    ],
+    "org-users": [
+      UserRole.AdminReferring,
+      UserRole.AdminRadiology,
+      UserRole.SuperAdmin
+    ],
+    
     // Super Admin specific pages
     "superadmin-dashboard": [UserRole.SuperAdmin],
     "superadmin-organizations": [UserRole.SuperAdmin],

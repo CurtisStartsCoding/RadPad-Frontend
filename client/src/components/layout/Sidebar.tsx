@@ -19,7 +19,10 @@ import {
   Beaker,
   Building,
   Database,
-  BarChart
+  BarChart,
+  CheckCircle2,
+  Settings,
+  UserPlus
 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -64,6 +67,16 @@ const navigationItems = [
     items: [
       { page: AppPage.Login, label: "Login", icon: <Lock /> },
       { page: AppPage.TrialAuth, label: "Trial", icon: <Beaker /> }
+    ]
+  },
+  {
+    section: "Onboarding",
+    items: [
+      { page: AppPage.OrgSignUp, label: "Organization Sign Up", icon: <Building2 /> },
+      { page: AppPage.OrgVerification, label: "Email Verification", icon: <CheckCircle2 /> },
+      { page: AppPage.OrgSetup, label: "Initial Setup", icon: <Settings /> },
+      { page: AppPage.OrgLocations, label: "Locations Setup", icon: <MapPin /> },
+      { page: AppPage.OrgUsers, label: "Users Setup", icon: <UserPlus /> }
     ]
   }
 ];

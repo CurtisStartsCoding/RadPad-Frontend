@@ -50,6 +50,12 @@ export enum AppPage {
   // Auth pages
   Login = "login",
   TrialAuth = "trial-auth",
+  // Onboarding pages
+  OrgSignUp = "org-signup",
+  OrgVerification = "org-verification",
+  OrgSetup = "org-setup",
+  OrgLocations = "org-locations",
+  OrgUsers = "org-users",
   // Super Admin pages
   SuperAdminDashboard = "superadmin-dashboard",
   SuperAdminOrganizations = "superadmin-organizations",
@@ -107,6 +113,17 @@ function App() {
         return <AuthPage />;
       case AppPage.TrialAuth:
         return <TrialAuthPage />;
+      // Onboarding pages
+      case AppPage.OrgSignUp:
+        return <OrgSignUp />;
+      case AppPage.OrgVerification:
+        return <OrgVerification />;
+      case AppPage.OrgSetup:
+        return <OrgSetup />;
+      case AppPage.OrgLocations:
+        return <OrgLocations />;
+      case AppPage.OrgUsers:
+        return <OrgUsers />;
       // Super Admin pages
       case AppPage.SuperAdminDashboard:
         return <SuperAdminDashboard navigateTo={(page) => setCurrentPage(page as AppPage)} />;
