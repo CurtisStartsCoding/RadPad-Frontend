@@ -70,81 +70,121 @@ app.use((req, res, next) => {
   next();
 });
 
-// Add mock login endpoint for testing
-app.post('/api/auth/login', (req, res) => {
-  console.log('Mock login endpoint called');
-  
-  const { email, password } = req.body;
-  
-  // Check if credentials match test account
-  if (email === 'test.physician@example.com' && password === 'password123') {
-    console.log('Login successful');
+// Add direct endpoints that forward to the real API
+app.post('/api/auth/login', async (req, res) => {
+  try {
+    console.log('Login endpoint called, forwarding to real API');
     
-    // Return a mock successful response
-    const responseData = {
-      token: 'mock-jwt-token-for-testing',
-      user: {
-        id: 1,
-        email: 'test.physician@example.com',
-        first_name: 'Test',
-        last_name: 'Physician',
-        role: 'physician',
-        organization_id: 1,
-        npi: '1234567890',
-        specialty: 'Radiology',
-        is_active: true,
-        email_verified: true,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+    const { email, password } = req.body;
+    
+    // Forward the request to the real API
+    const response = await fetch('https://api.radorderpad.com/api/auth/login', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify({ email, password })
+    });
+    
+    // Get the response data
+    const data = await response.json();
+    
+    // Consume and display the auth response in the console
+    console.log('\n=== AUTH RESPONSE DETAILS ===');
+    console.log(`Status: ${response.status} ${response.statusText}`);
+    console.log('Headers:');
+    response.headers.forEach((value, name) => {
+      console.log(`  ${name}: ${value}`);
+    });
+    
+    if (data.token) {
+      // Parse the JWT token to display its contents
+      const tokenParts = data.token.split('.');
+      if (tokenParts.length === 3) {
+        try {
+          const payload = JSON.parse(Buffer.from(tokenParts[1], 'base64').toString());
+          console.log('\nToken Payload:');
+          console.log(JSON.stringify(payload, null, 2));
+          
+          // Display token expiration
+          if (payload.exp) {
+            const expirationDate = new Date(payload.exp * 1000);
+            console.log(`\nToken Expires: ${expirationDate.toLocaleString()}`);
+            const timeUntilExpiry = Math.floor((payload.exp * 1000 - Date.now()) / 1000 / 60);
+            console.log(`Time until expiry: ${timeUntilExpiry} minutes`);
+          }
+        } catch (e) {
+          console.error('Error parsing token payload:', e);
+        }
       }
-    };
+    }
     
-    res.status(200).json(responseData);
-  } else {
-    console.log('Login failed - invalid credentials');
-    res.status(401).json({ message: 'Invalid email or password' });
+    if (data.user) {
+      console.log('\nUser Details:');
+      console.log(JSON.stringify(data.user, null, 2));
+    }
+    
+    console.log('=== END AUTH RESPONSE ===\n');
+    
+    // Forward the status and data back to the client
+    res.status(response.status).json(data);
+  } catch (error) {
+    console.error('Error forwarding login request:', error);
+    res.status(500).json({ message: 'Internal server error' });
   }
 });
 
-// Add mock session endpoint for testing
+// Add session endpoint for compatibility with client code
 app.get('/api/auth/session', (req, res) => {
   // Check for Authorization header
   const authHeader = req.headers.authorization;
   if (authHeader && authHeader.startsWith('Bearer ')) {
-    // Return a mock authenticated session
-    res.status(200).json({
-      authenticated: true,
-      user: {
-        id: 1,
-        email: 'test.physician@example.com',
-        name: 'Test Physician',
-        role: 'physician',
-        organizationId: 1,
-        createdAt: new Date(),
-        updatedAt: new Date()
+    try {
+      // Extract the token
+      const token = authHeader.split(' ')[1];
+      
+      // Try to decode the token to get user information
+      const tokenParts = token.split('.');
+      if (tokenParts.length === 3) {
+        const payload = JSON.parse(Buffer.from(tokenParts[1], 'base64').toString());
+        
+        // Return an authenticated session with user info from token
+        res.status(200).json({
+          authenticated: true,
+          user: {
+            id: payload.userId,
+            email: payload.email,
+            name: payload.name || payload.email || 'User',
+            role: payload.role,
+            organizationId: payload.orgId,
+            createdAt: new Date(),
+            updatedAt: new Date()
+          }
+        });
+        return;
       }
-    });
-  } else {
-    res.status(200).json({ authenticated: false });
+    } catch (e) {
+      console.error("Error decoding token:", e);
+    }
   }
+  
+  // If no valid token, return not authenticated
+  res.status(200).json({ authenticated: false });
 });
 
 // Create a custom router for API requests
 const apiRouter = express.Router();
 
 // Add proxy middleware for API requests to the remote server
-// But exclude our mock endpoints which are handled above
 apiRouter.use((req, res, next) => {
-  // Skip proxy for auth endpoints (they're handled by our mock endpoints)
-  if (req.path.startsWith('/auth/login') || req.path.startsWith('/auth/session')) {
-    return next('router'); // Skip to the next router
-  }
-  
-  // For all other API requests, use the proxy
+  // Proxy all API requests to the real API
   const proxy = createProxyMiddleware({
     target: 'https://api.radorderpad.com',
     changeOrigin: true,
     secure: true,
+    timeout: 30000, // 30 seconds timeout
+    proxyTimeout: 30000, // 30 seconds proxy timeout
     pathRewrite: {
       '^/api': '/api' // Keep the /api prefix
     },
