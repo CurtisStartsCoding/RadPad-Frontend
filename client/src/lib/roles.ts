@@ -106,6 +106,28 @@ export const hasAccess = (role: UserRole, page: string): boolean => {
       UserRole.SuperAdmin
     ],
     
+    // Auth pages (accessible to all users)
+    "login": [
+      UserRole.Physician, 
+      UserRole.AdminStaff, 
+      UserRole.AdminReferring,
+      UserRole.Scheduler, 
+      UserRole.AdminRadiology, 
+      UserRole.Radiologist,
+      UserRole.TrialPhysician,
+      UserRole.SuperAdmin
+    ],
+    "trial-auth": [
+      UserRole.Physician, 
+      UserRole.AdminStaff, 
+      UserRole.AdminReferring,
+      UserRole.Scheduler, 
+      UserRole.AdminRadiology, 
+      UserRole.Radiologist,
+      UserRole.TrialPhysician,
+      UserRole.SuperAdmin
+    ],
+    
     // Super Admin specific pages
     "superadmin-dashboard": [UserRole.SuperAdmin],
     "superadmin-organizations": [UserRole.SuperAdmin],
