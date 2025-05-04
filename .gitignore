@@ -66,6 +66,7 @@ lerna-debug.log*
 generated-icon.png
 my_profile_content.txt
 .replit
+scratch/
 
 # VSCode server files
 .config/

@@ -22,7 +22,7 @@ async function throwIfResNotOk(res: Response) {
 }
 
 /**
- * Enhanced API request function with caching disabled
+ * Enhanced API request function with caching disabled 
  * to ensure authentication state is always fresh
  */
 export async function apiRequest(
@@ -31,8 +31,8 @@ export async function apiRequest(
   data?: unknown | undefined,
 ): Promise<Response> {
   // Add cache-busting query parameter for GET requests
-  const cacheBustUrl = method === 'GET' ?
-    `${url}${url.includes('?') ? '&' : '?'}_=${Date.now()}` :
+  const cacheBustUrl = method === 'GET' ? 
+    `${url}${url.includes('?') ? '&' : '?'}_=${Date.now()}` : 
     url;
   
   // For authentication-related endpoints, add extra cache prevention
@@ -40,6 +40,9 @@ export async function apiRequest(
   
   // Get auth token from localStorage
   const accessToken = localStorage.getItem('rad_order_pad_access_token');
+  
+  // Debug log for authentication debugging
+  console.log(`API Request for ${url} - Token exists: ${!!accessToken}`);
   
   // Prepare headers
   const headers: Record<string, string> = {
@@ -55,7 +58,11 @@ export async function apiRequest(
   // Add Authorization header if we have a token (except for login)
   if (accessToken && !url.includes('/api/auth/login')) {
     headers['Authorization'] = `Bearer ${accessToken}`;
-    console.log(`API Request: Adding Authorization token to ${url}`);
+    console.log(`API Request: Adding Authorization token to ${url}`, {
+      tokenPreview: `${accessToken.slice(0, 5)}...${accessToken.slice(-5)}`
+    });
+  } else if (!url.includes('/api/auth/login')) {
+    console.warn(`No auth token available for request to ${url}`);
   }
   
   // Add cache prevention for auth endpoints
@@ -66,10 +73,16 @@ export async function apiRequest(
   }
   
   try {
-    console.log(`API Request ${method} ${cacheBustUrl}`);
+    console.log(`API Request ${method} ${cacheBustUrl}`, {
+      hasToken: accessToken ? true : false,
+      isAuthEndpoint,
+      method,
+      headersIncluded: Object.keys(headers)
+    });
     
     // Use the getApiUrl function to get the full API URL
     const fullUrl = getApiUrl(cacheBustUrl);
+    console.log(`Making request to ${fullUrl}`);
     
     const res = await fetch(fullUrl, {
       method,
@@ -147,6 +160,7 @@ export const getQueryFn: <T>(options: {
       
       // Use the getApiUrl function to get the full API URL
       const fullUrl = getApiUrl(cacheBustUrl);
+      console.log(`Making request to ${fullUrl}`);
       
       const res = await fetch(fullUrl, {
         credentials: "include",

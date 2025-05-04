@@ -5,17 +5,82 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertCircle, ArrowRight, Eye, EyeOff, Mail, Lock } from "lucide-react";
+import { useAuth } from "@/lib/useAuth";
+import { useLocation } from "wouter";
+import { loginUser } from "@/lib/auth";
 
 const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const { login, isLoading: authLoading } = useAuth();
+  const [_, setLocation] = useLocation();
+  
+  // Combined loading state for UI
+  const isLoading = isSubmitting || authLoading;
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    // For demo purposes only - in a real app this would call an API
-    console.log("Login attempted with:", { email, password, rememberMe });
+    
+    if (!email || !password) {
+      setError("Please enter both email and password");
+      return;
+    }
+    
+    setIsSubmitting(true);
+    setError(null);
+    
+    try {
+      console.log("Attempting login with email:", email);
+      
+      // First try direct API call
+      try {
+        console.log("Attempting direct API login");
+        const user = await loginUser(email, password);
+        console.log("Direct API login successful, user data received:", user);
+        
+        // Verify localStorage has tokens
+        const accessToken = localStorage.getItem('rad_order_pad_access_token');
+        console.log("Token saved:", accessToken ? "Yes" : "No");
+        
+        // Redirect to dashboard
+        setLocation("/");
+        return;
+      } catch (directError) {
+        console.error("Direct API login failed, trying hook login:", directError);
+      }
+      
+      // Fall back to hook's login function
+      const user = await login(email, password);
+      
+      console.log("Hook login successful, user data received:", user);
+      
+      // Verify localStorage has tokens
+      const accessToken = localStorage.getItem('rad_order_pad_access_token');
+      
+      console.log("Token saved:", accessToken ? "Yes" : "No");
+      
+      // Redirect to dashboard
+      setLocation("/");
+    } catch (error) {
+      console.error("Login error:", error);
+      
+      // Display a more detailed error message if available
+      let errorMessage = "Invalid email or password. Please try again.";
+      if (error instanceof Error) {
+        errorMessage = error.message || errorMessage;
+      }
+      
+      setError(errorMessage);
+      
+      // Clear password field on error for security
+      setPassword("");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -40,6 +105,13 @@ const Login = () => {
                 Enter your email and password to access your account
               </CardDescription>
             </CardHeader>
+            {error && (
+              <div className="px-6 -mt-2 mb-2">
+                <div className="bg-red-50 text-red-600 p-3 rounded-md text-sm">
+                  {error}
+                </div>
+              </div>
+            )}
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
@@ -95,9 +167,9 @@ const Login = () => {
               </div>
             </CardContent>
             <CardFooter className="flex flex-col">
-              <Button className="w-full" type="submit">
-                Sign In
-                <ArrowRight className="ml-2 h-4 w-4" />
+              <Button className="w-full" type="submit" disabled={isLoading}>
+                {isLoading ? "Signing in..." : "Sign In"}
+                {!isLoading && <ArrowRight className="ml-2 h-4 w-4" />}
               </Button>
               
               <div className="mt-4 text-center text-sm text-slate-500">
@@ -117,6 +189,13 @@ const Login = () => {
             <a href="#" className="hover:underline">Terms of Service</a>
             <span>·</span>
             <a href="#" className="hover:underline">Privacy Policy</a>
+          </div>
+          
+          {/* Test credentials */}
+          <div className="mt-4 p-3 border border-slate-200 rounded-md bg-slate-50 text-left">
+            <p className="font-medium text-sm text-slate-700 mb-1">Test Account:</p>
+            <p className="text-xs text-slate-600">Email: test.physician@example.com</p>
+            <p className="text-xs text-slate-600">Password: password123</p>
           </div>
         </div>
       </div>

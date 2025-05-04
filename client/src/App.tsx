@@ -5,6 +5,7 @@ import { queryClient } from "./lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { UserRole } from "@/lib/roles";
+import { AuthProvider } from "@/lib/useAuth";
 
 import Sidebar from "@/components/layout/Sidebar";
 import AppHeader from "@/components/layout/AppHeader";
@@ -220,8 +221,9 @@ function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Switch>
+      <AuthProvider>
+        <TooltipProvider>
+          <Switch>
           <Route path="/auth">
             <AuthPage />
           </Route>
@@ -252,9 +254,10 @@ function App() {
               </div>
             </div>
           </Route>
-        </Switch>
-        <Toaster />
-      </TooltipProvider>
+          </Switch>
+          <Toaster />
+        </TooltipProvider>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }
