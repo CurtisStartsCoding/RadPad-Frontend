@@ -303,7 +303,7 @@ export default function OrgUsers() {
         <div className="flex space-x-3">
           <Dialog open={openInviteDialog} onOpenChange={setOpenInviteDialog}>
             <DialogTrigger asChild>
-              <Button className="flex items-center gap-2">
+              <Button variant="default" className="flex items-center gap-2 bg-blue-800 text-white hover:bg-blue-700">
                 <UserPlus className="h-4 w-4" />
                 Invite User
               </Button>
@@ -513,8 +513,8 @@ export default function OrgUsers() {
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="flex flex-col md:flex-row md:items-start gap-6">
-                <div className="flex-1 space-y-4">
-                  <div className="p-4 bg-blue-50 rounded-lg">
+                <div className="md:w-1/2 space-y-4">
+                  <div className="p-4 bg-blue-50 rounded-lg border border-blue-100">
                     <h3 className="font-medium flex items-center mb-2 text-blue-800">
                       <FileSpreadsheet className="h-4 w-4 mr-2 text-blue-600" />
                       CSV Template
@@ -523,31 +523,10 @@ export default function OrgUsers() {
                       Download our CSV template to get started. Fill it with your user details.
                     </p>
                     
-                    <div className="mb-3 border border-blue-100 rounded bg-white overflow-hidden">
-                      <div className="text-xs p-2 font-mono text-blue-800">
-                        <div className="grid grid-cols-6 gap-2 text-blue-700 font-semibold border-b border-blue-50 pb-1 mb-1">
-                          <div>first_name</div>
-                          <div>last_name</div>
-                          <div>email</div>
-                          <div>npi</div>
-                          <div>specialty</div>
-                          <div>role</div>
-                        </div>
-                        <div className="grid grid-cols-6 gap-2">
-                          <div>John</div>
-                          <div>Smith</div>
-                          <div>jsmith@group.com</div>
-                          <div>1234567890</div>
-                          <div>Cardiology</div>
-                          <div>physician</div>
-                        </div>
-                      </div>
-                    </div>
-                    
                     <Button 
                       variant="outline" 
                       size="sm" 
-                      className="bg-white text-blue-700 border-blue-200 hover:bg-blue-100"
+                      className="bg-white text-blue-700 border-blue-200 hover:bg-blue-100 w-full justify-center"
                       onClick={downloadCsvTemplate}
                     >
                       <Download className="h-4 w-4 mr-2" />
@@ -567,6 +546,7 @@ export default function OrgUsers() {
                       <Button 
                         onClick={handleCsvUpload} 
                         disabled={!csvFile || uploadStatus === 'uploading'}
+                        className="bg-blue-800 hover:bg-blue-700"
                       >
                         <Upload className="h-4 w-4 mr-2" />
                         Import Users
@@ -686,16 +666,23 @@ export default function OrgUsers() {
                   )}
                 </div>
                 
-                <div className="flex-1 border rounded-lg p-4 bg-slate-50">
+                <div className="md:w-1/2 border rounded-lg p-4 bg-slate-50">
                   <h3 className="font-medium mb-2">CSV Format</h3>
                   <p className="text-sm text-slate-600 mb-4">
                     Your CSV file should include the following columns:
                   </p>
-                  <div className="text-xs font-mono bg-white p-3 rounded border overflow-x-auto">
-                    <pre>{csvTemplate}</pre>
+                  <div className="border rounded bg-white overflow-hidden mb-6">
+                    <div className="text-xs p-3 font-mono overflow-x-auto">
+                      <pre className="text-gray-600">{
+`first_name,last_name,email,npi,specialty,role
+John,Smith,jsmith@groupname.com,1234567890,Cardiology,physician
+Sarah,Johnson,sjohnson@groupname.com,0987654321,Neurology,physician
+Michael,Williams,mwilliams@groupname.com,5678901234,Internal Medicine,admin_staff`
+                      }</pre>
+                    </div>
                   </div>
-                  <div className="mt-4 text-sm text-slate-500">
-                    <p className="mb-2"><strong>Note:</strong></p>
+                  <div className="text-sm text-slate-600">
+                    <h4 className="font-medium mb-2">Note:</h4>
                     <ul className="list-disc pl-5 space-y-1">
                       <li>NPI is optional but recommended for physicians</li>
                       <li>Available roles: physician, admin_staff, scheduler</li>
@@ -710,8 +697,8 @@ export default function OrgUsers() {
         </TabsContent>
       </Tabs>
       
-      <div className="mt-8">
-        <Button>
+      <div className="mt-8 flex justify-start">
+        <Button className="bg-blue-800 hover:bg-blue-700">
           Save and Continue
         </Button>
       </div>
