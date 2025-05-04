@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "wouter";
+import { useLocation } from "wouter";
 import { Eye, EyeOff, FileText, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 export default function TrialAuthPage() {
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [activeTab, setActiveTab] = useState("login");
-  const navigate = useNavigate();
+  const [_, setLocation] = useLocation();
   
   const togglePasswordVisibility = () => {
     setIsPasswordVisible(!isPasswordVisible);
@@ -19,13 +19,13 @@ export default function TrialAuthPage() {
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     // In a real app, we would authenticate here
-    navigate("/");
+    setLocation("/");
   };
 
   const handleRegister = (e: React.FormEvent) => {
     e.preventDefault();
     // In a real app, we would register here
-    navigate("/");
+    setLocation("/");
   };
 
   return (

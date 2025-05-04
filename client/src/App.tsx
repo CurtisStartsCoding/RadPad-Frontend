@@ -58,6 +58,10 @@ export enum AppPage {
 function App() {
   const [currentPage, setCurrentPage] = useState<AppPage>(AppPage.Dashboard);
   const [currentRole, setCurrentRole] = useState<UserRole>(UserRole.Physician);
+  const [location] = useLocation();
+
+  // Check if the current location is an auth page
+  const isAuthPage = location === "/auth" || location === "/trial-auth";
 
   // Render the current page based on the state
   const renderCurrentPage = () => {
@@ -109,19 +113,29 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <div className="flex h-screen overflow-hidden">
-          <Sidebar 
-            currentPage={currentPage} 
-            onNavigate={(page) => setCurrentPage(page)}
-            currentRole={currentRole}
-            onRoleChange={setCurrentRole}
-          />
-          <div className="flex-1 overflow-auto">
-            <main className="min-h-screen">
-              {renderCurrentPage()}
-            </main>
-          </div>
-        </div>
+        <Switch>
+          <Route path="/auth">
+            <AuthPage />
+          </Route>
+          <Route path="/trial-auth">
+            <TrialAuth />
+          </Route>
+          <Route>
+            <div className="flex h-screen overflow-hidden">
+              <Sidebar 
+                currentPage={currentPage} 
+                onNavigate={(page) => setCurrentPage(page)}
+                currentRole={currentRole}
+                onRoleChange={setCurrentRole}
+              />
+              <div className="flex-1 overflow-auto">
+                <main className="min-h-screen">
+                  {renderCurrentPage()}
+                </main>
+              </div>
+            </div>
+          </Route>
+        </Switch>
         <Toaster />
       </TooltipProvider>
     </QueryClientProvider>
