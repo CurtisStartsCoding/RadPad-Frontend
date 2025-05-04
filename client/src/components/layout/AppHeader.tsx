@@ -43,8 +43,6 @@ const AppHeader: React.FC<AppHeaderProps> = ({
         return "Sarah Brown";
       case UserRole.SuperAdmin:
         return "Admin User";
-      case UserRole.TrialPhysician:
-        return "Dr. Trial User";
       default:
         return "John Doe";
     }
@@ -65,8 +63,6 @@ const AppHeader: React.FC<AppHeaderProps> = ({
         return "sarah@clinic.com";
       case UserRole.SuperAdmin:
         return "admin@radorderpad.com";
-      case UserRole.TrialPhysician:
-        return "trial@example.com";
       default:
         return "user@example.com";
     }
@@ -76,47 +72,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
   const getMenuItems = () => {
     const menuItems = [];
     
-    // Special handling for trial user
-    if (userRole === UserRole.TrialPhysician) {
-      // Trial user only sees New Order option with profile and security
-      const trialMenuItems = [
-        <button 
-          key="new-order"
-          className="flex items-center w-full px-3 py-2.5 text-blue-700 hover:bg-blue-100 rounded-md"
-          onClick={() => handleNavigation(AppPage.NewOrder)}
-        >
-          <Stethoscope className="h-4 w-4 mr-3 text-blue-600" />
-          <span>New Order</span>
-        </button>
-      ];
-      
-      // Add profile and security options
-      trialMenuItems.push(
-        <button 
-          key="profile"
-          className="flex items-center w-full px-3 py-2.5 text-blue-700 hover:bg-blue-100 rounded-md"
-          onClick={() => handleNavigation(AppPage.Profile)}
-        >
-          <User className="h-4 w-4 mr-3 text-blue-600" />
-          <span>My Profile</span>
-        </button>
-      );
-      
-      trialMenuItems.push(
-        <button 
-          key="security"
-          className="flex items-center w-full px-3 py-2.5 text-blue-700 hover:bg-blue-100 rounded-md"
-          onClick={() => handleNavigation(AppPage.Security)}
-        >
-          <Settings className="h-4 w-4 mr-3 text-blue-600" />
-          <span>Security</span>
-        </button>
-      );
-      
-      return trialMenuItems;
-    }
-    
-    // Home/Dashboard is available to everyone else
+    // Home/Dashboard is available to everyone
     menuItems.push(
       <button 
         key="home"
@@ -300,19 +256,10 @@ const AppHeader: React.FC<AppHeaderProps> = ({
   };
   
   return (
-    <header className={cn(
-      "flex items-center justify-between py-2.5 px-4",
-      userRole === UserRole.TrialPhysician 
-        ? "bg-blue-50 border-b border-blue-200" 
-        : "bg-white border-b border-gray-100",
-      className
-    )}>
+    <header className={cn("bg-white border-b border-gray-100 flex items-center justify-between py-2.5 px-4", className)}>
       {/* Logo / Title */}
       <div>
-        <h1 className={cn(
-          "font-medium text-base",
-          userRole === UserRole.TrialPhysician ? "text-blue-700" : "text-blue-900"
-        )}>{title}</h1>
+        <h1 className="text-blue-900 font-medium text-base">{title}</h1>
         {subtitle && <p className="text-sm text-gray-600 mt-0.5">{subtitle}</p>}
       </div>
       
@@ -322,10 +269,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
         aria-label="Menu"
         onClick={() => setShowMenu(!showMenu)}
       >
-        <svg className={cn(
-          "h-6 w-6", 
-          userRole === UserRole.TrialPhysician ? "text-blue-600" : "text-gray-600"
-        )} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <svg className="h-6 w-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16"></path>
         </svg>
       </button>
@@ -341,54 +285,30 @@ const AppHeader: React.FC<AppHeaderProps> = ({
           />
           
           {/* Menu Panel */}
-          <div className={cn(
-            "relative flex flex-col w-60 max-w-sm shadow-lg overflow-auto",
-            userRole === UserRole.TrialPhysician ? "bg-blue-50" : "bg-white"
-          )}>
+          <div className="relative flex flex-col w-60 max-w-sm bg-white shadow-lg overflow-auto">
             {/* User Profile Section */}
-            <div className={cn(
-              "px-4 py-4 border-b flex items-center space-x-3",
-              userRole === UserRole.TrialPhysician ? "border-blue-200" : "border-gray-100"
-            )}>
-              <div className={cn(
-                "rounded-full text-white h-10 w-10 flex items-center justify-center",
-                userRole === UserRole.TrialPhysician ? "bg-blue-600" : "bg-blue-800"
-              )}>
+            <div className="px-4 py-4 border-b border-gray-100 flex items-center space-x-3">
+              <div className="rounded-full bg-blue-800 text-white h-10 w-10 flex items-center justify-center">
                 <User className="h-5 w-5" />
               </div>
               <div>
                 <p className="font-medium text-sm">{getUserDisplayName()}</p>
                 <p className="text-xs text-gray-500">{getUserEmail()}</p>
-                {userRole === UserRole.TrialPhysician && (
-                  <p className="text-xs text-blue-600 font-medium mt-0.5">Trial Account</p>
-                )}
               </div>
             </div>
             
             {/* Navigation */}
-            <div className={cn(
-              "px-4 py-2 border-b",
-              userRole === UserRole.TrialPhysician ? "border-blue-200" : "border-gray-100"
-            )}>
-              <h3 className={cn(
-                "text-xs font-medium mb-2",
-                userRole === UserRole.TrialPhysician ? "text-blue-600" : "text-gray-500"
-              )}>MENU</h3>
+            <div className="px-4 py-2 border-b border-gray-100">
+              <h3 className="text-xs text-gray-500 font-medium mb-2">MENU</h3>
               <nav className="space-y-1">
                 {getMenuItems()}
               </nav>
             </div>
             
             {/* Logout */}
-            <div className={cn(
-              "p-2 mt-auto border-t",
-              userRole === UserRole.TrialPhysician ? "border-blue-200" : "border-gray-100"
-            )}>
+            <div className="p-2 mt-auto border-t border-gray-100">
               <button 
-                className={cn(
-                  "flex items-center w-full px-3 py-2.5 rounded-md",
-                  userRole === UserRole.TrialPhysician ? "text-red-600 hover:bg-blue-100" : "text-red-600 hover:bg-red-50"
-                )}
+                className="flex items-center w-full px-3 py-2.5 text-red-600 hover:bg-red-50 rounded-md"
                 onClick={() => handleNavigation(AppPage.Login)}
               >
                 <LogOut className="h-4 w-4 mr-3" />
