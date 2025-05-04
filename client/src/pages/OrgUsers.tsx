@@ -303,7 +303,7 @@ export default function OrgUsers() {
         <div className="flex space-x-3">
           <Dialog open={openInviteDialog} onOpenChange={setOpenInviteDialog}>
             <DialogTrigger asChild>
-              <Button variant="default" className="flex items-center gap-2 bg-blue-800 text-white hover:bg-blue-700">
+              <Button variant="default" className="flex items-center gap-2">
                 <UserPlus className="h-4 w-4" />
                 Invite User
               </Button>
@@ -546,7 +546,6 @@ export default function OrgUsers() {
                       <Button 
                         onClick={handleCsvUpload} 
                         disabled={!csvFile || uploadStatus === 'uploading'}
-                        className="bg-blue-800 hover:bg-blue-700"
                       >
                         <Upload className="h-4 w-4 mr-2" />
                         Import Users
@@ -698,7 +697,7 @@ Michael,Williams,mwilliams@groupname.com,5678901234,Internal Medicine,admin_staf
       </Tabs>
       
       <div className="mt-8 flex justify-start">
-        <Button className="bg-blue-800 hover:bg-blue-700">
+        <Button>
           Save and Continue
         </Button>
       </div>
