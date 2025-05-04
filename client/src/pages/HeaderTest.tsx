@@ -47,6 +47,13 @@ const HeaderTest: React.FC = () => {
         </Button>
         <Button 
           size="sm" 
+          variant={currentRole === UserRole.TrialPhysician ? "default" : "outline"}
+          onClick={() => setCurrentRole(UserRole.TrialPhysician)}
+        >
+          Trial User
+        </Button>
+        <Button 
+          size="sm" 
           variant={currentRole === UserRole.SuperAdmin ? "default" : "outline"}
           onClick={() => setCurrentRole(UserRole.SuperAdmin)}
         >

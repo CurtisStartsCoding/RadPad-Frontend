@@ -41,6 +41,8 @@ const AppHeader: React.FC<AppHeaderProps> = ({
         return "David Wilson";
       case UserRole.AdminStaff:
         return "Sarah Brown";
+      case UserRole.TrialPhysician:
+        return "Dr. Trial User";
       case UserRole.SuperAdmin:
         return "Admin User";
       default:
@@ -61,6 +63,8 @@ const AppHeader: React.FC<AppHeaderProps> = ({
         return "david@clinic.com";
       case UserRole.AdminStaff:
         return "sarah@clinic.com";
+      case UserRole.TrialPhysician:
+        return "trial@example.com";
       case UserRole.SuperAdmin:
         return "admin@radorderpad.com";
       default:
