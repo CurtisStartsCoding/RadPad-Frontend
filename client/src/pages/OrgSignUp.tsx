@@ -15,14 +15,14 @@ export default function OrgSignUp() {
   const [agreeTerms, setAgreeTerms] = useState(false);
 
   return (
-    <div className="container max-w-5xl py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold">Organization Registration</h1>
-        <p className="text-slate-500 mt-2">Complete the following steps to register your organization with RadOrderPad</p>
+    <div className="p-6 max-w-5xl mx-auto">
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold mb-1">Organization Registration</h1>
+        <p className="text-sm text-slate-500">Complete the following steps to register your organization with RadOrderPad</p>
       </div>
 
       <Tabs defaultValue="organization" onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-3 mb-4">
           <TabsTrigger value="organization">Organization Information</TabsTrigger>
           <TabsTrigger value="admin">Admin Account</TabsTrigger>
           <TabsTrigger value="billing">Billing Information</TabsTrigger>

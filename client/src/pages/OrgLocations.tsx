@@ -13,7 +13,23 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function OrgLocations() {
-  const [locations, setLocations] = useState([
+  // Define a type for location status
+  type LocationStatus = "active" | "inactive";
+  
+  // Define a type for location
+  type Location = {
+    id: number;
+    name: string;
+    address: string;
+    city: string;
+    state: string;
+    zipCode: string;
+    phone: string;
+    status: LocationStatus;
+    isPrimary: boolean;
+  };
+  
+  const [locations, setLocations] = useState<Location[]>([
     {
       id: 1,
       name: "Main Office",
@@ -22,7 +38,7 @@ export default function OrgLocations() {
       state: "NY",
       zipCode: "10001",
       phone: "(555) 123-4567",
-      status: "active" as const,
+      status: "active",
       isPrimary: true
     }
   ]);
@@ -80,11 +96,11 @@ export default function OrgLocations() {
   };
   
   return (
-    <div className="container max-w-6xl py-8">
+    <div className="p-6 max-w-5xl mx-auto">
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-3xl font-bold">Locations Management</h1>
-          <p className="text-slate-500 mt-1">Add and manage your practice locations</p>
+          <h1 className="text-2xl font-bold mb-1">Locations Management</h1>
+          <p className="text-sm text-slate-500">Add and manage your practice locations</p>
         </div>
         
         <Dialog open={openAddDialog} onOpenChange={setOpenAddDialog}>

@@ -31,7 +31,7 @@ export default function OrgVerification() {
   };
 
   return (
-    <div className="container max-w-xl py-12">
+    <div className="p-6 max-w-xl mx-auto">
       <Card className="shadow-sm">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-3">
