@@ -44,36 +44,21 @@ export interface ApiUserResponse {
  */
 export async function loginUser(email: string, password: string): Promise<User> {
   try {
-    console.log('loginUser: Attempting login with credentials:', { email });
+    console.group('🔐 Authentication: Login Attempt');
+    console.log('📧 Email:', email);
+    console.log('🔗 Target: Remote API (https://api.radorderpad.com)');
+    console.groupEnd();
     
-    // Log the request we're about to make
-    console.log('loginUser: Making direct fetch request to /api/auth/login');
+    // Use apiRequest to make the login request to the remote API
+    const response = await apiRequest('POST', '/api/auth/login', { email, password });
     
-    // First, try direct fetch to avoid any middleware issues
-    const directResponse = await fetch('/api/auth/login', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0'
-      },
-      body: JSON.stringify({ email, password }),
-      credentials: 'include',
-      cache: 'no-store'
-    });
+    const result = await response.json();
     
-    console.log('loginUser: Direct login response status:', directResponse.status);
-    
-    // If direct fetch fails, try the apiRequest function
-    if (!directResponse.ok) {
-      console.log('loginUser: Direct fetch failed, trying apiRequest');
-      return await loginWithApiRequest(email, password);
-    }
-    
-    const result = await directResponse.json();
-    console.log('Login API response:', result);
+    console.group('🔐 Authentication: Login Result');
+    console.log('📊 Status:', response.status, response.statusText);
+    console.log('🔑 Token Present:', !!result.token);
+    console.log('👤 User Data Present:', !!result.user);
+    console.groupEnd();
     
     // Handle API response format (with token and user with snake_case fields)
     if (result.token && result.user) {
@@ -117,54 +102,6 @@ export async function loginUser(email: string, password: string): Promise<User> 
   }
 }
 
-// Helper function to login using apiRequest
-async function loginWithApiRequest(email: string, password: string): Promise<User> {
-  console.log('loginWithApiRequest: Attempting login with apiRequest');
-  
-  // Perform the login using apiRequest
-  const response = await apiRequest('POST', '/api/auth/login', { email, password });
-  console.log('loginWithApiRequest: apiRequest response status:', response.status);
-  
-  const result = await response.json();
-  console.log('loginWithApiRequest: API response from apiRequest:', result);
-  
-  // Handle API response format (with token and user with snake_case fields)
-  if (result.token && result.user) {
-    // Cast to the proper type
-    const apiUser = result.user as ApiUserResponse;
-    
-    // Convert to our User type
-    const user: User = {
-      id: apiUser.id,
-      email: apiUser.email,
-      name: `${apiUser.first_name} ${apiUser.last_name}`,
-      role: apiUser.role as any,
-      organizationId: apiUser.organization_id,
-      createdAt: new Date(apiUser.created_at),
-      updatedAt: new Date(apiUser.updated_at)
-    };
-    
-    // Store the token in localStorage
-    localStorage.setItem('rad_order_pad_access_token', result.token);
-    
-    // Calculate expiry time (1 hour from now) and save it
-    const expiryTime = Date.now() + 60 * 60 * 1000;
-    localStorage.setItem('rad_order_pad_token_expiry', expiryTime.toString());
-    
-    // Clear any stale queries and reset the cache
-    await queryClient.clear();
-    
-    // Force the session query to invalidate and refetch to update auth state
-    await queryClient.invalidateQueries({ queryKey: ['/api/auth/session'] });
-    
-    // Log a successful login attempt
-    console.log('Login successful for user:', user.email);
-    
-    return user;
-  }
-  
-  throw new Error('Login failed - invalid response format');
-}
 
 /**
  * Log out the current user
@@ -215,26 +152,13 @@ export async function getCurrentSession(): Promise<SessionResponse> {
     const timestamp = new Date().getTime();
     const url = `/api/auth/session?_=${timestamp}`;
     
-    // Get the token from localStorage
-    const token = localStorage.getItem('rad_order_pad_access_token');
+    console.group('🔐 Authentication: Session Check');
+    console.log('🔗 Target: Remote API (https://api.radorderpad.com)');
+    console.log('🕒 Timestamp:', new Date().toISOString());
+    console.groupEnd();
     
-    // Prepare headers
-    const headers: HeadersInit = {
-      'Cache-Control': 'no-cache, no-store, must-revalidate',
-      'Pragma': 'no-cache',
-      'Expires': '0'
-    };
-    
-    // Add Authorization header if we have a token
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-    
-    const response = await fetch(url, {
-      credentials: 'include',
-      cache: 'no-cache',
-      headers
-    });
+    // Use apiRequest to make the session request to the remote API
+    const response = await apiRequest('GET', url, undefined);
     
     if (!response.ok) {
       console.error(`Session check failed with status: ${response.status}`);
@@ -243,8 +167,18 @@ export async function getCurrentSession(): Promise<SessionResponse> {
     
     const data = await response.json() as SessionResponse;
     
-    // Log session state for debugging
-    console.log('Session state:', data.authenticated ? 'authenticated' : 'not authenticated');
+    // Enhanced logging for session state
+    console.group('🔐 Authentication: Session Result');
+    console.log('🔑 Authenticated:', data.authenticated);
+    if (data.authenticated && data.user) {
+      console.log('👤 User:', {
+        id: data.user.id,
+        email: data.user.email,
+        role: data.user.role,
+        organizationId: data.user.organizationId
+      });
+    }
+    console.groupEnd();
     
     return data;
   } catch (error) {

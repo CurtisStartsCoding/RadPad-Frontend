@@ -127,8 +127,23 @@ app.post('/api/auth/login', async (req, res) => {
     
     console.log('=== END AUTH RESPONSE ===\n');
     
+    // Add CORS headers
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    
+    // Copy any headers from the original response
+    for (const [key, value] of Object.entries(Object.fromEntries(response.headers))) {
+      if (key.toLowerCase() !== 'content-length') {  // Skip content-length as it will be set automatically
+        res.setHeader(key, value);
+      }
+    }
+    
     // Forward the status and data back to the client
     res.status(response.status).json(data);
+    
+    // Log that the response has been sent
+    console.log(`Response sent to client with status ${response.status}`);
   } catch (error) {
     console.error('Error forwarding login request:', error);
     res.status(500).json({ message: 'Internal server error' });
@@ -139,30 +154,59 @@ app.post('/api/auth/login', async (req, res) => {
 app.get('/api/auth/session', (req, res) => {
   // Check for Authorization header
   const authHeader = req.headers.authorization;
+  
+  console.log('\n=== SESSION CHECK ===');
+  console.log('Authorization header:', authHeader ? 'Present' : 'Not present');
+  
   if (authHeader && authHeader.startsWith('Bearer ')) {
     try {
       // Extract the token
       const token = authHeader.split(' ')[1];
+      console.log('Token extracted from header:', token.substring(0, 20) + '...');
       
       // Try to decode the token to get user information
       const tokenParts = token.split('.');
       if (tokenParts.length === 3) {
         const payload = JSON.parse(Buffer.from(tokenParts[1], 'base64').toString());
+        console.log('Token payload successfully decoded:', payload);
         
-        // Return an authenticated session with user info from token
-        res.status(200).json({
-          authenticated: true,
-          user: {
-            id: payload.userId,
-            email: payload.email,
-            name: payload.name || payload.email || 'User',
-            role: payload.role,
-            organizationId: payload.orgId,
-            createdAt: new Date(),
-            updatedAt: new Date()
-          }
-        });
-        return;
+        // Verify token expiration
+        if (payload.exp && payload.exp * 1000 > Date.now()) {
+          console.log('Token is valid and not expired');
+          console.log(`Token expires at: ${new Date(payload.exp * 1000).toLocaleString()}`);
+          
+          // Return an authenticated session with user info from token
+          const sessionResponse = {
+            authenticated: true,
+            user: {
+              id: payload.userId,
+              email: payload.email,
+              name: payload.name || payload.email || 'User',
+              role: payload.role,
+              organizationId: payload.orgId,
+              createdAt: new Date(),
+              updatedAt: new Date()
+            }
+          };
+          
+          console.log('Returning authenticated session:', sessionResponse);
+          console.log('=== END SESSION CHECK ===\n');
+          
+          // Add CORS headers
+          res.setHeader('Access-Control-Allow-Origin', '*');
+          res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+          res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+          
+          res.status(200).json(sessionResponse);
+          
+          // Log that the response has been sent
+          console.log(`Response sent to client with status 200 (authenticated)`);
+          return;
+        } else {
+          console.log('Token is expired');
+        }
+      } else {
+        console.log('Invalid token format (not 3 parts)');
       }
     } catch (e) {
       console.error("Error decoding token:", e);
@@ -170,7 +214,33 @@ app.get('/api/auth/session', (req, res) => {
   }
   
   // If no valid token, return not authenticated
+  console.log('No valid token found, returning unauthenticated');
+  console.log('=== END SESSION CHECK ===\n');
+  
+  // Add CORS headers
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  
   res.status(200).json({ authenticated: false });
+  
+  // Log that the response has been sent
+  console.log(`Response sent to client with status 200 (unauthenticated)`);
+});
+
+// Add CORS preflight handler
+app.options('/api/*', (req, res) => {
+  console.log('Handling CORS preflight request for:', req.path);
+  
+  // Add CORS headers
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Access-Control-Max-Age', '86400'); // 24 hours
+  
+  // Respond with 204 No Content
+  res.status(204).end();
+  console.log('CORS preflight response sent');
 });
 
 // Create a custom router for API requests

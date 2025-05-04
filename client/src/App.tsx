@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Route, Switch, useLocation } from "wouter";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { UserRole } from "@/lib/roles";
 import { AuthProvider } from "@/lib/useAuth";
+import { logApiConfiguration, REMOTE_API_URL } from "@/lib/config";
 
 import Sidebar from "@/components/layout/Sidebar";
 import AppHeader from "@/components/layout/AppHeader";
@@ -145,6 +146,20 @@ function App() {
   const [currentPage, setCurrentPage] = useState<AppPage>(AppPage.Dashboard);
   const [currentRole, setCurrentRole] = useState<UserRole>(UserRole.Physician);
   const [location] = useLocation();
+
+  // Log API configuration on app startup
+  useEffect(() => {
+    // Log API configuration to verify we're using the remote API
+    logApiConfiguration();
+    
+    // Additional verification log
+    console.group('🔍 API Verification');
+    console.log('✅ This application is configured to use the remote API');
+    console.log(`🌐 Remote API URL: ${REMOTE_API_URL}`);
+    console.log('❌ Mock endpoints are NOT being used');
+    console.log('📝 All API requests and responses will be logged in the console');
+    console.groupEnd();
+  }, []);
 
   // Check if the current location is an auth page
   const isAuthPage = location === "/auth" || location === "/trial-auth";

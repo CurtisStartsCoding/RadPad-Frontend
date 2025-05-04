@@ -66,11 +66,19 @@ export async function apiRequest(
   }
   
   try {
-    console.log(`API Request ${method} ${cacheBustUrl}`);
+    // Enhanced logging - Request details
+    console.group(`🌐 API Request: ${method} ${cacheBustUrl}`);
+    console.log(`🔗 Target: Remote API (https://api.radorderpad.com)`);
+    console.log(`📤 Headers:`, headers);
+    if (data) {
+      console.log(`📦 Request Body:`, data);
+    }
+    console.groupEnd();
     
     // Use the getApiUrl function to get the full API URL
     const fullUrl = getApiUrl(cacheBustUrl);
     
+    const startTime = Date.now();
     const res = await fetch(fullUrl, {
       method,
       headers,
@@ -79,9 +87,34 @@ export async function apiRequest(
       // Additional cache control for modern browsers
       cache: isAuthEndpoint ? 'no-store' : 'default',
     });
+    const endTime = Date.now();
 
-    // Log the response status for better debugging
-    console.log(`API Response: ${method} ${url} - Status: ${res.status}`);
+    // Enhanced logging - Response details
+    console.group(`🌐 API Response: ${method} ${url}`);
+    console.log(`⏱️ Time: ${endTime - startTime}ms`);
+    console.log(`📊 Status: ${res.status} ${res.statusText}`);
+    // Log headers in a TypeScript-compatible way
+    const headerObj: Record<string, string> = {};
+    res.headers.forEach((value, key) => {
+      headerObj[key] = value;
+    });
+    console.log(`📥 Headers:`, headerObj);
+    
+    // Clone the response to read the body without consuming it
+    const resClone = res.clone();
+    try {
+      const contentType = res.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        const jsonBody = await resClone.json();
+        console.log(`📦 Response Body:`, jsonBody);
+      } else {
+        const textBody = await resClone.text();
+        console.log(`📦 Response Body:`, textBody.length > 500 ? textBody.substring(0, 500) + '...' : textBody);
+      }
+    } catch (e) {
+      console.log(`📦 Response Body: [Could not parse]`);
+    }
+    console.groupEnd();
     
     // Check for token refresh header
     const refreshToken = res.headers.get('X-Refresh-Token');
@@ -145,14 +178,34 @@ export const getQueryFn: <T>(options: {
         headers['Expires'] = '0';
       }
       
+      // Enhanced logging - Query Request
+      console.group(`🔍 Query Request: GET ${cacheBustUrl}`);
+      console.log(`🔗 Target: Remote API (https://api.radorderpad.com)`);
+      console.log(`📤 Headers:`, headers);
+      console.groupEnd();
+      
       // Use the getApiUrl function to get the full API URL
       const fullUrl = getApiUrl(cacheBustUrl);
       
+      const startTime = Date.now();
       const res = await fetch(fullUrl, {
         credentials: "include",
         headers,
         cache: url.includes('/api/auth/') ? 'no-store' : 'default',
       });
+      const endTime = Date.now();
+
+      // Enhanced logging - Query Response
+      console.group(`🔍 Query Response: GET ${url}`);
+      console.log(`⏱️ Time: ${endTime - startTime}ms`);
+      console.log(`📊 Status: ${res.status} ${res.statusText}`);
+      // Log headers in a TypeScript-compatible way
+      const headerObj: Record<string, string> = {};
+      res.headers.forEach((value, key) => {
+        headerObj[key] = value;
+      });
+      console.log(`📥 Headers:`, headerObj);
+      console.groupEnd();
 
       // Check for token refresh header
       const refreshToken = res.headers.get('X-Refresh-Token');
@@ -175,7 +228,14 @@ export const getQueryFn: <T>(options: {
       }
 
       await throwIfResNotOk(res);
-      return await res.json();
+      const jsonData = await res.json();
+      
+      // Log the response data
+      console.group(`🔍 Query Data: GET ${url}`);
+      console.log(`📦 Response Data:`, jsonData);
+      console.groupEnd();
+      
+      return jsonData;
     } catch (error) {
       console.error(`Query failed: ${url}`, error);
       throw error;

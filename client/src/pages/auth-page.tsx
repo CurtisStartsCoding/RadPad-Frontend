@@ -78,26 +78,107 @@ export default function AuthPage() {
                 const email = (document.getElementById('email') as HTMLInputElement)?.value;
                 const password = (document.getElementById('password') as HTMLInputElement)?.value;
                 
+                // Log the request
+                console.log('Making login request to /api/auth/login with credentials:', { email });
+                
                 // Make a fetch call to the API
                 fetch('/api/auth/login', {
                   method: 'POST',
                   headers: {
                     'Content-Type': 'application/json',
-                    'Accept': 'application/json'
+                    'Accept': 'application/json',
+                    'Cache-Control': 'no-cache, no-store, must-revalidate',
+                    'Pragma': 'no-cache',
+                    'Expires': '0'
                   },
                   body: JSON.stringify({ email, password }),
-                  credentials: 'include'
+                  credentials: 'include',
+                  cache: 'no-store'
                 })
-                .then(response => response.json())
+                .then(response => {
+                  // Log the response status
+                  console.log('Login response status:', response.status);
+                  console.log('Login response headers:', response.headers);
+                  
+                  // Check if the response is ok
+                  if (!response.ok) {
+                    throw new Error(`Login failed with status: ${response.status}`);
+                  }
+                  
+                  return response.json();
+                })
                 .then(data => {
-                  // Store token if present
+                  // Log the authentication response to the browser console
+                  console.log('=== AUTH RESPONSE IN BROWSER ===');
+                  console.log(data);
+                  
+                  // Parse and display token information if present
                   if (data.token) {
+                    console.log('Token received:', data.token);
+                    
+                    // Parse the JWT token to display its contents
+                    const tokenParts = data.token.split('.');
+                    if (tokenParts.length === 3) {
+                      try {
+                        const payload = JSON.parse(atob(tokenParts[1]));
+                        console.log('Token Payload:', payload);
+                        
+                        // Display token expiration
+                        if (payload.exp) {
+                          const expirationDate = new Date(payload.exp * 1000);
+                          console.log(`Token Expires: ${expirationDate.toLocaleString()}`);
+                          const timeUntilExpiry = Math.floor((payload.exp * 1000 - Date.now()) / 1000 / 60);
+                          console.log(`Time until expiry: ${timeUntilExpiry} minutes`);
+                        }
+                      } catch (e) {
+                        console.error('Error parsing token payload:', e);
+                      }
+                    }
+                    
+                    // Store token in localStorage
                     localStorage.setItem('rad_order_pad_access_token', data.token);
+                    
+                    // Calculate expiry time (from token or default to 1 hour)
+                    let expiryTime = Date.now() + 60 * 60 * 1000; // Default: 1 hour
+                    
+                    try {
+                      const tokenParts = data.token.split('.');
+                      if (tokenParts.length === 3) {
+                        const payload = JSON.parse(atob(tokenParts[1]));
+                        if (payload.exp) {
+                          expiryTime = payload.exp * 1000;
+                        }
+                      }
+                    } catch (e) {
+                      console.error('Error parsing token for expiry:', e);
+                    }
+                    
+                    // Store the expiry time
+                    localStorage.setItem('rad_order_pad_token_expiry', expiryTime.toString());
+                    console.log(`Token expiry time set to: ${new Date(expiryTime).toLocaleString()}`);
+                    
+                    // Log user details if present
+                    if (data.user) {
+                      console.log('User Details:', data.user);
+                    }
+                    
+                    console.log('=== END AUTH RESPONSE ===');
+                    
+                    // Redirect to dashboard
                     window.location.href = "/";
                   }
                 })
                 .catch(error => {
                   console.error("Login error:", error);
+                  
+                  // Display more detailed error information
+                  console.error("Login request failed. Details:");
+                  console.error("- URL: /api/auth/login");
+                  console.error("- Method: POST");
+                  console.error("- Credentials:", { email });
+                  
+                  // Show an alert to the user
+                  alert(`Login failed: ${error.message}`);
                 });
               }}
             >
