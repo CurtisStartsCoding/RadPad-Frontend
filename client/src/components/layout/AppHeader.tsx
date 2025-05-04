@@ -1,12 +1,5 @@
 import React, { useState } from "react";
-import { Home, LogOut, Settings, FileText, Building2 } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuLabel
-} from "@/components/ui/dropdown-menu";
+import { Home, LogOut, Settings, FileText, Building2, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface AppHeaderProps {
@@ -22,10 +15,13 @@ const AppHeader: React.FC<AppHeaderProps> = ({
   onNavigate,
   className
 }) => {
+  const [showMenu, setShowMenu] = useState(false);
+  
   const handleNavigation = (path: string) => {
     if (onNavigate) {
       onNavigate(path);
     }
+    setShowMenu(false);
   };
   
   return (
@@ -36,51 +32,99 @@ const AppHeader: React.FC<AppHeaderProps> = ({
         {subtitle && <p className="text-sm text-gray-600 mt-0.5">{subtitle}</p>}
       </div>
       
-      {/* Controls */}
-      <div className="flex items-center space-x-3">
-        {/* User Avatar Dropdown */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button className="focus:outline-none rounded-full bg-blue-800 text-white font-medium h-8 w-8 flex items-center justify-center">
-              U
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48">
-            <DropdownMenuLabel className="text-gray-500 px-4 py-2 text-xs">MENU</DropdownMenuLabel>
-            <DropdownMenuItem className="py-2 cursor-pointer" onClick={() => handleNavigation("/home")}>
-              <Home className="mr-2 h-4 w-4" />
-              <span>Home</span>
-            </DropdownMenuItem>
-            <DropdownMenuItem className="py-2 cursor-pointer" onClick={() => handleNavigation("/admin")}>
-              <FileText className="mr-2 h-4 w-4" />
-              <span>Admin Panel</span>
-            </DropdownMenuItem>
-            <DropdownMenuItem className="py-2 cursor-pointer" onClick={() => handleNavigation("/orders")}>
-              <FileText className="mr-2 h-4 w-4" />
-              <span>Orders</span>
-            </DropdownMenuItem>
-            <DropdownMenuItem className="py-2 cursor-pointer" onClick={() => handleNavigation("/organization")}>
-              <Building2 className="mr-2 h-4 w-4" />
-              <span>Organization</span>
-            </DropdownMenuItem>
-            <DropdownMenuItem className="py-2 cursor-pointer" onClick={() => handleNavigation("/settings")}>
-              <Settings className="mr-2 h-4 w-4" />
-              <span>Settings</span>
-            </DropdownMenuItem>
-            <DropdownMenuItem className="py-2 cursor-pointer text-red-600" onClick={() => handleNavigation("/logout")}>
-              <LogOut className="mr-2 h-4 w-4" />
-              <span>Log out</span>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-        
-        {/* Hamburger Menu Icon */}
-        <button className="focus:outline-none" aria-label="Menu">
-          <svg className="h-6 w-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16"></path>
-          </svg>
-        </button>
-      </div>
+      {/* Hamburger Menu Icon */}
+      <button 
+        className="focus:outline-none" 
+        aria-label="Menu"
+        onClick={() => setShowMenu(!showMenu)}
+      >
+        <svg className="h-6 w-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16"></path>
+        </svg>
+      </button>
+      
+      {/* Slide-Out Menu */}
+      {showMenu && (
+        <div className="fixed inset-0 z-50 flex justify-end">
+          {/* Backdrop */}
+          <div 
+            className="absolute inset-0 bg-black/20" 
+            onClick={() => setShowMenu(false)}
+            aria-hidden="true"
+          />
+          
+          {/* Menu Panel */}
+          <div className="relative flex flex-col w-60 max-w-sm bg-white shadow-lg overflow-auto">
+            {/* User Profile Section */}
+            <div className="px-4 py-4 border-b border-gray-100 flex items-center space-x-3">
+              <div className="rounded-full bg-blue-800 text-white h-10 w-10 flex items-center justify-center">
+                <User className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="font-medium text-sm">Dr. Jane Smith</p>
+                <p className="text-xs text-gray-500">drjane@example.com</p>
+              </div>
+            </div>
+            
+            {/* Navigation */}
+            <div className="px-4 py-2 border-b border-gray-100">
+              <h3 className="text-xs text-gray-500 font-medium mb-2">MENU</h3>
+              <nav className="space-y-1">
+                <button 
+                  className="flex items-center w-full px-3 py-2.5 text-gray-800 hover:bg-gray-100 rounded-md"
+                  onClick={() => handleNavigation("/home")}
+                >
+                  <Home className="h-4 w-4 mr-3 text-gray-500" />
+                  <span>Home</span>
+                </button>
+                
+                <button 
+                  className="flex items-center w-full px-3 py-2.5 text-gray-800 hover:bg-gray-100 rounded-md"
+                  onClick={() => handleNavigation("/admin")}
+                >
+                  <FileText className="h-4 w-4 mr-3 text-gray-500" />
+                  <span>Admin Panel</span>
+                </button>
+                
+                <button 
+                  className="flex items-center w-full px-3 py-2.5 text-gray-800 hover:bg-gray-100 rounded-md"
+                  onClick={() => handleNavigation("/orders")}
+                >
+                  <FileText className="h-4 w-4 mr-3 text-gray-500" />
+                  <span>Orders</span>
+                </button>
+                
+                <button 
+                  className="flex items-center w-full px-3 py-2.5 text-gray-800 hover:bg-gray-100 rounded-md"
+                  onClick={() => handleNavigation("/organization")}
+                >
+                  <Building2 className="h-4 w-4 mr-3 text-gray-500" />
+                  <span>Organization</span>
+                </button>
+                
+                <button 
+                  className="flex items-center w-full px-3 py-2.5 text-gray-800 hover:bg-gray-100 rounded-md"
+                  onClick={() => handleNavigation("/settings")}
+                >
+                  <Settings className="h-4 w-4 mr-3 text-gray-500" />
+                  <span>Settings</span>
+                </button>
+              </nav>
+            </div>
+            
+            {/* Logout */}
+            <div className="p-2 mt-auto border-t border-gray-100">
+              <button 
+                className="flex items-center w-full px-3 py-2.5 text-red-600 hover:bg-red-50 rounded-md"
+                onClick={() => handleNavigation("/logout")}
+              >
+                <LogOut className="h-4 w-4 mr-3" />
+                <span>Log out</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </header>
   );
 };
