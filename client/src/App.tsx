@@ -66,20 +66,8 @@ function App() {
   // Check if the current location is an auth page
   const isAuthPage = location === "/auth" || location === "/trial-auth";
 
-  // Function to handle navigation from sidebar
+  // Function to handle navigation from sidebar - simply update the current page
   const handleNavigate = (page: AppPage) => {
-    // For auth pages, navigate to the corresponding routes
-    if (page === AppPage.Login) {
-      window.location.href = "/auth";
-      return;
-    }
-    
-    if (page === AppPage.TrialAuth) {
-      window.location.href = "/trial-auth";
-      return;
-    }
-    
-    // For regular pages, update the state
     setCurrentPage(page);
   };
 
@@ -114,6 +102,11 @@ function App() {
         return <MyProfile userRole={currentRole} />;
       case AppPage.Security:
         return <Security />;
+      // Auth pages
+      case AppPage.Login:
+        return <AuthPage />;
+      case AppPage.TrialAuth:
+        return <TrialAuthPage />;
       // Super Admin pages
       case AppPage.SuperAdminDashboard:
         return <SuperAdminDashboard navigateTo={(page) => setCurrentPage(page as AppPage)} />;
