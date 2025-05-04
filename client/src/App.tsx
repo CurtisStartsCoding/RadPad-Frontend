@@ -25,6 +25,13 @@ import AuthPage from "@/pages/auth-page";
 import TrialAuthPage from "@/pages/trial-auth";
 import NotFound from "@/pages/not-found";
 
+// Onboarding imports
+import OrgSignUp from "@/pages/OrgSignUp";
+import OrgVerification from "@/pages/OrgVerification";
+import OrgSetup from "@/pages/OrgSetup";
+import OrgLocations from "@/pages/OrgLocations";
+import OrgUsers from "@/pages/OrgUsers";
+
 // Super Admin imports
 import SuperAdminDashboard from "@/pages/SuperAdminDashboard";
 import SuperAdminOrganizations from "@/pages/SuperAdminOrganizations";
