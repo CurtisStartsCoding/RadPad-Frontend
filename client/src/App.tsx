@@ -38,6 +38,9 @@ import SuperAdminOrganizations from "@/pages/SuperAdminOrganizations";
 import SuperAdminUsers from "@/pages/SuperAdminUsers";
 import SuperAdminLogs from "@/pages/SuperAdminLogs";
 
+// Test pages
+import HeaderTest from "@/pages/HeaderTest";
+
 // Enum for all available pages
 export enum AppPage {
   Dashboard = "dashboard",
@@ -68,7 +71,9 @@ export enum AppPage {
   SuperAdminOrganizations = "superadmin-organizations",
   SuperAdminUsers = "superadmin-users",
   SuperAdminLogs = "superadmin-logs",
-  SuperAdminBilling = "superadmin-billing"
+  SuperAdminBilling = "superadmin-billing",
+  // Test pages
+  HeaderTest = "header-test"
 }
 
 function App() {
@@ -142,6 +147,9 @@ function App() {
         return <SuperAdminLogs />;
       case AppPage.SuperAdminBilling:
         return <BillingCredits userRole={UserRole.SuperAdmin} />;
+      // Test pages
+      case AppPage.HeaderTest:
+        return <HeaderTest />;
       default:
         return <Dashboard />;
     }
@@ -156,6 +164,9 @@ function App() {
           </Route>
           <Route path="/trial-auth">
             <TrialAuthPage />
+          </Route>
+          <Route path="/header-test">
+            <HeaderTest />
           </Route>
           <Route>
             <div className="flex h-screen overflow-hidden">
