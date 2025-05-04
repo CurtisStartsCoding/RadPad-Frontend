@@ -125,7 +125,18 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onNavigate, currentRole,
       {/* Navigation Links */}
       <div className="flex-1 overflow-auto py-2 px-1">
         {navigationItems.map((section, sectionIndex) => {
-          const visibleItems = section.items.filter(item => 
+          // For the Auth section, special handling for Trial item
+          let visibleItems = section.items;
+          
+          // Only show Trial option for TrialPhysician role
+          if (section.section === "Auth") {
+            visibleItems = section.items.filter(item => 
+              item.page !== AppPage.TrialAuth || currentRole === UserRole.TrialPhysician
+            );
+          }
+          
+          // Filter items based on user role access
+          visibleItems = visibleItems.filter(item => 
             hasAccess(currentRole, item.page)
           );
           
