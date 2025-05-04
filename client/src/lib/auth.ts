@@ -44,7 +44,10 @@ export interface ApiUserResponse {
  */
 export async function loginUser(email: string, password: string): Promise<User> {
   try {
-    console.log('Attempting login with credentials:', { email });
+    console.log('loginUser: Attempting login with credentials:', { email });
+    
+    // Log the request we're about to make
+    console.log('loginUser: Making direct fetch request to /api/auth/login');
     
     // First, try direct fetch to avoid any middleware issues
     const directResponse = await fetch('/api/auth/login', {
@@ -61,11 +64,11 @@ export async function loginUser(email: string, password: string): Promise<User> 
       cache: 'no-store'
     });
     
-    console.log('Direct login response status:', directResponse.status);
+    console.log('loginUser: Direct login response status:', directResponse.status);
     
     // If direct fetch fails, try the apiRequest function
     if (!directResponse.ok) {
-      console.log('Direct fetch failed, trying apiRequest');
+      console.log('loginUser: Direct fetch failed, trying apiRequest');
       return await loginWithApiRequest(email, password);
     }
     
@@ -116,11 +119,14 @@ export async function loginUser(email: string, password: string): Promise<User> 
 
 // Helper function to login using apiRequest
 async function loginWithApiRequest(email: string, password: string): Promise<User> {
+  console.log('loginWithApiRequest: Attempting login with apiRequest');
+  
   // Perform the login using apiRequest
   const response = await apiRequest('POST', '/api/auth/login', { email, password });
-  const result = await response.json();
+  console.log('loginWithApiRequest: apiRequest response status:', response.status);
   
-  console.log('Login API response from apiRequest:', result);
+  const result = await response.json();
+  console.log('loginWithApiRequest: API response from apiRequest:', result);
   
   // Handle API response format (with token and user with snake_case fields)
   if (result.token && result.user) {

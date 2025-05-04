@@ -71,7 +71,36 @@ export default function AuthPage() {
               <a href="#" className="text-sm text-primary hover:underline">Forgot password?</a>
             </div>
             
-            <Button type="submit" className="w-full">
+            <Button
+              type="button"
+              className="w-full"
+              onClick={() => {
+                const email = (document.getElementById('email') as HTMLInputElement)?.value;
+                const password = (document.getElementById('password') as HTMLInputElement)?.value;
+                
+                // Make a fetch call to the API
+                fetch('/api/auth/login', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                  },
+                  body: JSON.stringify({ email, password }),
+                  credentials: 'include'
+                })
+                .then(response => response.json())
+                .then(data => {
+                  // Store token if present
+                  if (data.token) {
+                    localStorage.setItem('rad_order_pad_access_token', data.token);
+                    window.location.href = "/";
+                  }
+                })
+                .catch(error => {
+                  console.error("Login error:", error);
+                });
+              }}
+            >
               Sign In
             </Button>
           </div>

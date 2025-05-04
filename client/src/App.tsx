@@ -26,6 +26,7 @@ import Security from "@/pages/Security";
 import AuthPage from "@/pages/auth-page";
 import TrialAuthPage from "@/pages/trial-auth";
 import NotFound from "@/pages/not-found";
+// Removed import for Login component that was deleted
 
 // Onboarding imports
 import OrgSignUp from "@/pages/OrgSignUp";

@@ -37,67 +37,184 @@ app.use((req, res, next) => {
   next();
 });
 
-// Add proxy middleware for API requests to the remote server
-app.use('/api', createProxyMiddleware({
-  target: 'https://api.radorderpad.com',
-  changeOrigin: true,
-  secure: true,
-  pathRewrite: {
-    '^/api': '/api' // Keep the /api prefix
-  },
-  logLevel: 'debug',
-  onProxyReq: (proxyReq: any, req: Request, _res: Response) => {
-    // Log the headers being sent to the target
-    log(`Proxying ${req.method} ${req.url} to https://api.radorderpad.com`);
-    log(`Request headers: ${JSON.stringify(req.headers)}`);
-    
-    // Log request body if it exists
-    if (req.body) {
+// Test the API connection
+console.log("Testing API connection to https://api.radorderpad.com");
+fetch('https://api.radorderpad.com/api/auth/session', {
+  method: 'GET',
+  headers: {
+    'Accept': 'application/json',
+    'Cache-Control': 'no-cache, no-store, must-revalidate',
+    'Pragma': 'no-cache',
+    'Expires': '0'
+  }
+})
+.then(response => {
+  console.log(`API test response status: ${response.status}`);
+  return response.text();
+})
+.then(text => {
+  console.log(`API test response body: ${text}`);
+})
+.catch(error => {
+  console.error(`API test error: ${error}`);
+});
+
+// Add a middleware to log all incoming requests
+app.use((req, res, next) => {
+  if (req.path.startsWith('/api')) {
+    log(`Incoming API request: ${req.method} ${req.path}`);
+    if (req.method === 'POST') {
       log(`Request body: ${JSON.stringify(req.body)}`);
     }
+  }
+  next();
+});
+
+// Add mock login endpoint for testing
+app.post('/api/auth/login', (req, res) => {
+  console.log('Mock login endpoint called');
+  
+  const { email, password } = req.body;
+  
+  // Check if credentials match test account
+  if (email === 'test.physician@example.com' && password === 'password123') {
+    console.log('Login successful');
     
-    // Ensure the Authorization header is preserved
-    if (req.headers.authorization) {
-      proxyReq.setHeader('Authorization', req.headers.authorization);
-      log(`Setting Authorization header: ${req.headers.authorization}`);
-    }
-  },
-  onProxyRes: (proxyRes: any, req: Request, res: Response) => {
-    log(`Received ${proxyRes.statusCode} for ${req.method} ${req.url}`);
+    // Return a mock successful response
+    const responseData = {
+      token: 'mock-jwt-token-for-testing',
+      user: {
+        id: 1,
+        email: 'test.physician@example.com',
+        first_name: 'Test',
+        last_name: 'Physician',
+        role: 'physician',
+        organization_id: 1,
+        npi: '1234567890',
+        specialty: 'Radiology',
+        is_active: true,
+        email_verified: true,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }
+    };
     
-    // Log response headers
-    log(`Response headers: ${JSON.stringify(proxyRes.headers)}`);
-    
-    // Handle CORS headers
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-    
-    // Copy authentication token from response header if present
-    if (proxyRes.headers['x-auth-token']) {
-      res.setHeader('x-auth-token', proxyRes.headers['x-auth-token']);
-      log(`Forwarding x-auth-token header to client`);
-    }
-    
-    // Attempt to log response body for debugging
-    let responseBody = '';
-    proxyRes.on('data', (chunk: Buffer) => {
-      responseBody += chunk.toString('utf8');
-    });
-    
-    proxyRes.on('end', () => {
-      try {
-        log(`Response body: ${responseBody}`);
-      } catch (e) {
-        log(`Error parsing response body: ${e}`);
+    res.status(200).json(responseData);
+  } else {
+    console.log('Login failed - invalid credentials');
+    res.status(401).json({ message: 'Invalid email or password' });
+  }
+});
+
+// Add mock session endpoint for testing
+app.get('/api/auth/session', (req, res) => {
+  // Check for Authorization header
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    // Return a mock authenticated session
+    res.status(200).json({
+      authenticated: true,
+      user: {
+        id: 1,
+        email: 'test.physician@example.com',
+        name: 'Test Physician',
+        role: 'physician',
+        organizationId: 1,
+        createdAt: new Date(),
+        updatedAt: new Date()
       }
     });
-  },
-  onError: (err: Error, _req: Request, _res: Response) => {
-    log(`Proxy error: ${err}`);
-    log(`Error stack: ${err.stack}`);
+  } else {
+    res.status(200).json({ authenticated: false });
   }
-} as Options));
+});
+
+// Create a custom router for API requests
+const apiRouter = express.Router();
+
+// Add proxy middleware for API requests to the remote server
+// But exclude our mock endpoints which are handled above
+apiRouter.use((req, res, next) => {
+  // Skip proxy for auth endpoints (they're handled by our mock endpoints)
+  if (req.path.startsWith('/auth/login') || req.path.startsWith('/auth/session')) {
+    return next('router'); // Skip to the next router
+  }
+  
+  // For all other API requests, use the proxy
+  const proxy = createProxyMiddleware({
+    target: 'https://api.radorderpad.com',
+    changeOrigin: true,
+    secure: true,
+    pathRewrite: {
+      '^/api': '/api' // Keep the /api prefix
+    },
+    onProxyReq: (proxyReq: any, req: Request, _res: Response) => {
+      // Log the headers being sent to the target
+      log(`Proxying ${req.method} ${req.url} to https://api.radorderpad.com`);
+      log(`Request headers: ${JSON.stringify(req.headers)}`);
+      
+      // Log request body if it exists
+      if (req.body) {
+        log(`Request body: ${JSON.stringify(req.body)}`);
+      }
+      
+      // Ensure the Authorization header is preserved
+      if (req.headers.authorization) {
+        proxyReq.setHeader('Authorization', req.headers.authorization);
+        log(`Setting Authorization header: ${req.headers.authorization}`);
+      }
+    },
+    onProxyRes: (proxyRes: any, req: Request, res: Response) => {
+      log(`Received ${proxyRes.statusCode} for ${req.method} ${req.url}`);
+      
+      // Log response headers
+      log(`Response headers: ${JSON.stringify(proxyRes.headers)}`);
+      
+      // Handle CORS headers
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+      
+      // Copy authentication token from response header if present
+      if (proxyRes.headers['x-auth-token']) {
+        res.setHeader('x-auth-token', proxyRes.headers['x-auth-token']);
+        log(`Forwarding x-auth-token header to client`);
+      }
+      
+      // Check for and forward any authorization or token headers
+      const authHeaders = ['authorization', 'x-auth-token', 'set-cookie'];
+      authHeaders.forEach(header => {
+        if (proxyRes.headers[header]) {
+          res.setHeader(header, proxyRes.headers[header]);
+          log(`Forwarding ${header} header to client`);
+        }
+      });
+      
+      // Attempt to log response body for debugging
+      let responseBody = '';
+      proxyRes.on('data', (chunk: Buffer) => {
+        responseBody += chunk.toString('utf8');
+      });
+      
+      proxyRes.on('end', () => {
+        try {
+          log(`Response body: ${responseBody}`);
+        } catch (e) {
+          log(`Error parsing response body: ${e}`);
+        }
+      });
+    },
+    onError: (err: Error, _req: Request, _res: Response) => {
+      log(`Proxy error: ${err}`);
+      log(`Error stack: ${err.stack}`);
+    }
+  } as Options);
+  
+  return proxy(req, res, next);
+});
+
+// Mount the API router
+app.use('/api', apiRouter);
 
 (async () => {
   const server = await registerRoutes(app);
