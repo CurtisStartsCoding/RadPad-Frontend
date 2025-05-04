@@ -314,21 +314,21 @@ const SuperAdminUsers = () => {
         title="User Management" 
         description="Manage all users across the RadOrderPad system"
       >
-        <div className="flex space-x-2">
-          <Button variant="outline">
+        <div className="flex flex-col sm:flex-row gap-2">
+          <Button variant="outline" className="w-full sm:w-auto">
             <Download className="h-4 w-4 mr-2" />
-            Export List
+            <span>Export List</span>
           </Button>
-          <Button variant="outline">
+          <Button variant="outline" className="w-full sm:w-auto">
             <Plus className="h-4 w-4 mr-2" />
-            Create User
+            <span>Create User</span>
           </Button>
         </div>
       </PageHeader>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mt-6">
         {/* Users List */}
-        <Card className="lg:col-span-1">
+        <Card className="md:col-span-1 lg:col-span-1 xl:col-span-1 overflow-hidden">
           <CardHeader className="pb-3">
             <CardTitle className="text-lg">Users</CardTitle>
             <CardDescription>
@@ -369,7 +369,7 @@ const SuperAdminUsers = () => {
                   </Select>
                 </div>
                 
-                <div className="flex space-x-2">
+                <div className="flex flex-col sm:flex-row sm:space-x-2 space-y-2 sm:space-y-0">
                   <div className="flex-1">
                     <Select value={statusFilter} onValueChange={setStatusFilter}>
                       <SelectTrigger>
@@ -447,11 +447,11 @@ const SuperAdminUsers = () => {
         </Card>
 
         {/* User Details */}
-        <Card className="lg:col-span-2">
+        <Card className="md:col-span-1 lg:col-span-2 xl:col-span-3">
           {selectedUserId ? (
             <>
               <CardHeader className="pb-3">
-                <div className="flex justify-between items-start">
+                <div className="flex flex-col space-y-4 md:flex-row md:justify-between md:items-start md:space-y-0">
                   <div className="flex items-center">
                     <Avatar className="h-12 w-12 mr-4">
                       <AvatarFallback className="bg-primary/10 text-primary">
@@ -460,7 +460,7 @@ const SuperAdminUsers = () => {
                     </Avatar>
                     <div>
                       <CardTitle className="text-lg">{userDetailsMock.firstName} {userDetailsMock.lastName}</CardTitle>
-                      <CardDescription className="flex items-center space-x-2 mt-1">
+                      <CardDescription className="flex flex-wrap items-center gap-2 mt-1">
                         <Badge variant="outline" className={getRoleBadgeColor(userDetailsMock.role)}>
                           {roleDisplayNames[userDetailsMock.role]}
                         </Badge>
@@ -471,24 +471,24 @@ const SuperAdminUsers = () => {
                       </CardDescription>
                     </div>
                   </div>
-                  <div className="flex space-x-2">
+                  <div className="flex flex-wrap gap-2">
                     <Button variant="outline" size="sm" className="h-8">
                       <Mail className="h-3.5 w-3.5 mr-1" />
-                      Send Email
+                      <span className="sm:inline">Send Email</span>
                     </Button>
                     <Button variant="outline" size="sm" className="h-8">
                       <Lock className="h-3.5 w-3.5 mr-1" />
-                      Reset Password
+                      <span className="sm:inline">Reset Password</span>
                     </Button>
                     {userDetailsMock.active ? (
                       <Button variant="destructive" size="sm" className="h-8">
                         <XCircle className="h-3.5 w-3.5 mr-1" />
-                        Deactivate
+                        <span className="sm:inline">Deactivate</span>
                       </Button>
                     ) : (
                       <Button variant="outline" size="sm" className="h-8 border-green-500 text-green-600 hover:bg-green-50">
                         <CheckCircle className="h-3.5 w-3.5 mr-1" />
-                        Activate
+                        <span className="sm:inline">Activate</span>
                       </Button>
                     )}
                   </div>
