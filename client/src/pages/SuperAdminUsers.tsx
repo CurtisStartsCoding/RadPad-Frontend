@@ -409,19 +409,19 @@ const SuperAdminUsers = () => {
                 filteredUsers.map(user => (
                   <div 
                     key={user.id} 
-                    className={`border rounded-lg p-3 cursor-pointer hover:bg-slate-50 transition-colors ${selectedUserId === user.id ? 'bg-slate-50 border-primary' : ''}`}
+                    className={`border rounded-lg p-3 cursor-pointer hover:bg-slate-50 transition-colors overflow-hidden ${selectedUserId === user.id ? 'bg-slate-50 border-primary' : ''}`}
                     onClick={() => handleSelectUser(user.id)}
                   >
                     <div className="flex justify-between items-center">
-                      <div className="flex items-center">
-                        <Avatar className="h-10 w-10 mr-3">
+                      <div className="flex items-center flex-1 min-w-0">
+                        <Avatar className="h-10 w-10 shrink-0 mr-3">
                           <AvatarFallback className="bg-primary/10 text-primary">
                             {getInitials(user.firstName, user.lastName)}
                           </AvatarFallback>
                         </Avatar>
-                        <div>
-                          <h3 className="font-medium">{user.firstName} {user.lastName}</h3>
-                          <p className="text-sm text-slate-500">{user.email}</p>
+                        <div className="min-w-0 flex-1 mr-3">
+                          <h3 className="font-medium truncate">{user.firstName} {user.lastName}</h3>
+                          <p className="text-sm text-slate-500 truncate">{user.email}</p>
                         </div>
                       </div>
                       <ChevronRight className="h-5 w-5 text-slate-400" />
@@ -512,8 +512,8 @@ const SuperAdminUsers = () => {
                         <div className="space-y-3">
                           <div>
                             <p className="text-xs text-slate-500">Email</p>
-                            <div className="flex items-center">
-                              <p className="text-sm font-medium">{userDetailsMock.email}</p>
+                            <div className="flex items-center flex-wrap">
+                              <p className="text-sm font-medium break-all">{userDetailsMock.email}</p>
                               {userDetailsMock.emailVerified && (
                                 <Badge variant="outline" className="ml-2 text-xs bg-green-50 text-green-700 border-green-200">
                                   Verified
