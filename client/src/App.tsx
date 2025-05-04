@@ -244,6 +244,7 @@ function App() {
                   title={getPageTitle(currentPage)}
                   subtitle={getPageSubtitle(currentPage)}
                   onNavigate={handleNavigate}
+                  userRole={currentRole}
                 />
                 <main className="min-h-screen">
                   {renderCurrentPage()}

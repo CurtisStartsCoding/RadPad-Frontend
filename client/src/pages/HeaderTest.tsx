@@ -1,11 +1,15 @@
-import React from "react";
+import React, { useState } from "react";
 import AppHeader from "@/components/layout/AppHeader";
 import { User, FileText, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { AppPage } from "@/App";
+import { UserRole } from "@/lib/roles";
 
 const HeaderTest: React.FC = () => {
-  const handleNavigate = (path: string) => {
-    console.log(`Navigating to: ${path}`);
+  const [currentRole, setCurrentRole] = useState<UserRole>(UserRole.Physician);
+  
+  const handleNavigate = (page: AppPage) => {
+    console.log(`Navigating to: ${page}`);
     // In a real app, this would use router navigation
   };
 
@@ -14,8 +18,41 @@ const HeaderTest: React.FC = () => {
       <AppHeader 
         title="Radiology Order - Unknown Patient" 
         subtitle="Step 1 of 3: Dictation"
-        onNavigate={handleNavigate} 
+        onNavigate={handleNavigate}
+        userRole={currentRole}
       />
+      
+      {/* Role selector for testing */}
+      <div className="bg-white p-2 mx-auto mt-2 rounded-md shadow-sm flex flex-wrap gap-2 justify-center">
+        <Button 
+          size="sm" 
+          variant={currentRole === UserRole.Physician ? "default" : "outline"}
+          onClick={() => setCurrentRole(UserRole.Physician)}
+        >
+          Physician
+        </Button>
+        <Button 
+          size="sm" 
+          variant={currentRole === UserRole.AdminStaff ? "default" : "outline"}
+          onClick={() => setCurrentRole(UserRole.AdminStaff)}
+        >
+          Admin Staff
+        </Button>
+        <Button 
+          size="sm" 
+          variant={currentRole === UserRole.Radiologist ? "default" : "outline"}
+          onClick={() => setCurrentRole(UserRole.Radiologist)}
+        >
+          Radiologist
+        </Button>
+        <Button 
+          size="sm" 
+          variant={currentRole === UserRole.SuperAdmin ? "default" : "outline"}
+          onClick={() => setCurrentRole(UserRole.SuperAdmin)}
+        >
+          Super Admin
+        </Button>
+      </div>
       
       <main className="flex-1 p-4 max-w-2xl mx-auto w-full">
         {/* Patient Banner */}
