@@ -22,7 +22,7 @@ import BillingTest from "@/pages/BillingTest";
 import MyProfile from "@/pages/MyProfile";
 import Security from "@/pages/Security";
 import AuthPage from "@/pages/auth-page";
-import TrialAuth from "@/pages/trial-auth";
+import TrialAuthPage from "@/pages/trial-auth";
 import NotFound from "@/pages/not-found";
 
 // Super Admin imports
@@ -47,6 +47,9 @@ export enum AppPage {
   BillingTest = "billing-test",
   Profile = "profile",
   Security = "security",
+  // Auth pages
+  Login = "login",
+  TrialAuth = "trial-auth",
   // Super Admin pages
   SuperAdminDashboard = "superadmin-dashboard",
   SuperAdminOrganizations = "superadmin-organizations",
@@ -62,6 +65,23 @@ function App() {
 
   // Check if the current location is an auth page
   const isAuthPage = location === "/auth" || location === "/trial-auth";
+
+  // Function to handle navigation from sidebar
+  const handleNavigate = (page: AppPage) => {
+    // For auth pages, navigate to the corresponding routes
+    if (page === AppPage.Login) {
+      window.location.href = "/auth";
+      return;
+    }
+    
+    if (page === AppPage.TrialAuth) {
+      window.location.href = "/trial-auth";
+      return;
+    }
+    
+    // For regular pages, update the state
+    setCurrentPage(page);
+  };
 
   // Render the current page based on the state
   const renderCurrentPage = () => {
@@ -118,13 +138,13 @@ function App() {
             <AuthPage />
           </Route>
           <Route path="/trial-auth">
-            <TrialAuth />
+            <TrialAuthPage />
           </Route>
           <Route>
             <div className="flex h-screen overflow-hidden">
               <Sidebar 
                 currentPage={currentPage} 
-                onNavigate={(page) => setCurrentPage(page)}
+                onNavigate={handleNavigate}
                 currentRole={currentRole}
                 onRoleChange={setCurrentRole}
               />

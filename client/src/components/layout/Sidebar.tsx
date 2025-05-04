@@ -58,6 +58,13 @@ const navigationItems = [
       { page: AppPage.Profile, label: "My Profile", icon: <User /> },
       { page: AppPage.Security, label: "Security", icon: <Lock /> }
     ]
+  },
+  {
+    section: "Auth",
+    items: [
+      { page: AppPage.Login, label: "Login", icon: <Lock /> },
+      { page: AppPage.TrialAuth, label: "Trial", icon: <Beaker /> }
+    ]
   }
 ];
 
