@@ -7,6 +7,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { UserRole } from "@/lib/roles";
 
 import Sidebar from "@/components/layout/Sidebar";
+import AppHeader from "@/components/layout/AppHeader";
 import Dashboard from "@/pages/Dashboard";
 import NewOrder from "@/pages/NewOrder";
 import OrderList from "@/pages/OrderList";
@@ -75,6 +76,68 @@ export enum AppPage {
   // Test pages
   HeaderTest = "header-test"
 }
+
+// Helper function to get page title based on the current page
+const getPageTitle = (page: AppPage): string => {
+  switch (page) {
+    case AppPage.Dashboard:
+      return "Dashboard";
+    case AppPage.NewOrder:
+      return "New Radiology Order";
+    case AppPage.OrderList:
+      return "Orders";
+    case AppPage.AdminQueue:
+      return "Admin Order Queue";
+    case AppPage.AdminOrderFinalization:
+      return "Order Finalization";
+    case AppPage.RadiologyQueue:
+      return "Radiology Queue";
+    case AppPage.OrgProfile:
+      return "Organization Profile";
+    case AppPage.Locations:
+      return "Locations";
+    case AppPage.Users:
+      return "Users";
+    case AppPage.Connections:
+      return "Connections";
+    case AppPage.Billing:
+      return "Billing & Credits";
+    case AppPage.Profile:
+      return "My Profile";
+    case AppPage.Security:
+      return "Security";
+    // Super Admin pages
+    case AppPage.SuperAdminDashboard:
+      return "Super Admin Dashboard";
+    case AppPage.SuperAdminOrganizations:
+      return "Organizations";
+    case AppPage.SuperAdminUsers:
+      return "Users";
+    case AppPage.SuperAdminLogs:
+      return "System Logs";
+    case AppPage.SuperAdminBilling:
+      return "Billing Management";
+    // Test pages  
+    case AppPage.HeaderTest:
+      return "Radiology Order - Unknown Patient";
+    default:
+      return "RadOrderPad";
+  }
+};
+
+// Helper function to get page subtitle based on the current page
+const getPageSubtitle = (page: AppPage): string | undefined => {
+  switch (page) {
+    case AppPage.NewOrder:
+      return "Step 1 of 3: Dictation";
+    case AppPage.AdminOrderFinalization:
+      return "Review and finalize order details";
+    case AppPage.HeaderTest:
+      return "Step 1 of 3: Dictation";
+    default:
+      return undefined;
+  }
+};
 
 function App() {
   const [currentPage, setCurrentPage] = useState<AppPage>(AppPage.Dashboard);
@@ -177,6 +240,11 @@ function App() {
                 onRoleChange={setCurrentRole}
               />
               <div className="flex-1 overflow-auto">
+                <AppHeader 
+                  title={getPageTitle(currentPage)}
+                  subtitle={getPageSubtitle(currentPage)}
+                  onNavigate={handleNavigate}
+                />
                 <main className="min-h-screen">
                   {renderCurrentPage()}
                 </main>

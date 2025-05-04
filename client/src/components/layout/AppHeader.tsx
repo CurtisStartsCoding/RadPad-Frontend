@@ -1,11 +1,12 @@
 import React, { useState } from "react";
 import { Home, LogOut, Settings, FileText, Building2, User } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { AppPage } from "@/App";
 
 interface AppHeaderProps {
   title?: string;
   subtitle?: string;
-  onNavigate?: (path: string) => void;
+  onNavigate?: (page: AppPage) => void;
   className?: string;
 }
 
@@ -17,9 +18,9 @@ const AppHeader: React.FC<AppHeaderProps> = ({
 }) => {
   const [showMenu, setShowMenu] = useState(false);
   
-  const handleNavigation = (path: string) => {
+  const handleNavigation = (page: AppPage) => {
     if (onNavigate) {
-      onNavigate(path);
+      onNavigate(page);
     }
     setShowMenu(false);
   };
@@ -72,7 +73,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
               <nav className="space-y-1">
                 <button 
                   className="flex items-center w-full px-3 py-2.5 text-gray-800 hover:bg-gray-100 rounded-md"
-                  onClick={() => handleNavigation("/home")}
+                  onClick={() => handleNavigation(AppPage.Dashboard)}
                 >
                   <Home className="h-4 w-4 mr-3 text-gray-500" />
                   <span>Home</span>
@@ -80,7 +81,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                 
                 <button 
                   className="flex items-center w-full px-3 py-2.5 text-gray-800 hover:bg-gray-100 rounded-md"
-                  onClick={() => handleNavigation("/admin")}
+                  onClick={() => handleNavigation(AppPage.AdminQueue)}
                 >
                   <FileText className="h-4 w-4 mr-3 text-gray-500" />
                   <span>Admin Panel</span>
@@ -88,7 +89,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                 
                 <button 
                   className="flex items-center w-full px-3 py-2.5 text-gray-800 hover:bg-gray-100 rounded-md"
-                  onClick={() => handleNavigation("/orders")}
+                  onClick={() => handleNavigation(AppPage.OrderList)}
                 >
                   <FileText className="h-4 w-4 mr-3 text-gray-500" />
                   <span>Orders</span>
@@ -96,7 +97,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                 
                 <button 
                   className="flex items-center w-full px-3 py-2.5 text-gray-800 hover:bg-gray-100 rounded-md"
-                  onClick={() => handleNavigation("/organization")}
+                  onClick={() => handleNavigation(AppPage.OrgProfile)}
                 >
                   <Building2 className="h-4 w-4 mr-3 text-gray-500" />
                   <span>Organization</span>
@@ -104,7 +105,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                 
                 <button 
                   className="flex items-center w-full px-3 py-2.5 text-gray-800 hover:bg-gray-100 rounded-md"
-                  onClick={() => handleNavigation("/settings")}
+                  onClick={() => handleNavigation(AppPage.Security)}
                 >
                   <Settings className="h-4 w-4 mr-3 text-gray-500" />
                   <span>Settings</span>
@@ -116,7 +117,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
             <div className="p-2 mt-auto border-t border-gray-100">
               <button 
                 className="flex items-center w-full px-3 py-2.5 text-red-600 hover:bg-red-50 rounded-md"
-                onClick={() => handleNavigation("/logout")}
+                onClick={() => handleNavigation(AppPage.Login)}
               >
                 <LogOut className="h-4 w-4 mr-3" />
                 <span>Log out</span>
