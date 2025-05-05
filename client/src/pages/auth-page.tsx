@@ -79,8 +79,8 @@ const Login = () => {
       // Short delay before navigation to ensure state updates
       setTimeout(() => {
         // Log before navigation
-        console.log("Navigating to dictation page...");
-        navigate("/dictation");
+        console.log("Navigating to dashboard...");
+        navigate("/");
       }, 1000); // Slightly longer delay to ensure token processing
     } catch (error) {
       console.error("Login error:", error);
