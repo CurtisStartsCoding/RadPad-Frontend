@@ -16,7 +16,7 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { toast } = useToast();
+  const { toast, dismiss } = useToast();
   const [_, navigate] = useLocation();
   const { login, isLoading: authLoading } = useAuth();
   
@@ -39,7 +39,7 @@ const Login = () => {
     
     try {
       // First, show a toast that we're attempting login
-      toast({
+      const loginToast = toast({
         title: "Logging in",
         description: "Verifying your credentials...",
         duration: 5000, // Show for 5 seconds
@@ -63,7 +63,9 @@ const Login = () => {
         expiryTime: expiryTime || "Missing"
       });
       
-      // Clear any previous toasts
+      // Dismiss the login toast before showing success toast
+      dismiss(loginToast.id);
+      
       // This is a success toast, so use a different variant
       const userName = user.name || user.email;
         
