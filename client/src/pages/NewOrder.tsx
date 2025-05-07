@@ -8,6 +8,7 @@ import { temporaryPatient } from "@/lib/mock-data";
 import PatientInfoCard from "@/components/order/PatientInfoCard";
 import ValidationView from "@/components/order/ValidationView";
 import PatientIdentificationDialog from "@/components/order/PatientIdentificationDialog";
+import SignatureForm from "@/components/order/SignatureForm";
 import { ArrowLeft, AlertCircle, Info, X, Beaker, InfoIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { UserRole } from "@/lib/roles";
@@ -55,6 +56,7 @@ const NewOrder = ({ userRole = UserRole.Physician }: NewOrderProps) => {
   const [remainingCredits, setRemainingCredits] = useState(5);
   const [isPatientDialogOpen, setIsPatientDialogOpen] = useState(false);
   const [patient, setPatient] = useState(temporaryPatient);
+  const [submittedOrderId, setSubmittedOrderId] = useState<number | null>(null);
   
   // Check if user is trial user - use the role from auth if available
   const effectiveUserRole = user?.role || userRole;
@@ -256,6 +258,17 @@ const NewOrder = ({ userRole = UserRole.Physician }: NewOrderProps) => {
   // Handle signing the order
   const handleSignOrder = () => {
     setOrderStep('signature');
+  };
+  
+  // Handle order submission
+  const handleOrderSubmitted = (orderId: number) => {
+    setSubmittedOrderId(orderId);
+    // You could redirect to a confirmation page or show a success message
+    alert(`Order #${orderId} has been successfully submitted!`);
+    // Reset the form to start a new order
+    setOrderStep('dictation');
+    setDictationText("");
+    setValidationResult(null);
   };
 
   // Handle clear dictation text
@@ -506,114 +519,57 @@ const NewOrder = ({ userRole = UserRole.Physician }: NewOrderProps) => {
           </Card>
         )}
         
-        {/* Signature View would go here for step 3 */}
-        {orderStep === 'signature' && (
-          <Card>
-            <CardContent className="p-6">
-              <h2 className="text-xl font-medium mb-4">
-                {isTrialUser ? "Order Validation Complete" : "Digital Signature"}
-              </h2>
-              
-              {isTrialUser ? (
-                <>
-                  <Alert className="mb-6 bg-green-50 border-green-200 text-green-800">
-                    <div className="flex items-start">
-                      <div className="mr-2 flex-shrink-0">✓</div>
-                      <AlertDescription>
-                        Your order has been successfully validated! In a full account, you would be able to sign and submit this order to a radiology group.
-                      </AlertDescription>
-                    </div>
-                  </Alert>
-                  
-                  <Card className="mb-6 bg-blue-50 border-blue-200">
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-md text-blue-700">Trial Validation Credits</CardTitle>
-                      <CardDescription className="text-blue-600">
-                        You have used 1 validation credit. You have {remainingCredits} credits remaining in your trial.
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="pt-0 pb-4">
-                      <p className="text-sm text-blue-700">
-                        To continue using RadOrderPad with unlimited validations and to submit orders to radiology groups, please sign up for a full account.
-                      </p>
-                      <Button className="mt-3 bg-blue-700 hover:bg-blue-800">
-                        Sign Up for Full Account
-                      </Button>
-                    </CardContent>
-                  </Card>
-                  
-                  <div className="flex justify-between">
-                    <Button variant="outline" onClick={handleBackToDictation}>
-                      Back to Dictation
-                    </Button>
-                    <Button className="bg-gray-800 hover:bg-gray-900 text-white">
-                      Start New Validation
-                    </Button>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <Alert className="mb-6 bg-blue-50 border-blue-200 text-blue-800">
+        {/* Signature Form */}
+        {orderStep === 'signature' && validationResult && (
+          isTrialUser ? (
+            <Card>
+              <CardContent className="p-6">
+                <h2 className="text-xl font-medium mb-4">Order Validation Complete</h2>
+                <Alert className="mb-6 bg-green-50 border-green-200 text-green-800">
+                  <div className="flex items-start">
+                    <div className="mr-2 flex-shrink-0">✓</div>
                     <AlertDescription>
-                      By electronically signing this order, I certify that this radiology study is medically necessary and appropriate according to AUC guidelines. This order has been validated with 0.9% compliance.
+                      Your order has been successfully validated! In a full account, you would be able to sign and submit this order to a radiology group.
                     </AlertDescription>
-                  </Alert>
-                  
-                  <div className="border border-gray-200 rounded-md p-4 mb-6">
-                    <div className="grid grid-cols-3 gap-4">
-                      <div className="col-span-1"></div>
-                      <div className="col-span-1 border border-gray-200 rounded-md min-h-[100px] flex items-center justify-center">
-                        <svg viewBox="0 0 100 50" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
-                          <path d="M 10 25 C 20 10, 40 10, 50 25" stroke="#1e3a8a" strokeWidth="2" fill="none"></path>
-                          <path d="M 50 25 C 60 40, 80 40, 90 25" stroke="#1e3a8a" strokeWidth="2" fill="none"></path>
-                        </svg>
-                      </div>
-                      <div className="col-span-1 text-right text-sm text-gray-500">
-                        Type your full name to confirm
-                      </div>
-                    </div>
-                    <Button variant="outline" size="sm" className="mt-4">Clear</Button>
                   </div>
-                  
-                  <div className="grid grid-cols-3 gap-4 mb-6">
-                    <div className="col-span-1">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
-                      <input 
-                        type="text" 
-                        className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                      />
-                    </div>
-                    <div className="col-span-2">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">CC</label>
-                      <input 
-                        type="text" 
-                        className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                      />
-                    </div>
-                  </div>
-                  
-                  <Alert className="mb-6 bg-amber-50 border-amber-200 text-amber-800">
-                    <div className="flex items-start">
-                      <Info className="h-4 w-4 mt-0.5 mr-2" />
-                      <div>
-                        <div className="font-medium">Temporary Patient Detected</div>
-                        <div className="text-sm">This order will be queued for administrative staff to attach complete patient information.</div>
-                      </div>
-                    </div>
-                  </Alert>
-                  
-                  <div className="flex justify-between">
-                    <Button variant="outline" onClick={handleBackToDictation}>
-                      Back
+                </Alert>
+                
+                <Card className="mb-6 bg-blue-50 border-blue-200">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-md text-blue-700">Trial Validation Credits</CardTitle>
+                    <CardDescription className="text-blue-600">
+                      You have used 1 validation credit. You have {remainingCredits} credits remaining in your trial.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="pt-0 pb-4">
+                    <p className="text-sm text-blue-700">
+                      To continue using RadOrderPad with unlimited validations and to submit orders to radiology groups, please sign up for a full account.
+                    </p>
+                    <Button className="mt-3 bg-blue-700 hover:bg-blue-800">
+                      Sign Up for Full Account
                     </Button>
-                    <Button className="bg-blue-800 hover:bg-blue-900 text-white">
-                      Sign & Queue for Admin
-                    </Button>
-                  </div>
-                </>
-              )}
-            </CardContent>
-          </Card>
+                  </CardContent>
+                </Card>
+                
+                <div className="flex justify-between">
+                  <Button variant="outline" onClick={handleBackToDictation}>
+                    Back to Dictation
+                  </Button>
+                  <Button className="bg-gray-800 hover:bg-gray-900 text-white">
+                    Start New Validation
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <SignatureForm
+              patient={patient}
+              dictationText={dictationText}
+              validationResult={validationResult}
+              onBack={handleBackToDictation}
+              onSubmitted={handleOrderSubmitted}
+            />
+          )
         )}
       </div>
     </div>
