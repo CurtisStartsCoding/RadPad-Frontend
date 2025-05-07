@@ -1,3 +1,0 @@
-@echo off
-echo Updating Vercel database connection strings to fix SSL certificate issues...
-node update-vercel-db-ssl.js
