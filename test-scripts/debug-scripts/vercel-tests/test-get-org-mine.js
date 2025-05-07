@@ -15,15 +15,57 @@ const getTokens = () => {
     // Get the project root directory
     const projectRoot = process.env.PROJECT_ROOT || process.cwd();
     
-    // Read admin token
-    const adminTokenPath = `${projectRoot}/tokens/admin_referring-token.txt`;
-    console.log(`Reading admin token from: ${adminTokenPath}`);
-    const adminToken = fs.readFileSync(adminTokenPath, 'utf8').trim();
+    // Try multiple possible token paths for admin token
+    const adminPossiblePaths = [
+      `${projectRoot}/tokens/admin_referring-token.txt`,
+      `${projectRoot}/test-scripts/tokens/admin_referring-token.txt`,
+      `${projectRoot}/../tokens/admin_referring-token.txt`,
+      `${projectRoot}/debug-scripts/vercel-tests/tokens/admin_referring-token.txt`
+    ];
     
-    // Read physician token
-    const physicianTokenPath = `${projectRoot}/tokens/physician-token.txt`;
-    console.log(`Reading physician token from: ${physicianTokenPath}`);
-    const physicianToken = fs.readFileSync(physicianTokenPath, 'utf8').trim();
+    let adminToken = null;
+    for (const tokenPath of adminPossiblePaths) {
+      console.log(`Trying to read admin token from: ${tokenPath}`);
+      try {
+        if (fs.existsSync(tokenPath)) {
+          adminToken = fs.readFileSync(tokenPath, 'utf8').trim();
+          console.log(`Successfully read admin token from: ${tokenPath}`);
+          break;
+        }
+      } catch (err) {
+        // Continue to next path
+      }
+    }
+    
+    if (!adminToken) {
+      throw new Error('Could not find admin token file in any of the expected locations');
+    }
+    
+    // Try multiple possible token paths for physician token
+    const physicianPossiblePaths = [
+      `${projectRoot}/tokens/physician-token.txt`,
+      `${projectRoot}/test-scripts/tokens/physician-token.txt`,
+      `${projectRoot}/../tokens/physician-token.txt`,
+      `${projectRoot}/debug-scripts/vercel-tests/tokens/physician-token.txt`
+    ];
+    
+    let physicianToken = null;
+    for (const tokenPath of physicianPossiblePaths) {
+      console.log(`Trying to read physician token from: ${tokenPath}`);
+      try {
+        if (fs.existsSync(tokenPath)) {
+          physicianToken = fs.readFileSync(tokenPath, 'utf8').trim();
+          console.log(`Successfully read physician token from: ${tokenPath}`);
+          break;
+        }
+      } catch (err) {
+        // Continue to next path
+      }
+    }
+    
+    if (!physicianToken) {
+      throw new Error('Could not find physician token file in any of the expected locations');
+    }
     
     return { adminToken, physicianToken };
   } catch (error) {
