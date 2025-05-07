@@ -42,7 +42,6 @@ import SuperAdminUsers from "@/pages/SuperAdminUsers";
 import SuperAdminLogs from "@/pages/SuperAdminLogs";
 
 // Test pages
-import HeaderTest from "@/pages/HeaderTest";
 
 // Enum for all available pages
 export enum AppPage {
@@ -76,7 +75,6 @@ export enum AppPage {
   SuperAdminLogs = "superadmin-logs",
   SuperAdminBilling = "superadmin-billing",
   // Test pages
-  HeaderTest = "header-test"
 }
 
 // Helper function to get page title based on the current page
@@ -119,9 +117,7 @@ const getPageTitle = (page: AppPage): string => {
       return "System Logs";
     case AppPage.SuperAdminBilling:
       return "Billing Management";
-    // Test pages  
-    case AppPage.HeaderTest:
-      return "Radiology Order - Unknown Patient";
+    // Test pages
     default:
       return "RadOrderPad";
   }
@@ -134,8 +130,6 @@ const getPageSubtitle = (page: AppPage): string | undefined => {
       return "Step 1 of 3: Dictation";
     case AppPage.AdminOrderFinalization:
       return "Review and finalize order details";
-    case AppPage.HeaderTest:
-      return "Step 1 of 3: Dictation";
     default:
       return undefined;
   }
@@ -233,8 +227,6 @@ function App() {
       case AppPage.SuperAdminBilling:
         return <BillingCredits userRole={UserRole.SuperAdmin} />;
       // Test pages
-      case AppPage.HeaderTest:
-        return <HeaderTest />;
       default:
         return <Dashboard />;
     }
@@ -250,9 +242,6 @@ function App() {
           </Route>
           <Route path="/trial-auth">
             <TrialAuthPage />
-          </Route>
-          <Route path="/header-test">
-            <HeaderTest />
           </Route>
           <Route>
             <div className="h-screen overflow-hidden">
