@@ -140,13 +140,16 @@ const NewOrder = ({ userRole = UserRole.Physician }: NewOrderProps) => {
           dictationText,
           orderId: validationResult?.orderId,
           isOverrideValidation: attemptCount > 0,
-          patientId: patient.id || null,
-          patient: {
-            id: patient.id,
-            name: patient.name,
-            dob: patient.dob,
-            mrn: patient.mrn
-          }
+          patientInfo: {
+            id: 1,
+            firstName: patient.name.split(' ')[0] || 'Test',
+            lastName: patient.name.split(' ').slice(1).join(' ') || 'Patient',
+            dateOfBirth: patient.dob !== 'Unknown' ? patient.dob : '1980-01-01',
+            gender: 'male',
+            phoneNumber: '555-123-4567',
+            email: 'test.patient@example.com'
+          },
+          radiologyOrganizationId: 1
         };
       }
       
@@ -165,23 +168,69 @@ const NewOrder = ({ userRole = UserRole.Physician }: NewOrderProps) => {
       console.log("API Response headers:", headerObj);
       
       // Parse the response
-      const result = await response.json();
+      const apiResult = await response.json();
       
       // Log the full response data
-      console.log("API Response data:", result);
+      console.log("API Response data:", apiResult);
       
       // Handle the validation result
-      if (result.validationStatus === 'valid') {
-        // Successful validation
-        console.log("Validation successful:", result);
-        setValidationResult(result);
-        setOrderStep('validation');
-        setValidationFeedback(null);
-      } else {
-        // Validation issues
-        console.log("Validation issues:", result.feedback);
-        setValidationFeedback(result.feedback || "There are issues with your order that need to be addressed.");
-        setAttemptCount(prev => prev + 1);
+      try {
+        // Check if we have the expected structure from the remote API
+        if (apiResult.validationResult) {
+          // Remote API format
+          const result = {
+            validationStatus: apiResult.validationResult.validationStatus === 'appropriate' ? 'valid' : 'invalid',
+            feedback: apiResult.validationResult.feedback || 'No feedback provided',
+            complianceScore: apiResult.validationResult.complianceScore,
+            suggestedCodes: [
+              ...(apiResult.validationResult.suggestedICD10Codes?.map((icd: any) => ({
+                code: icd.code,
+                description: icd.description,
+                type: 'ICD-10' as const,
+                confidence: icd.confidence || 0.8
+              })) || []),
+              ...(apiResult.validationResult.suggestedCPTCodes?.map((cpt: any) => ({
+                code: cpt.code,
+                description: cpt.description,
+                type: 'CPT' as const,
+                confidence: cpt.confidence || 0.8
+              })) || [])
+            ],
+            orderId: apiResult.orderId
+          };
+          
+          console.log("Processed validation result:", result);
+          
+          if (result.validationStatus === 'valid') {
+            // Successful validation
+            console.log("Validation successful:", result);
+            setValidationResult(result);
+            setOrderStep('validation');
+            setValidationFeedback(null);
+          } else {
+            // Validation issues
+            console.log("Validation issues:", result.feedback);
+            setValidationFeedback(result.feedback || "There are issues with your order that need to be addressed.");
+            setAttemptCount(prev => prev + 1);
+          }
+        } else {
+          // If we didn't find the expected structure, try to use the response directly
+          if (apiResult.validationStatus === 'valid') {
+            // Successful validation
+            console.log("Validation successful:", apiResult);
+            setValidationResult(apiResult);
+            setOrderStep('validation');
+            setValidationFeedback(null);
+          } else {
+            // Validation issues
+            console.log("Validation issues:", apiResult.feedback);
+            setValidationFeedback(apiResult.feedback || "There are issues with your order that need to be addressed.");
+            setAttemptCount(prev => prev + 1);
+          }
+        }
+      } catch (parseError) {
+        console.error("Error parsing validation data:", parseError);
+        setValidationFeedback("Error processing the validation response. Please try again.");
       }
     } catch (error) {
       console.error("Error validating order:", error);
@@ -213,6 +262,23 @@ const NewOrder = ({ userRole = UserRole.Physician }: NewOrderProps) => {
   const handleClearText = () => {
     setDictationText("");
     setCharacterCount(0);
+  };
+
+  // Function to add additional clarification section
+  const addAdditionalClarification = () => {
+    const newText = dictationText + "\n\n--------Additional Clarification----------\n\n";
+    setDictationText(newText);
+    setCharacterCount(newText.length);
+    
+    // Focus and move cursor to end of textarea
+    setTimeout(() => {
+      const textarea = document.querySelector('textarea');
+      if (textarea) {
+        textarea.focus();
+        textarea.selectionStart = newText.length;
+        textarea.selectionEnd = newText.length;
+      }
+    }, 0);
   };
 
   // Handle dictation input
@@ -347,10 +413,24 @@ const NewOrder = ({ userRole = UserRole.Physician }: NewOrderProps) => {
                     </Button>
                   </div>
                   <div className="mt-2 ml-6">
-                    <Button variant="ghost" size="sm" className="h-7 px-2 text-xs bg-white border border-gray-200 hover:bg-gray-50 hover:text-gray-800">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-2 text-xs bg-white border border-gray-200 hover:bg-gray-50 hover:text-gray-800"
+                      onClick={addAdditionalClarification}
+                    >
                       + Add Clarification
                     </Button>
-                    <Button variant="ghost" size="sm" className="h-7 px-2 text-xs bg-amber-50 text-amber-800 border border-amber-200 ml-2 hover:bg-amber-100 hover:text-amber-900 hover:border-amber-300">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-2 text-xs bg-amber-50 text-amber-800 border border-amber-200 ml-2 hover:bg-amber-100 hover:text-amber-900 hover:border-amber-300"
+                      onClick={() => {
+                        // Force validation to proceed by setting attemptCount to 3 and resubmitting
+                        setAttemptCount(3);
+                        handleProcessOrder();
+                      }}
+                    >
                       Override
                     </Button>
                   </div>

@@ -1,10 +1,16 @@
 import React from 'react';
-import { 
-  CheckCircle, 
+import {
+  CheckCircle,
   FileText,
-  Info
+  Info,
+  Tag,
+  Briefcase,
+  AlertCircle,
+  ClipboardCheck
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 // Define types for the validation data
 interface MedicalCode {
@@ -15,11 +21,13 @@ interface MedicalCode {
 }
 
 export interface ProcessedDictation {
-  orderId?: string; // Order ID returned from the API
+  orderId?: string | number; // Order ID returned from the API
   validationStatus: 'valid' | 'incomplete' | 'invalid';
   feedback?: string;
   complianceScore?: number; // On a scale of 0-9
   suggestedCodes?: MedicalCode[];
+  overridden?: boolean;
+  overrideJustification?: string;
 }
 
 interface ValidationViewProps {
@@ -32,31 +40,35 @@ interface ValidationViewProps {
 /**
  * Component for displaying validation results
  */
-const ValidationView: React.FC<ValidationViewProps> = ({ 
-  dictationText, 
-  validationResult, 
-  onBack, 
-  onSign 
+const ValidationView: React.FC<ValidationViewProps> = ({
+  dictationText,
+  validationResult,
+  onBack,
+  onSign
 }) => {
   // Format compliance score for display (on a scale of 0-9)
-  const displayComplianceScore = validationResult.complianceScore ? 
-    `${validationResult.complianceScore}/9` : 
+  const displayComplianceScore = validationResult.complianceScore ?
+    `${validationResult.complianceScore}/9` :
     null;
 
+  // Separate diagnosis and procedure codes
+  const diagnosisCodes = validationResult.suggestedCodes?.filter(code => code.type === 'ICD-10') || [];
+  const procedureCodes = validationResult.suggestedCodes?.filter(code => code.type === 'CPT') || [];
+
   return (
-    <div className="bg-white rounded-lg shadow-sm mt-6">
-      <div className="pb-0 p-4 border-b border-gray-200">
-        <div className="text-lg font-medium flex items-center">
-          <CheckCircle className="h-5 w-5 mr-2 text-blue-600" />
+    <Card className="bg-white mt-6">
+      <CardHeader className="pb-0">
+        <CardTitle className="text-lg font-medium flex items-center">
+          <ClipboardCheck className="h-5 w-5 mr-2 text-primary" />
           Order Validation
           {validationResult.validationStatus === 'valid' && (
-            <span className="ml-2 bg-green-100 text-green-800 px-2 py-0.5 rounded-full text-xs font-medium">
+            <Badge className="ml-2 bg-green-100 text-green-800 hover:bg-green-200">
               AUC Compliant
-            </span>
+            </Badge>
           )}
-        </div>
-      </div>
-      <div className="px-4 py-5 sm:p-6">
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="px-4 py-5 sm:p-6">
         {/* Feedback panel - Only displayed when there's feedback */}
         {validationResult.feedback && (
           <div className="mb-6">
@@ -91,47 +103,132 @@ const ValidationView: React.FC<ValidationViewProps> = ({
           </div>
         </div>
         
-        {/* Suggested Codes Section */}
-        {validationResult.suggestedCodes && validationResult.suggestedCodes.length > 0 && (
+        {/* Diagnosis and Procedure Codes */}
+        {(diagnosisCodes.length > 0 || procedureCodes.length > 0) && (
           <div className="mb-6">
             <h3 className="text-md font-medium text-gray-900 mb-2 flex items-center">
-              <Info className="h-4 w-4 mr-2 text-gray-600" />
-              Suggested Codes
+              <Tag className="h-4 w-4 mr-2 text-gray-600" />
+              Coding & Billing Information
             </h3>
-            <div className="bg-gray-50 p-4 rounded-md">
-              <div className="space-y-3">
-                {validationResult.suggestedCodes.map((code, index) => (
-                  <div key={index} className="flex items-start">
-                    <div className="bg-white border border-gray-200 px-2 py-1 rounded text-xs font-mono font-medium text-gray-800 mr-3">
-                      {code.code}
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-800">{code.description}</p>
-                      <div className="flex items-center mt-0.5">
-                        <span className="text-xs text-gray-500 mr-2">{code.type}</span>
-                        <span className="text-xs bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded">
-                          {Math.round(code.confidence * 100)}% confidence
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <p className="text-xs text-gray-500 uppercase font-medium mb-2">ICD-10 Diagnosis Codes</p>
+                <div className="bg-gray-50 p-4 rounded-md">
+                  {diagnosisCodes.length > 0 ? (
+                    <ul className="space-y-2">
+                      {diagnosisCodes.map((code, index) => (
+                        <li key={index} className="text-sm">
+                          <span className="font-mono text-primary font-medium">{code.code}</span>
+                          <span className="text-gray-700 block">{code.description}</span>
+                          <span className="text-xs bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded">
+                            {Math.round(code.confidence * 100)}% confidence
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-sm text-gray-500">No diagnosis codes identified.</p>
+                  )}
+                </div>
+              </div>
+              
+              <div>
+                <p className="text-xs text-gray-500 uppercase font-medium mb-2">CPT Procedure Codes</p>
+                <div className="bg-gray-50 p-4 rounded-md">
+                  {procedureCodes.length > 0 ? (
+                    <ul className="space-y-2">
+                      {procedureCodes.map((code, index) => (
+                        <li key={index} className="text-sm">
+                          <span className="font-mono text-primary font-medium">{code.code}</span>
+                          <span className="text-gray-700 block">{code.description}</span>
+                          <span className="text-xs bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded">
+                            {Math.round(code.confidence * 100)}% confidence
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-sm text-gray-500">No procedure codes identified.</p>
+                  )}
+                </div>
               </div>
             </div>
           </div>
         )}
         
+        {/* Guidelines and AUC Compliance Summary */}
+        <div className="mb-6">
+          <h3 className="text-md font-medium text-gray-900 mb-2 flex items-center">
+            <Briefcase className="h-4 w-4 mr-2 text-gray-600" />
+            Guidelines & AUC Compliance
+          </h3>
+          <div className="bg-gray-50 p-4 rounded-md">
+            <div className="flex items-center mb-3">
+              <p className="text-sm font-semibold text-gray-700">Appropriateness Validation</p>
+              <div className="ml-auto flex items-center gap-3 mr-1">
+                {validationResult.validationStatus === 'valid' ? (
+                  <div className="flex items-center gap-1 bg-green-50 text-green-700 px-2 py-1 rounded-full">
+                    <CheckCircle className="h-3.5 w-3.5" />
+                    <span className="text-xs font-medium">Compliant</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1 bg-yellow-50 text-yellow-700 px-2 py-1 rounded-full">
+                    <AlertCircle className="h-3.5 w-3.5" />
+                    <span className="text-xs font-medium">Review Required</span>
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-x-8 gap-y-2 mb-4 text-sm">
+              <div className="flex items-center">
+                <span className="text-gray-600">ACR Guidelines</span>
+                {validationResult.validationStatus === 'valid' && (
+                  <CheckCircle className="h-3.5 w-3.5 text-green-500 ml-2" />
+                )}
+              </div>
+              <div className="flex items-center">
+                <span className="text-gray-600">CMS AUC</span>
+                {validationResult.validationStatus === 'valid' && (
+                  <CheckCircle className="h-3.5 w-3.5 text-green-500 ml-2" />
+                )}
+              </div>
+              <div className="flex items-center">
+                <span className="text-gray-600">NCCN Guidelines</span>
+                {validationResult.validationStatus === 'valid' && (
+                  <CheckCircle className="h-3.5 w-3.5 text-green-500 ml-2" />
+                )}
+              </div>
+              <div className="flex items-center">
+                <span className="text-gray-600">Medicare AUC</span>
+                {validationResult.validationStatus === 'valid' && (
+                  <CheckCircle className="h-3.5 w-3.5 text-green-500 ml-2" />
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+        
         {/* Action Buttons */}
         <div className="flex justify-between mt-8">
-          <Button variant="outline" onClick={onBack}>
+          <Button
+            variant="outline"
+            onClick={onBack}
+            className="min-h-[44px] px-6"
+          >
             Edit Dictation
           </Button>
-          <Button onClick={onSign} disabled={validationResult.validationStatus === 'invalid'}>
+          <Button
+            onClick={onSign}
+            disabled={validationResult.validationStatus !== 'valid'}
+            className="min-h-[44px] px-6"
+          >
             Sign Order
           </Button>
         </div>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 };
 
