@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/lib/useAuth";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -9,7 +9,7 @@ import PatientInfoCard from "@/components/order/PatientInfoCard";
 import ValidationView from "@/components/order/ValidationView";
 import PatientIdentificationDialog from "@/components/order/PatientIdentificationDialog";
 import SignatureForm from "@/components/order/SignatureForm";
-import { ArrowLeft, AlertCircle, Info, X, Beaker, InfoIcon } from "lucide-react";
+import { ArrowLeft, AlertCircle, Info, X, Beaker, InfoIcon, Mic } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { UserRole } from "@/lib/roles";
 import PageHeader from "@/components/layout/PageHeader";
@@ -57,6 +57,9 @@ const NewOrder = ({ userRole = UserRole.Physician }: NewOrderProps) => {
   const [isPatientDialogOpen, setIsPatientDialogOpen] = useState(false);
   const [patient, setPatient] = useState(temporaryPatient);
   const [submittedOrderId, setSubmittedOrderId] = useState<number | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const recognitionRef = useRef<any>(null);
   
   // Check if user is trial user - use the role from auth if available
   const effectiveUserRole = user?.role || userRole;
@@ -68,6 +71,48 @@ const NewOrder = ({ userRole = UserRole.Physician }: NewOrderProps) => {
       setValidationFeedback("You must be logged in to validate orders. Please log in and try again.");
     }
   }, [isLoading, isAuthenticated]);
+  
+  // Set up speech recognition if available
+  useEffect(() => {
+    // Handle WebSpeechAPI TypeScript definitions
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    
+    if (SpeechRecognition) {
+      recognitionRef.current = new SpeechRecognition();
+      recognitionRef.current.continuous = true;
+      recognitionRef.current.interimResults = true;
+      
+      recognitionRef.current.onresult = (event: any) => {
+        const results = Array.from({ length: event.results.length }, (_, i) => event.results[i]);
+        const transcript = results
+          .map((result: any) => result[0].transcript)
+          .join('');
+        
+        // Always append to existing text when using speech recognition
+        const updatedText = dictationText && dictationText.trim().length > 0
+          ? `${dictationText}\n${transcript}`
+          : transcript;
+        
+        setDictationText(updatedText);
+        setCharacterCount(updatedText.length);
+      };
+      
+      recognitionRef.current.onerror = (event: any) => {
+        console.error('Speech recognition error', event.error);
+        setIsRecording(false);
+      };
+      
+      recognitionRef.current.onend = () => {
+        setIsRecording(false);
+      };
+    }
+    
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+    };
+  }, [dictationText]);
   
   // Handle opening patient identification dialog
   const handleEditPatient = () => {
@@ -107,6 +152,7 @@ const NewOrder = ({ userRole = UserRole.Physician }: NewOrderProps) => {
     
     try {
       // Show loading state
+      setIsProcessing(true);
       setValidationFeedback("Processing your order...");
       
       // Determine which API endpoint to use based on user role
@@ -247,6 +293,8 @@ const NewOrder = ({ userRole = UserRole.Physician }: NewOrderProps) => {
         console.error("Unknown error type:", error);
       }
       setValidationFeedback("An error occurred while processing your order. Please try again.");
+    } finally {
+      setIsProcessing(false);
     }
   };
   
@@ -303,20 +351,21 @@ const NewOrder = ({ userRole = UserRole.Physician }: NewOrderProps) => {
     }
   };
 
-  // Handle voice input (simulated)
+  // Handle voice input using Web Speech API
   const handleVoiceInput = () => {
-    // Simulate voice input for demo purposes
-    const voiceTexts = [
-      "55-year-old female with newly diagnosed breast cancer. Request CT chest, abdomen and pelvis for staging.",
-      "MRI abdomen with and without contrast for a 60-year-old male with acute right upper quadrant pain, fever, and elevated liver enzymes, concern for cholecystitis or biliary obstruction."
-    ];
+    if (!recognitionRef.current) {
+      alert("Voice Recognition Not Available. Your browser doesn't support voice recognition. Please type manually.");
+      return;
+    }
     
-    const newText = dictationText 
-      ? dictationText + "\n\n" + voiceTexts[attemptCount % 2] 
-      : voiceTexts[attemptCount % 2];
-    
-    setDictationText(newText);
-    setCharacterCount(newText.length);
+    if (isRecording) {
+      recognitionRef.current.stop();
+      setIsRecording(false);
+    } else {
+      recognitionRef.current.start();
+      setIsRecording(true);
+      alert("Voice Recognition Activated. Speak clearly into your microphone. Click the button again to stop recording.");
+    }
   };
 
   return (
@@ -470,14 +519,11 @@ const NewOrder = ({ userRole = UserRole.Physician }: NewOrderProps) => {
                       Clear
                     </button>
                     <button
-                      className="flex items-center justify-center px-4 py-2 ml-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50"
+                      className={`flex items-center justify-center px-4 py-2 ml-2 text-sm font-medium ${isRecording ? 'text-red-700 bg-red-50 border-red-300' : 'text-gray-700 bg-white border-gray-300'} rounded-md shadow-sm hover:bg-gray-50`}
                       onClick={handleVoiceInput}
                     >
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="mr-2">
-                        <rect x="7" y="4" width="10" height="16" rx="5" stroke="currentColor" strokeWidth="2"/>
-                        <path d="M12 4V2M12 20V22M4 12H2M6 6L4.5 4.5M18 6L19.5 4.5M22 12H20" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                      </svg>
-                      Voice Input
+                      <Mic className={`h-4 w-4 mr-2 ${isRecording ? 'animate-pulse text-red-600' : ''}`} />
+                      {isRecording ? 'Recording...' : 'Voice Input'}
                     </button>
                   </div>
                   <div className="text-xs text-gray-500">
@@ -489,10 +535,20 @@ const NewOrder = ({ userRole = UserRole.Physician }: NewOrderProps) => {
             <div className="flex justify-end p-4 border-t border-gray-200">
               <Button
                 className="bg-blue-700 hover:bg-blue-800 text-white font-medium px-4 py-2 h-auto"
-                disabled={dictationText.trim().length < 10}
+                disabled={dictationText.trim().length < 10 || isProcessing}
                 onClick={handleProcessOrder}
               >
-                Process Order
+                {isProcessing ? (
+                  <>
+                    <svg className="animate-spin -ml-1 mr-3 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Processing...
+                  </>
+                ) : (
+                  "Process Order"
+                )}
               </Button>
             </div>
           </div>
