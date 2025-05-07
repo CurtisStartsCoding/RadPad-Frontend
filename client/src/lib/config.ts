@@ -18,14 +18,25 @@ export const APP_CONFIG = {
 
 // Export a function to get the full API URL
 export function getApiUrl(path: string): string {
-  // For local development, we use the local server as a proxy
-  // If path already starts with /api, use it directly
-  if (path.startsWith('/api')) {
-    return path;
+  // If we're in development mode and using a local proxy, we can use relative paths
+  if (API_SERVER_URL) {
+    // If path already starts with /api, use it directly
+    if (path.startsWith('/api')) {
+      return path;
+    }
+    
+    // Otherwise, prepend /api to the path
+    return `/api${path}`;
   }
   
-  // Otherwise, prepend /api to the path
-  return `/api${path}`;
+  // In production, we need to use the full remote URL
+  // If path already starts with /api, append it to the remote URL
+  if (path.startsWith('/api')) {
+    return `${REMOTE_API_URL}${path}`;
+  }
+  
+  // Otherwise, prepend /api to the path and append to remote URL
+  return `${REMOTE_API_URL}/api${path}`;
 }
 
 /**

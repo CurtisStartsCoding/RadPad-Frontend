@@ -15,6 +15,7 @@ interface MedicalCode {
 }
 
 export interface ProcessedDictation {
+  orderId?: string; // Order ID returned from the API
   validationStatus: 'valid' | 'incomplete' | 'invalid';
   feedback?: string;
   complianceScore?: number; // On a scale of 0-9

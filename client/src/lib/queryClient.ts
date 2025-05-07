@@ -58,77 +58,88 @@ export async function apiRequest(
     console.log(`API Request: Adding Authorization token to ${url}`);
   }
   
-  // Add cache prevention for auth endpoints
-  if (isAuthEndpoint) {
-    headers['Cache-Control'] = 'no-cache, no-store, must-revalidate';
-    headers['Pragma'] = 'no-cache';
-    headers['Expires'] = '0';
-  }
+  // Don't add any cache prevention headers for auth endpoints to avoid CORS issues
+  // if (isAuthEndpoint) {
+  //   headers['Cache-Control'] = 'no-cache, no-store, must-revalidate';
+  //   headers['Pragma'] = 'no-cache';
+  //   headers['Expires'] = '0';
+  // }
   
   try {
     // Enhanced logging - Request details
     console.group(`🌐 API Request: ${method} ${cacheBustUrl}`);
-    console.log(`🔗 Target: Remote API (https://api.radorderpad.com)`);
+    
+    // Use the getApiUrl function to get the full API URL
+    const fullUrl = getApiUrl(cacheBustUrl);
+    
+    console.log(`🔗 Target: ${fullUrl}`);
     console.log(`📤 Headers:`, headers);
     if (data) {
       console.log(`📦 Request Body:`, data);
     }
     console.groupEnd();
     
-    // Use the getApiUrl function to get the full API URL
-    const fullUrl = getApiUrl(cacheBustUrl);
-    
     const startTime = Date.now();
-    const res = await fetch(fullUrl, {
-      method,
-      headers,
-      body: data ? JSON.stringify(data) : undefined,
-      credentials: "include",
-      // Additional cache control for modern browsers
-      cache: isAuthEndpoint ? 'no-store' : 'default',
-    });
-    const endTime = Date.now();
-
-    // Enhanced logging - Response details
-    console.group(`🌐 API Response: ${method} ${url}`);
-    console.log(`⏱️ Time: ${endTime - startTime}ms`);
-    console.log(`📊 Status: ${res.status} ${res.statusText}`);
-    // Log headers in a TypeScript-compatible way
-    const headerObj: Record<string, string> = {};
-    res.headers.forEach((value, key) => {
-      headerObj[key] = value;
-    });
-    console.log(`📥 Headers:`, headerObj);
-    
-    // Clone the response to read the body without consuming it
-    const resClone = res.clone();
     try {
-      const contentType = res.headers.get('content-type');
-      if (contentType && contentType.includes('application/json')) {
-        const jsonBody = await resClone.json();
-        console.log(`📦 Response Body:`, jsonBody);
-      } else {
-        const textBody = await resClone.text();
-        console.log(`📦 Response Body:`, textBody.length > 500 ? textBody.substring(0, 500) + '...' : textBody);
-      }
-    } catch (e) {
-      console.log(`📦 Response Body: [Could not parse]`);
-    }
-    console.groupEnd();
-    
-    // Check for token refresh header
-    const refreshToken = res.headers.get('X-Refresh-Token');
-    if (refreshToken) {
-      console.log('Received X-Refresh-Token header, updating token');
-      localStorage.setItem('rad_order_pad_access_token', refreshToken);
+      const res = await fetch(fullUrl, {
+        method,
+        headers,
+        body: data ? JSON.stringify(data) : undefined,
+        credentials: "include",
+        // Don't set cache option for auth endpoints to avoid CORS issues
+        cache: 'default',
+      });
+      const endTime = Date.now();
+
+      // Enhanced logging - Response details
+      console.group(`🌐 API Response: ${method} ${url}`);
+      console.log(`⏱️ Time: ${endTime - startTime}ms`);
+      console.log(`📊 Status: ${res.status} ${res.statusText}`);
+      // Log headers in a TypeScript-compatible way
+      const headerObj: Record<string, string> = {};
+      res.headers.forEach((value, key) => {
+        headerObj[key] = value;
+      });
+      console.log(`📥 Headers:`, headerObj);
       
-      // Update token expiry (add 15 minutes)
-      const expiryTime = Date.now() + 15 * 60 * 1000;
-      localStorage.setItem('rad_order_pad_token_expiry', expiryTime.toString());
+      // Clone the response to read the body without consuming it
+      const resClone = res.clone();
+      try {
+        const contentType = res.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          const jsonBody = await resClone.json();
+          console.log(`📦 Response Body:`, jsonBody);
+        } else {
+          const textBody = await resClone.text();
+          console.log(`📦 Response Body:`, textBody.length > 500 ? textBody.substring(0, 500) + '...' : textBody);
+        }
+      } catch (e) {
+        console.log(`📦 Response Body: [Could not parse]`);
+      }
+      console.groupEnd();
+      
+      // Check for token refresh header
+      const refreshToken = res.headers.get('X-Refresh-Token');
+      if (refreshToken) {
+        console.log('Received X-Refresh-Token header, updating token');
+        localStorage.setItem('rad_order_pad_access_token', refreshToken);
+        
+        // Update token expiry (add 15 minutes)
+        const expiryTime = Date.now() + 15 * 60 * 1000;
+        localStorage.setItem('rad_order_pad_token_expiry', expiryTime.toString());
+      }
+      
+      await throwIfResNotOk(res);
+      return res;
+    } catch (fetchError) {
+      console.error(`Network error during fetch: ${method} ${fullUrl}`, fetchError);
+      // Handle the error with proper type checking
+      if (fetchError instanceof Error) {
+        throw new Error(`Network error: ${fetchError.message}`);
+      } else {
+        throw new Error('Network error: Failed to fetch');
+      }
     }
-    
-    await throwIfResNotOk(res);
-    return res;
   } catch (error) {
     console.error(`API request failed: ${method} ${url}`, error);
     throw error;
@@ -171,71 +182,81 @@ export const getQueryFn: <T>(options: {
         console.log('Added Authorization header with Bearer token');
       }
       
-      // Add cache prevention headers for auth endpoints
-      if (url.includes('/api/auth/')) {
-        headers['Cache-Control'] = 'no-cache, no-store, must-revalidate';
-        headers['Pragma'] = 'no-cache';
-        headers['Expires'] = '0';
-      }
-      
-      // Enhanced logging - Query Request
-      console.group(`🔍 Query Request: GET ${cacheBustUrl}`);
-      console.log(`🔗 Target: Remote API (https://api.radorderpad.com)`);
-      console.log(`📤 Headers:`, headers);
-      console.groupEnd();
+      // Don't add any cache prevention headers for auth endpoints to avoid CORS issues
+      // if (url.includes('/api/auth/')) {
+      //   headers['Cache-Control'] = 'no-cache, no-store, must-revalidate';
+      //   headers['Pragma'] = 'no-cache';
+      //   headers['Expires'] = '0';
+      // }
       
       // Use the getApiUrl function to get the full API URL
       const fullUrl = getApiUrl(cacheBustUrl);
       
-      const startTime = Date.now();
-      const res = await fetch(fullUrl, {
-        credentials: "include",
-        headers,
-        cache: url.includes('/api/auth/') ? 'no-store' : 'default',
-      });
-      const endTime = Date.now();
-
-      // Enhanced logging - Query Response
-      console.group(`🔍 Query Response: GET ${url}`);
-      console.log(`⏱️ Time: ${endTime - startTime}ms`);
-      console.log(`📊 Status: ${res.status} ${res.statusText}`);
-      // Log headers in a TypeScript-compatible way
-      const headerObj: Record<string, string> = {};
-      res.headers.forEach((value, key) => {
-        headerObj[key] = value;
-      });
-      console.log(`📥 Headers:`, headerObj);
+      // Enhanced logging - Query Request
+      console.group(`🔍 Query Request: GET ${cacheBustUrl}`);
+      console.log(`🔗 Target: ${fullUrl}`);
+      console.log(`📤 Headers:`, headers);
       console.groupEnd();
+      
+      const startTime = Date.now();
+      try {
+        const res = await fetch(fullUrl, {
+          credentials: "include",
+          headers,
+          cache: 'default',
+        });
+        const endTime = Date.now();
 
-      // Check for token refresh header
-      const refreshToken = res.headers.get('X-Refresh-Token');
-      if (refreshToken) {
-        console.log('Received X-Refresh-Token header in query, updating token');
-        localStorage.setItem('rad_order_pad_access_token', refreshToken);
-        
-        // Update token expiry (add 15 minutes)
-        const expiryTime = Date.now() + 15 * 60 * 1000;
-        localStorage.setItem('rad_order_pad_token_expiry', expiryTime.toString());
-      }
+        // Enhanced logging - Query Response
+        console.group(`🔍 Query Response: GET ${url}`);
+        console.log(`⏱️ Time: ${endTime - startTime}ms`);
+        console.log(`📊 Status: ${res.status} ${res.statusText}`);
+        // Log headers in a TypeScript-compatible way
+        const headerObj: Record<string, string> = {};
+        res.headers.forEach((value, key) => {
+          headerObj[key] = value;
+        });
+        console.log(`📥 Headers:`, headerObj);
+        console.groupEnd();
 
-      // Handle specific status codes more explicitly
-      if (res.status === 401) {
-        console.warn(`Authentication required for: ${url} - Status: ${res.status}`);
+        // Check for token refresh header
+        const refreshToken = res.headers.get('X-Refresh-Token');
+        if (refreshToken) {
+          console.log('Received X-Refresh-Token header in query, updating token');
+          localStorage.setItem('rad_order_pad_access_token', refreshToken);
+          
+          // Update token expiry (add 15 minutes)
+          const expiryTime = Date.now() + 15 * 60 * 1000;
+          localStorage.setItem('rad_order_pad_token_expiry', expiryTime.toString());
+        }
+
+        // Handle specific status codes more explicitly
+        if (res.status === 401) {
+          console.warn(`Authentication required for: ${url} - Status: ${res.status}`);
+          
+          if (unauthorizedBehavior === "returnNull") {
+            return null;
+          }
+        }
+
+        await throwIfResNotOk(res);
+        const jsonData = await res.json();
         
-        if (unauthorizedBehavior === "returnNull") {
-          return null;
+        // Log the response data
+        console.group(`🔍 Query Data: GET ${url}`);
+        console.log(`📦 Response Data:`, jsonData);
+        console.groupEnd();
+        
+        return jsonData;
+      } catch (fetchError) {
+        console.error(`Network error during fetch: GET ${fullUrl}`, fetchError);
+        // Handle the error with proper type checking
+        if (fetchError instanceof Error) {
+          throw new Error(`Network error: ${fetchError.message}`);
+        } else {
+          throw new Error('Network error: Failed to fetch');
         }
       }
-
-      await throwIfResNotOk(res);
-      const jsonData = await res.json();
-      
-      // Log the response data
-      console.group(`🔍 Query Data: GET ${url}`);
-      console.log(`📦 Response Data:`, jsonData);
-      console.groupEnd();
-      
-      return jsonData;
     } catch (error) {
       console.error(`Query failed: ${url}`, error);
       throw error;

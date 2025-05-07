@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { apiRequest } from "@/lib/queryClient";
+import { useAuth } from "@/lib/useAuth";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -43,6 +45,7 @@ interface NewOrderProps {
 }
 
 const NewOrder = ({ userRole = UserRole.Physician }: NewOrderProps) => {
+  const { user, isAuthenticated, isLoading } = useAuth();
   const [orderStep, setOrderStep] = useState<'dictation' | 'validation' | 'signature'>('dictation');
   const [dictationText, setDictationText] = useState("");
   const [validationResult, setValidationResult] = useState<any>(null);
@@ -53,8 +56,16 @@ const NewOrder = ({ userRole = UserRole.Physician }: NewOrderProps) => {
   const [isPatientDialogOpen, setIsPatientDialogOpen] = useState(false);
   const [patient, setPatient] = useState(temporaryPatient);
   
-  // Check if user is trial user
-  const isTrialUser = userRole === UserRole.TrialPhysician;
+  // Check if user is trial user - use the role from auth if available
+  const effectiveUserRole = user?.role || userRole;
+  const isTrialUser = effectiveUserRole === UserRole.TrialPhysician;
+  
+  // Check authentication status on component mount
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      setValidationFeedback("You must be logged in to validate orders. Please log in and try again.");
+    }
+  }, [isLoading, isAuthenticated]);
   
   // Handle opening patient identification dialog
   const handleEditPatient = () => {
@@ -75,7 +86,13 @@ const NewOrder = ({ userRole = UserRole.Physician }: NewOrderProps) => {
   };
   
   // Process order
-  const handleProcessOrder = () => {
+  const handleProcessOrder = async () => {
+    // Check if user is authenticated
+    if (!isLoading && !isAuthenticated) {
+      setValidationFeedback("You must be logged in to validate orders. Please log in and try again.");
+      return;
+    }
+    
     if (!dictationText || dictationText.trim().length < 10) {
       setValidationFeedback("Please provide more detailed dictation before submitting");
       return;
@@ -86,15 +103,99 @@ const NewOrder = ({ userRole = UserRole.Physician }: NewOrderProps) => {
       setRemainingCredits(prev => Math.max(0, prev - 1));
     }
     
-    // Simulate validation result
-    if (attemptCount === 0) {
-      // First attempt shows validation issues
-      setValidationFeedback("Ultrasound is first-line for suspected cholecystitis/biliary obstruction with higher sensitivity and specificity than MRI. If ultrasound is inconclusive, consider CT abdomen or MRCP, which is more appropriate for evaluating biliary pathology than standard MRI abdomen.");
-      setAttemptCount(prev => prev + 1);
-    } else {
-      // Second attempt shows successful validation
-      setValidationResult(mockValidationResult);
-      setOrderStep('validation');
+    try {
+      // Show loading state
+      setValidationFeedback("Processing your order...");
+      
+      // Determine which API endpoint to use based on user role
+      const endpoint = isTrialUser ? '/api/orders/validate/trial' : '/api/orders/validate';
+      
+      console.log("Making API call to:", endpoint);
+      console.log("Request payload:", {
+        dictationText,
+        orderId: validationResult?.orderId,
+        isOverrideValidation: attemptCount > 0
+      });
+      
+      // Check if token exists in localStorage
+      const token = localStorage.getItem('rad_order_pad_access_token');
+      if (!token) {
+        console.error("No authentication token found");
+        setValidationFeedback("Authentication error: No token found. Please log in again.");
+        return;
+      }
+      
+      // Prepare the request payload based on the endpoint
+      let requestPayload;
+      
+      if (isTrialUser) {
+        // Simplified payload for trial endpoint
+        requestPayload = {
+          dictationText,
+          isOverrideValidation: attemptCount > 0
+        };
+      } else {
+        // Full payload for regular endpoint
+        requestPayload = {
+          dictationText,
+          orderId: validationResult?.orderId,
+          isOverrideValidation: attemptCount > 0,
+          patientId: patient.id || null,
+          patient: {
+            id: patient.id,
+            name: patient.name,
+            dob: patient.dob,
+            mrn: patient.mrn
+          }
+        };
+      }
+      
+      console.log("Making API call to:", endpoint);
+      console.log("Request payload:", requestPayload);
+      
+      // Make API call to validate the order
+      const response = await apiRequest('POST', endpoint, requestPayload);
+      
+      console.log("API Response status:", response.status);
+      // Log headers in a TypeScript-compatible way
+      const headerObj: Record<string, string> = {};
+      response.headers.forEach((value, key) => {
+        headerObj[key] = value;
+      });
+      console.log("API Response headers:", headerObj);
+      
+      // Parse the response
+      const result = await response.json();
+      
+      // Log the full response data
+      console.log("API Response data:", result);
+      
+      // Handle the validation result
+      if (result.validationStatus === 'valid') {
+        // Successful validation
+        console.log("Validation successful:", result);
+        setValidationResult(result);
+        setOrderStep('validation');
+        setValidationFeedback(null);
+      } else {
+        // Validation issues
+        console.log("Validation issues:", result.feedback);
+        setValidationFeedback(result.feedback || "There are issues with your order that need to be addressed.");
+        setAttemptCount(prev => prev + 1);
+      }
+    } catch (error) {
+      console.error("Error validating order:", error);
+      // Type guard for Error objects
+      if (error instanceof Error) {
+        console.error("Error details:", {
+          name: error.name,
+          message: error.message,
+          stack: error.stack
+        });
+      } else {
+        console.error("Unknown error type:", error);
+      }
+      setValidationFeedback("An error occurred while processing your order. Please try again.");
     }
   };
   
