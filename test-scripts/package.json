@@ -1,0 +1,13 @@
+{
+  "name": "rad-middle-test-scripts",
+  "version": "1.0.0",
+  "description": "Test scripts for RadMiddle project",
+  "private": true,
+  "type": "commonjs",
+  "dependencies": {
+    "axios": "^1.6.7",
+    "chalk": "^4.1.2",
+    "dotenv": "^16.4.1",
+    "node-fetch": "^2.6.7"
+  }
+}
