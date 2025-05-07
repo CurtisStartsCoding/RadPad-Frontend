@@ -5,7 +5,7 @@ import { queryClient } from "./lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { UserRole } from "@/lib/roles";
-import { AuthProvider } from "@/lib/useAuth";
+import { AuthProvider, useAuth } from "@/lib/useAuth";
 import { logApiConfiguration, REMOTE_API_URL } from "@/lib/config";
 
 import AppHeader from "@/components/layout/AppHeader";
@@ -136,15 +136,66 @@ const getPageSubtitle = (page: AppPage): string | undefined => {
 };
 
 function App() {
-  const [currentPage, setCurrentPage] = useState<AppPage>(AppPage.Dashboard);
+  // Start with Login page instead of Dashboard
+  const [currentPage, setCurrentPage] = useState<AppPage>(AppPage.Login);
   const [currentRole, setCurrentRole] = useState<UserRole>(UserRole.Physician);
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
+  const { isAuthenticated, user, isLoading } = useAuth();
+  
+  // Add a forced loading timeout to prevent getting stuck in loading state
+  const [forceLoadingComplete, setForceLoadingComplete] = useState(false);
+  
+  // Check for token in localStorage directly
+  const [hasToken, setHasToken] = useState(false);
   
   // Since we removed the sidebar with role selector, we'll keep this function
   // for potential future use or for programmatic role changes
   const handleRoleChange = (role: UserRole) => {
     setCurrentRole(role);
   };
+
+  // Force loading to complete after a timeout
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (isLoading) {
+        console.log("Loading timeout reached, forcing loading to complete");
+        setForceLoadingComplete(true);
+      }
+    }, 2000); // 2 second timeout
+    
+    return () => clearTimeout(timer);
+  }, [isLoading]);
+
+  // Check for token in localStorage on mount and after login
+  useEffect(() => {
+    const token = localStorage.getItem('rad_order_pad_access_token');
+    setHasToken(!!token);
+    console.log("Token check:", !!token ? "Token exists" : "No token");
+  }, [location]); // Re-check when location changes (after login)
+
+  // Determine if user should be authenticated based on token and auth state
+  const shouldBeAuthenticated = isAuthenticated || hasToken;
+  
+  // Determine if we should still be in loading state
+  const effectiveLoading = isLoading && !forceLoadingComplete;
+
+  // Redirect based on authentication state
+  useEffect(() => {
+    if (!effectiveLoading) {
+      if (shouldBeAuthenticated) {
+        // User is authenticated, show dashboard
+        console.log("User is authenticated, showing dashboard");
+        setCurrentPage(AppPage.Dashboard);
+        if (location === "/auth") {
+          setLocation("/");
+        }
+      } else if (location !== "/auth" && location !== "/trial-auth") {
+        // User is not authenticated and not on auth page, redirect to login
+        console.log("User is not authenticated, redirecting to login");
+        setLocation("/auth");
+      }
+    }
+  }, [shouldBeAuthenticated, effectiveLoading, location, setLocation]);
 
   // Log API configuration on app startup
   useEffect(() => {
@@ -244,19 +295,30 @@ function App() {
             <TrialAuthPage />
           </Route>
           <Route>
-            <div className="h-screen overflow-hidden">
-              <div className="w-full overflow-auto">
-                <AppHeader 
-                  title={getPageTitle(currentPage)}
-                  subtitle={getPageSubtitle(currentPage)}
-                  onNavigate={handleNavigate}
-                  userRole={currentRole}
-                />
-                <main className="min-h-screen">
-                  {renderCurrentPage()}
-                </main>
+            {effectiveLoading ? (
+              // Show loading spinner while checking auth state
+              <div className="h-screen flex items-center justify-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
               </div>
-            </div>
+            ) : shouldBeAuthenticated ? (
+              // User is authenticated, show the main app
+              <div className="h-screen overflow-hidden">
+                <div className="w-full overflow-auto">
+                  <AppHeader
+                    title={getPageTitle(currentPage)}
+                    subtitle={getPageSubtitle(currentPage)}
+                    onNavigate={handleNavigate}
+                    userRole={currentRole}
+                  />
+                  <main className="min-h-screen">
+                    {renderCurrentPage()}
+                  </main>
+                </div>
+              </div>
+            ) : (
+              // User is not authenticated, show login page
+              <AuthPage />
+            )}
           </Route>
           </Switch>
           <Toaster />
