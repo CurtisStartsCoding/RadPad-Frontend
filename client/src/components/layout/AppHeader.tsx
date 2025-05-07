@@ -3,6 +3,7 @@ import { Home, LogOut, Settings, FileText, Building2, User, CreditCard, Users, S
 import { cn } from "@/lib/utils";
 import { AppPage } from "@/App";
 import { UserRole, hasAccess } from "@/lib/roles";
+import { useAuth } from "@/lib/useAuth";
 
 interface AppHeaderProps {
   title?: string;
@@ -20,12 +21,26 @@ const AppHeader: React.FC<AppHeaderProps> = ({
   userRole = UserRole.Physician
 }) => {
   const [showMenu, setShowMenu] = useState(false);
+  const { logout } = useAuth(); // Call useAuth hook at the top level
   
   const handleNavigation = (page: AppPage) => {
     if (onNavigate) {
       onNavigate(page);
     }
     setShowMenu(false);
+  };
+  
+  // Handle logout action
+  const handleLogout = async () => {
+    try {
+      await logout();
+      console.log("User logged out successfully");
+    } catch (error) {
+      console.error("Logout failed:", error);
+    } finally {
+      // Always navigate to login page, even if logout fails
+      handleNavigation(AppPage.Login);
+    }
   };
 
   // Get user display name based on role
@@ -307,9 +322,9 @@ const AppHeader: React.FC<AppHeaderProps> = ({
             
             {/* Logout */}
             <div className="p-2 mt-auto border-t border-gray-100">
-              <button 
+              <button
                 className="flex items-center w-full px-3 py-2.5 text-red-600 hover:bg-red-50 rounded-md"
-                onClick={() => handleNavigation(AppPage.Login)}
+                onClick={handleLogout}
               >
                 <LogOut className="h-4 w-4 mr-3" />
                 <span>Log out</span>
