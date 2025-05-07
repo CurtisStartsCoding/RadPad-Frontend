@@ -1,15 +1,16 @@
 import { useState } from "react";
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import { useQuery } from "@tanstack/react-query";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { 
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -19,28 +20,65 @@ import {
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, Filter, Calendar, Clock, ArrowUpDown, FileText, CheckCircle2, Calendar as CalendarIcon } from "lucide-react";
-import { allOrders } from "@/lib/mock-data";
+import { Search, Filter, Calendar, Clock, ArrowUpDown, FileText, CheckCircle2, Calendar as CalendarIcon, Loader2 } from "lucide-react";
+import { apiRequest } from "@/lib/queryClient";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import PageHeader from "@/components/layout/PageHeader";
+
+// Define the Order type based on API response
+interface ApiRadiologyOrder {
+  id: number;
+  order_number?: string;
+  status: 'pending_admin' | 'pending_radiology' | 'scheduled' | 'completed' | 'cancelled';
+  modality: string;
+  created_at: string;
+  updated_at: string;
+  patient: {
+    id: number;
+    name: string;
+    mrn: string;
+    dob: string;
+    gender?: string;
+  };
+  referring_physician: {
+    id: number;
+    name: string;
+    npi?: string;
+    specialty?: string;
+  };
+}
 
 const RadiologyQueue = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFilter, setSelectedFilter] = useState("all");
   
+  // Fetch orders from the API
+  const { data: orders, isLoading, error } = useQuery<ApiRadiologyOrder[]>({
+    queryKey: ['/api/radiology/orders'],
+    queryFn: async () => {
+      const response = await apiRequest('GET', '/api/radiology/orders', undefined);
+      if (!response.ok) {
+        throw new Error('Failed to fetch radiology orders');
+      }
+      const data = await response.json();
+      return data;
+    },
+    staleTime: 60000, // 1 minute
+  });
+  
   // Filter orders by status for radiology queue
-  const filteredOrders = allOrders.filter(order => {
+  const filteredOrders = orders?.filter(order => {
     if (selectedFilter === "all") {
       return order.status === 'pending_radiology';
     } else if (selectedFilter === "mri") {
-      return order.status === 'pending_radiology' && order.modality === 'MRI';
+      return order.status === 'pending_radiology' && order.modality.toLowerCase().includes('mri');
     } else if (selectedFilter === "ct") {
-      return order.status === 'pending_radiology' && order.modality === 'CT Scan';
+      return order.status === 'pending_radiology' && order.modality.toLowerCase().includes('ct');
     } else if (selectedFilter === "xray") {
-      return order.status === 'pending_radiology' && order.modality === 'X-Ray';
+      return order.status === 'pending_radiology' && order.modality.toLowerCase().includes('x-ray');
     }
     return false;
-  });
+  }) || [];
   
   // Further filter by search query
   const searchFilteredOrders = filteredOrders.filter(order => {
@@ -73,19 +111,6 @@ const RadiologyQueue = () => {
     return name.substring(0, 2).toUpperCase();
   };
   
-  // Mock referring physicians
-  const referringPhysicians = [
-    "Dr. John Smith",
-    "Dr. Emily Chen",
-    "Dr. Michael Rodriguez",
-    "Dr. Sarah Johnson",
-    "Dr. David Lee"
-  ];
-  
-  // Assign a random referring physician to each order
-  const getRandomReferringPhysician = (id: number) => {
-    return referringPhysicians[id % referringPhysicians.length];
-  };
 
   return (
     <div className="p-6">
@@ -107,9 +132,9 @@ const RadiologyQueue = () => {
           <Tabs defaultValue="all" className="space-y-4">
             <TabsList>
               <TabsTrigger value="all">All Orders ({filteredOrders.length})</TabsTrigger>
-              <TabsTrigger value="mri">MRI ({filteredOrders.filter(o => o.modality === 'MRI').length})</TabsTrigger>
-              <TabsTrigger value="ct">CT ({filteredOrders.filter(o => o.modality === 'CT Scan').length})</TabsTrigger>
-              <TabsTrigger value="xray">X-Ray ({filteredOrders.filter(o => o.modality === 'X-Ray').length})</TabsTrigger>
+              <TabsTrigger value="mri">MRI ({filteredOrders.filter(o => o.modality.toLowerCase().includes('mri')).length})</TabsTrigger>
+              <TabsTrigger value="ct">CT ({filteredOrders.filter(o => o.modality.toLowerCase().includes('ct')).length})</TabsTrigger>
+              <TabsTrigger value="xray">X-Ray ({filteredOrders.filter(o => o.modality.toLowerCase().includes('x-ray')).length})</TabsTrigger>
             </TabsList>
             
             <div className="flex justify-between items-center">
@@ -142,53 +167,63 @@ const RadiologyQueue = () => {
               </div>
             </div>
             
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[180px]">
-                    <Button variant="ghost" className="flex items-center text-slate-600 font-medium p-0 h-auto">
-                      Patient
-                      <ArrowUpDown className="ml-1 h-3 w-3" />
-                    </Button>
-                  </TableHead>
-                  <TableHead>MRN</TableHead>
-                  <TableHead>
-                    <Button variant="ghost" className="flex items-center text-slate-600 font-medium p-0 h-auto">
-                      Date
-                      <ArrowUpDown className="ml-1 h-3 w-3" />
-                    </Button>
-                  </TableHead>
-                  <TableHead>Time</TableHead>
-                  <TableHead>Modality</TableHead>
-                  <TableHead>Referring Physician</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {searchFilteredOrders.length === 0 ? (
+            {isLoading ? (
+              <div className="flex justify-center items-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <span className="ml-2 text-lg">Loading orders...</span>
+              </div>
+            ) : error ? (
+              <div className="text-center py-12 text-red-500">
+                <p>Error loading orders. Please try again later.</p>
+                <Button variant="outline" className="mt-4" onClick={() => window.location.reload()}>
+                  Retry
+                </Button>
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8 text-slate-500">
-                      No orders found matching your search criteria
-                    </TableCell>
+                    <TableHead className="w-[180px]">
+                      <Button variant="ghost" className="flex items-center text-slate-600 font-medium p-0 h-auto">
+                        Patient
+                        <ArrowUpDown className="ml-1 h-3 w-3" />
+                      </Button>
+                    </TableHead>
+                    <TableHead>MRN</TableHead>
+                    <TableHead>
+                      <Button variant="ghost" className="flex items-center text-slate-600 font-medium p-0 h-auto">
+                        Date
+                        <ArrowUpDown className="ml-1 h-3 w-3" />
+                      </Button>
+                    </TableHead>
+                    <TableHead>Time</TableHead>
+                    <TableHead>Modality</TableHead>
+                    <TableHead>Referring Physician</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
-                ) : (
-                  searchFilteredOrders.map((order) => {
-                    const referringPhysician = getRandomReferringPhysician(order.id);
-                    
-                    return (
+                </TableHeader>
+                <TableBody>
+                  {searchFilteredOrders.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center py-8 text-slate-500">
+                        No orders found matching your search criteria
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    searchFilteredOrders.map((order) => (
                       <TableRow key={order.id}>
                         <TableCell className="font-medium">{order.patient.name}</TableCell>
                         <TableCell className="font-mono text-xs">{order.patient.mrn}</TableCell>
                         <TableCell>
                           <div className="flex items-center">
                             <Calendar className="h-3.5 w-3.5 mr-1.5 text-slate-500" />
-                            {formatDate(order.createdAt)}
+                            {formatDate(order.created_at)}
                           </div>
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center">
                             <Clock className="h-3.5 w-3.5 mr-1.5 text-slate-500" />
-                            {formatTime(order.createdAt)}
+                            {formatTime(order.created_at)}
                           </div>
                         </TableCell>
                         <TableCell>
@@ -200,10 +235,10 @@ const RadiologyQueue = () => {
                           <div className="flex items-center">
                             <Avatar className="h-6 w-6 mr-2">
                               <AvatarFallback className="bg-primary/10 text-primary text-xs">
-                                {getReferringPhysicianInitials(referringPhysician)}
+                                {getReferringPhysicianInitials(order.referring_physician.name)}
                               </AvatarFallback>
                             </Avatar>
-                            <span className="text-sm">{referringPhysician}</span>
+                            <span className="text-sm">{order.referring_physician.name}</span>
                           </div>
                         </TableCell>
                         <TableCell className="text-right">
@@ -213,11 +248,11 @@ const RadiologyQueue = () => {
                           </Button>
                         </TableCell>
                       </TableRow>
-                    );
-                  })
-                )}
-              </TableBody>
-            </Table>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            )}
           </Tabs>
         </CardContent>
       </Card>
