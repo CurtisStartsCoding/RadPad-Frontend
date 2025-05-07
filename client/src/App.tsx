@@ -8,7 +8,6 @@ import { UserRole } from "@/lib/roles";
 import { AuthProvider } from "@/lib/useAuth";
 import { logApiConfiguration, REMOTE_API_URL } from "@/lib/config";
 
-import Sidebar from "@/components/layout/Sidebar";
 import AppHeader from "@/components/layout/AppHeader";
 import Dashboard from "@/pages/Dashboard";
 import NewOrder from "@/pages/NewOrder";
@@ -146,6 +145,12 @@ function App() {
   const [currentPage, setCurrentPage] = useState<AppPage>(AppPage.Dashboard);
   const [currentRole, setCurrentRole] = useState<UserRole>(UserRole.Physician);
   const [location] = useLocation();
+  
+  // Since we removed the sidebar with role selector, we'll keep this function
+  // for potential future use or for programmatic role changes
+  const handleRoleChange = (role: UserRole) => {
+    setCurrentRole(role);
+  };
 
   // Log API configuration on app startup
   useEffect(() => {
@@ -250,14 +255,8 @@ function App() {
             <HeaderTest />
           </Route>
           <Route>
-            <div className="flex h-screen overflow-hidden">
-              <Sidebar 
-                currentPage={currentPage} 
-                onNavigate={handleNavigate}
-                currentRole={currentRole}
-                onRoleChange={setCurrentRole}
-              />
-              <div className="flex-1 overflow-auto">
+            <div className="h-screen overflow-hidden">
+              <div className="w-full overflow-auto">
                 <AppHeader 
                   title={getPageTitle(currentPage)}
                   subtitle={getPageSubtitle(currentPage)}
