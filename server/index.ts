@@ -593,7 +593,320 @@ apiRouter.use((req, res, next) => {
   return proxy(req, res, next);
 });
 
-// Mount the API router
+// Add specific endpoint for analytics dashboard that generates data from orders
+app.get('/api/analytics/dashboard', async (req, res) => {
+  try {
+    console.log('\n=== ANALYTICS DASHBOARD REQUEST ===');
+    console.log('Generating analytics dashboard data from orders');
+    
+    // Get auth token from request
+    const authHeader = req.headers.authorization;
+    console.log('Authorization header:', authHeader ? 'Present' : 'Not present');
+    
+    if (!authHeader) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+    
+    // First, fetch orders from the real API to generate analytics from
+    const ordersResponse = await fetch('https://api.radorderpad.com/api/orders', {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+        'Authorization': authHeader
+      }
+    });
+    
+    if (!ordersResponse.ok) {
+      console.log(`Error fetching orders: ${ordersResponse.status} ${ordersResponse.statusText}`);
+      return res.status(ordersResponse.status).json({ message: 'Error fetching orders data' });
+    }
+    
+    const ordersData = await ordersResponse.json();
+    const orders = ordersData.orders || [];
+    
+    // Generate analytics data based on orders
+    const analyticsData = generateAnalyticsFromOrders(orders);
+    
+    console.log('\nGenerated analytics data successfully');
+    console.log('=== END ANALYTICS DASHBOARD REQUEST ===\n');
+    
+    // Return the generated analytics data
+    res.status(200).json(analyticsData);
+    
+    console.log(`Response sent to client with status 200`);
+  } catch (error) {
+    console.error('Error generating analytics dashboard data:', error);
+    res.status(500).json({ message: 'Internal server error during analytics dashboard generation' });
+  }
+});
+
+// Helper function to generate analytics data from orders
+interface Order {
+  id: number;
+  order_number: string;
+  patient_id: number;
+  status: string;
+  modality?: string;
+  created_at: string;
+  updated_at: string;
+  final_validation_status?: string;
+  [key: string]: any; // Allow for other properties
+}
+
+interface ActivityData {
+  orders: number;
+  validations: number;
+}
+
+function generateAnalyticsFromOrders(orders: Order[]): any {
+  // Count orders by month for activity data
+  const activityByMonth: Record<string, ActivityData> = {};
+  const now = new Date();
+  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  
+  // Initialize last 6 months
+  for (let i = 5; i >= 0; i--) {
+    const month = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const monthKey = `${monthNames[month.getMonth()]} ${month.getFullYear()}`;
+    activityByMonth[monthKey] = { orders: 0, validations: 0 };
+  }
+  
+  // Count modalities
+  const modalityCount: Record<string, number> = {};
+  
+  // Calculate stats
+  let completedStudies = 0;
+  let pendingOrders = 0;
+  let totalCompletionTime = 0;
+  let completedOrdersCount = 0;
+  let validationSuccessCount = 0;
+  let validationAttemptCount = 0;
+  
+  // Process orders
+  orders.forEach(order => {
+    // Activity data by month
+    const createdAt = new Date(order.created_at);
+    const monthKey = `${monthNames[createdAt.getMonth()]} ${createdAt.getFullYear()}`;
+    
+    if (activityByMonth[monthKey]) {
+      activityByMonth[monthKey].orders += 1;
+      
+      // Assume each order with a final validation status had a validation attempt
+      if (order.final_validation_status) {
+        activityByMonth[monthKey].validations += 1;
+        validationAttemptCount += 1;
+        
+        if (order.final_validation_status === 'compliant') {
+          validationSuccessCount += 1;
+        }
+      }
+    }
+    
+    // Modality distribution
+    const modality = order.modality || 'Unknown';
+    modalityCount[modality] = (modalityCount[modality] || 0) + 1;
+    
+    // Stats
+    if (order.status === 'completed') {
+      completedStudies += 1;
+      
+      // Calculate completion time if we have both dates
+      if (order.created_at && order.updated_at) {
+        const created = new Date(order.created_at).getTime();
+        const updated = new Date(order.updated_at).getTime();
+        const completionTime = (updated - created) / (1000 * 60 * 60 * 24); // in days
+        totalCompletionTime += completionTime;
+        completedOrdersCount += 1;
+      }
+    } else if (order.status === 'pending_admin' || order.status === 'pending_radiology' || order.status === 'pending_validation') {
+      pendingOrders += 1;
+    }
+  });
+  
+  // Convert activity data to array
+  const activity_data = Object.keys(activityByMonth).map(month => ({
+    name: month,
+    orders: activityByMonth[month].orders,
+    validations: activityByMonth[month].validations
+  }));
+  
+  // Convert modality data to array
+  const modality_distribution = Object.keys(modalityCount).map(name => ({
+    name,
+    value: modalityCount[name]
+  }));
+  
+  // Sort modality distribution by count (descending)
+  modality_distribution.sort((a, b) => b.value - a.value);
+  
+  // Take only top 5 modalities
+  const top5Modalities = modality_distribution.slice(0, 5);
+  
+  // Calculate average completion time
+  const avgCompletionTime = completedOrdersCount > 0 ? totalCompletionTime / completedOrdersCount : 0;
+  
+  // Calculate validation success rate
+  const validationSuccessRate = validationAttemptCount > 0 ? (validationSuccessCount / validationAttemptCount) * 100 : 0;
+  
+  // Count orders in current quarter
+  const currentQuarter = Math.floor(now.getMonth() / 3);
+  const quarterStart = new Date(now.getFullYear(), currentQuarter * 3, 1);
+  const ordersThisQuarter = orders.filter(order => new Date(order.created_at) >= quarterStart).length;
+  
+  // Count unique patients
+  const uniquePatientIds = new Set();
+  orders.forEach(order => {
+    if (order.patient_id) {
+      uniquePatientIds.add(order.patient_id);
+    }
+  });
+  const activePatients = uniquePatientIds.size;
+  
+  return {
+    activity_data,
+    modality_distribution: top5Modalities,
+    stats: {
+      total_orders: orders.length,
+      completed_studies: completedStudies,
+      active_patients: activePatients,
+      pending_orders: pendingOrders,
+      avg_completion_time: parseFloat(avgCompletionTime.toFixed(1)),
+      validation_success_rate: parseFloat(validationSuccessRate.toFixed(1)),
+      orders_this_quarter: ordersThisQuarter
+    }
+  };
+}
+
+// Add specific endpoint for orders with enhanced logging
+app.get('/api/orders', async (req, res) => {
+  try {
+    console.log('\n=== ORDERS REQUEST ===');
+    console.log('Forwarding orders request to real API');
+    
+    // Get auth token from request
+    const authHeader = req.headers.authorization;
+    console.log('Authorization header:', authHeader ? 'Present' : 'Not present');
+    
+    // Forward the request to the real API
+    const response = await fetch(`https://api.radorderpad.com/api/orders${req.url.includes('?') ? req.url.substring(req.url.indexOf('?')) : ''}`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+        ...(authHeader ? { 'Authorization': authHeader } : {})
+      }
+    });
+    
+    // Get the response data
+    const contentType = response.headers.get('content-type');
+    let data;
+    
+    if (contentType && contentType.includes('application/json')) {
+      data = await response.json();
+    } else {
+      data = await response.text();
+    }
+    
+    // Log response details
+    console.log('\nResponse Status:', response.status, response.statusText);
+    console.log('Response Headers:');
+    response.headers.forEach((value, name) => {
+      console.log(`  ${name}: ${value}`);
+    });
+    
+    console.log('\nResponse Body:', typeof data === 'string' ? data : JSON.stringify(data, null, 2));
+    console.log('=== END ORDERS REQUEST ===\n');
+    
+    // Copy any headers from the original response
+    for (const [key, value] of Object.entries(Object.fromEntries(response.headers))) {
+      if (key.toLowerCase() !== 'content-length') {  // Skip content-length as it will be set automatically
+        res.setHeader(key, value);
+      }
+    }
+    
+    // Forward the status and data back to the client
+    if (typeof data === 'string') {
+      res.status(response.status).send(data);
+    } else {
+      res.status(response.status).json(data);
+    }
+    
+    console.log(`Response sent to client with status ${response.status}`);
+  } catch (error) {
+    console.error('Error forwarding orders request:', error);
+    res.status(500).json({ message: 'Internal server error during orders request' });
+  }
+});
+
+// Add specific endpoint for analytics dashboard with enhanced logging
+app.get('/api/analytics/dashboard', async (req, res) => {
+  try {
+    console.log('\n=== ANALYTICS DASHBOARD REQUEST ===');
+    console.log('Forwarding analytics dashboard request to real API');
+    
+    // Get auth token from request
+    const authHeader = req.headers.authorization;
+    console.log('Authorization header:', authHeader ? 'Present' : 'Not present');
+    
+    // Forward the request to the real API
+    const response = await fetch('https://api.radorderpad.com/api/analytics/dashboard', {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+        ...(authHeader ? { 'Authorization': authHeader } : {})
+      }
+    });
+    
+    // Get the response data
+    const contentType = response.headers.get('content-type');
+    let data;
+    
+    if (contentType && contentType.includes('application/json')) {
+      data = await response.json();
+    } else {
+      data = await response.text();
+    }
+    
+    // Log response details
+    console.log('\nResponse Status:', response.status, response.statusText);
+    console.log('Response Headers:');
+    response.headers.forEach((value, name) => {
+      console.log(`  ${name}: ${value}`);
+    });
+    
+    console.log('\nResponse Body:', typeof data === 'string' ? data : JSON.stringify(data, null, 2));
+    console.log('=== END ANALYTICS DASHBOARD REQUEST ===\n');
+    
+    // Copy any headers from the original response
+    for (const [key, value] of Object.entries(Object.fromEntries(response.headers))) {
+      if (key.toLowerCase() !== 'content-length') {  // Skip content-length as it will be set automatically
+        res.setHeader(key, value);
+      }
+    }
+    
+    // Forward the status and data back to the client
+    if (typeof data === 'string') {
+      res.status(response.status).send(data);
+    } else {
+      res.status(response.status).json(data);
+    }
+    
+    console.log(`Response sent to client with status ${response.status}`);
+  } catch (error) {
+    console.error('Error forwarding analytics dashboard request:', error);
+    res.status(500).json({ message: 'Internal server error during analytics dashboard request' });
+  }
+});
+
+// Mount the API router for all other API routes
 app.use('/api', apiRouter);
 
 (async () => {
