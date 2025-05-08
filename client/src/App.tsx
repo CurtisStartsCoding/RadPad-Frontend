@@ -174,7 +174,9 @@ function App() {
   }, [location]); // Re-check when location changes (after login)
 
   // Determine if user should be authenticated based on token and auth state
-  const shouldBeAuthenticated = isAuthenticated || hasToken;
+  // Check token directly from localStorage for the most up-to-date state
+  const token = localStorage.getItem('rad_order_pad_access_token');
+  const shouldBeAuthenticated = isAuthenticated || hasToken || !!token;
   
   // Determine if we should still be in loading state
   const effectiveLoading = isLoading && !forceLoadingComplete;
@@ -182,7 +184,11 @@ function App() {
   // Redirect based on authentication state
   useEffect(() => {
     if (!effectiveLoading) {
-      if (shouldBeAuthenticated) {
+      // Check token directly from localStorage for the most up-to-date state
+      const token = localStorage.getItem('rad_order_pad_access_token');
+      const currentlyAuthenticated = isAuthenticated || hasToken || !!token;
+      
+      if (currentlyAuthenticated) {
         // User is authenticated, show dashboard
         console.log("User is authenticated, showing dashboard");
         setCurrentPage(AppPage.Dashboard);
@@ -195,7 +201,7 @@ function App() {
         setLocation("/auth");
       }
     }
-  }, [shouldBeAuthenticated, effectiveLoading, location, setLocation]);
+  }, [shouldBeAuthenticated, effectiveLoading, location, setLocation, isAuthenticated, hasToken]);
 
   // Log API configuration on app startup
   useEffect(() => {

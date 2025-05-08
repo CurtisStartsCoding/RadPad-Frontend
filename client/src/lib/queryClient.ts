@@ -58,12 +58,10 @@ export async function apiRequest(
     console.log(`API Request: Adding Authorization token to ${url}`);
   }
   
-  // Don't add any cache prevention headers for auth endpoints to avoid CORS issues
-  // if (isAuthEndpoint) {
-  //   headers['Cache-Control'] = 'no-cache, no-store, must-revalidate';
-  //   headers['Pragma'] = 'no-cache';
-  //   headers['Expires'] = '0';
-  // }
+  // Add cache prevention headers for all API requests
+  headers['Cache-Control'] = 'no-cache, no-store, must-revalidate';
+  headers['Pragma'] = 'no-cache';
+  headers['Expires'] = '0';
   
   try {
     // Enhanced logging - Request details
@@ -86,8 +84,8 @@ export async function apiRequest(
         headers,
         body: data ? JSON.stringify(data) : undefined,
         credentials: "include",
-        // Don't set cache option for auth endpoints to avoid CORS issues
-        cache: 'default',
+        // Set cache to 'no-store' to prevent caching
+        cache: 'no-store',
       });
       const endTime = Date.now();
 
@@ -182,12 +180,10 @@ export const getQueryFn: <T>(options: {
         console.log('Added Authorization header with Bearer token');
       }
       
-      // Don't add any cache prevention headers for auth endpoints to avoid CORS issues
-      // if (url.includes('/api/auth/')) {
-      //   headers['Cache-Control'] = 'no-cache, no-store, must-revalidate';
-      //   headers['Pragma'] = 'no-cache';
-      //   headers['Expires'] = '0';
-      // }
+      // Add cache prevention headers for all API requests
+      headers['Cache-Control'] = 'no-cache, no-store, must-revalidate';
+      headers['Pragma'] = 'no-cache';
+      headers['Expires'] = '0';
       
       // Use the getApiUrl function to get the full API URL
       const fullUrl = getApiUrl(cacheBustUrl);
@@ -203,7 +199,7 @@ export const getQueryFn: <T>(options: {
         const res = await fetch(fullUrl, {
           credentials: "include",
           headers,
-          cache: 'default',
+          cache: 'no-store',
         });
         const endTime = Date.now();
 

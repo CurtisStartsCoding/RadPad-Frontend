@@ -282,6 +282,7 @@ const NewOrder = ({ userRole = UserRole.Physician }: NewOrderProps) => {
       }
     } catch (error) {
       console.error("Error validating order:", error);
+      
       // Type guard for Error objects
       if (error instanceof Error) {
         console.error("Error details:", {
@@ -289,10 +290,30 @@ const NewOrder = ({ userRole = UserRole.Physician }: NewOrderProps) => {
           message: error.message,
           stack: error.stack
         });
+        
+        // Provide more specific error message based on the error type
+        if (error.message.includes('Network error') || error.message.includes('Failed to fetch')) {
+          setValidationFeedback("Network error: Unable to connect to the validation service. Please check your internet connection and try again.");
+        } else if (error.message.includes('401')) {
+          setValidationFeedback("Authentication error: Your session may have expired. Please log out and log back in, then try again.");
+        } else if (error.message.includes('403')) {
+          setValidationFeedback("Authorization error: You don't have permission to perform this action. Please contact support.");
+        } else if (error.message.includes('500')) {
+          setValidationFeedback("Server error: The validation service encountered an error. Our team has been notified and is working to resolve the issue.");
+        } else {
+          setValidationFeedback(`Error: ${error.message}. Please try again or contact support if the issue persists.`);
+        }
       } else {
         console.error("Unknown error type:", error);
+        setValidationFeedback("An unexpected error occurred while processing your order. Please try again.");
       }
-      setValidationFeedback("An error occurred while processing your order. Please try again.");
+      
+      // Log additional diagnostic information
+      console.log("Diagnostic information:");
+      console.log("- API endpoint:", isTrialUser ? '/api/orders/validate/trial' : '/api/orders/validate');
+      console.log("- Token exists:", !!localStorage.getItem('rad_order_pad_access_token'));
+      console.log("- Dictation length:", dictationText.length);
+      console.log("- Attempt count:", attemptCount);
     } finally {
       setIsProcessing(false);
     }

@@ -78,12 +78,18 @@ const Login = () => {
       
       console.log("Login successful, preparing to navigate...");
       
-      // Short delay before navigation to ensure state updates
+      // Force a refresh of the authentication state
+      console.log("Login successful, preparing to navigate...");
+      
+      // Force a reload of the page to ensure all auth state is properly updated
       setTimeout(() => {
-        // Log before navigation
         console.log("Navigating to dashboard...");
+        // First set the location to root
         navigate("/");
-      }, 1000); // Slightly longer delay to ensure token processing
+        
+        // Then force a page reload to ensure all auth state is properly updated
+        window.location.href = "/";
+      }, 500);
     } catch (error) {
       console.error("Login error:", error);
       

@@ -246,6 +246,142 @@ app.get('/api/auth/session', (req, res) => {
   console.log(`Response sent to client with status 200 (unauthenticated)`);
 });
 
+// Add specific endpoint for order validation with enhanced logging
+app.post('/api/orders/validate', async (req, res) => {
+  try {
+    console.log('\n=== ORDER VALIDATION REQUEST ===');
+    console.log('Forwarding validation request to real API');
+    
+    // Get auth token from request
+    const authHeader = req.headers.authorization;
+    console.log('Authorization header:', authHeader ? 'Present' : 'Not present');
+    
+    // Log request body
+    console.log('Request body:', JSON.stringify(req.body, null, 2));
+    
+    // Forward the request to the real API
+    const response = await fetch('https://api.radorderpad.com/api/orders/validate', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+        ...(authHeader ? { 'Authorization': authHeader } : {})
+      },
+      body: JSON.stringify(req.body)
+    });
+    
+    // Get the response data
+    const contentType = response.headers.get('content-type');
+    let data;
+    
+    if (contentType && contentType.includes('application/json')) {
+      data = await response.json();
+    } else {
+      data = await response.text();
+    }
+    
+    // Log response details
+    console.log('\nResponse Status:', response.status, response.statusText);
+    console.log('Response Headers:');
+    response.headers.forEach((value, name) => {
+      console.log(`  ${name}: ${value}`);
+    });
+    
+    console.log('\nResponse Body:', typeof data === 'string' ? data : JSON.stringify(data, null, 2));
+    console.log('=== END ORDER VALIDATION ===\n');
+    
+    // Copy any headers from the original response
+    for (const [key, value] of Object.entries(Object.fromEntries(response.headers))) {
+      if (key.toLowerCase() !== 'content-length') {  // Skip content-length as it will be set automatically
+        res.setHeader(key, value);
+      }
+    }
+    
+    // Forward the status and data back to the client
+    if (typeof data === 'string') {
+      res.status(response.status).send(data);
+    } else {
+      res.status(response.status).json(data);
+    }
+    
+    console.log(`Response sent to client with status ${response.status}`);
+  } catch (error) {
+    console.error('Error forwarding validation request:', error);
+    res.status(500).json({ message: 'Internal server error during validation' });
+  }
+});
+
+// Add specific endpoint for trial validation with enhanced logging
+app.post('/api/orders/validate/trial', async (req, res) => {
+  try {
+    console.log('\n=== TRIAL ORDER VALIDATION REQUEST ===');
+    console.log('Forwarding trial validation request to real API');
+    
+    // Get auth token from request
+    const authHeader = req.headers.authorization;
+    console.log('Authorization header:', authHeader ? 'Present' : 'Not present');
+    
+    // Log request body
+    console.log('Request body:', JSON.stringify(req.body, null, 2));
+    
+    // Forward the request to the real API
+    const response = await fetch('https://api.radorderpad.com/api/orders/validate/trial', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+        ...(authHeader ? { 'Authorization': authHeader } : {})
+      },
+      body: JSON.stringify(req.body)
+    });
+    
+    // Get the response data
+    const contentType = response.headers.get('content-type');
+    let data;
+    
+    if (contentType && contentType.includes('application/json')) {
+      data = await response.json();
+    } else {
+      data = await response.text();
+    }
+    
+    // Log response details
+    console.log('\nResponse Status:', response.status, response.statusText);
+    console.log('Response Headers:');
+    response.headers.forEach((value, name) => {
+      console.log(`  ${name}: ${value}`);
+    });
+    
+    console.log('\nResponse Body:', typeof data === 'string' ? data : JSON.stringify(data, null, 2));
+    console.log('=== END TRIAL ORDER VALIDATION ===\n');
+    
+    // Copy any headers from the original response
+    for (const [key, value] of Object.entries(Object.fromEntries(response.headers))) {
+      if (key.toLowerCase() !== 'content-length') {  // Skip content-length as it will be set automatically
+        res.setHeader(key, value);
+      }
+    }
+    
+    // Forward the status and data back to the client
+    if (typeof data === 'string') {
+      res.status(response.status).send(data);
+    } else {
+      res.status(response.status).json(data);
+    }
+    
+    console.log(`Response sent to client with status ${response.status}`);
+  } catch (error) {
+    console.error('Error forwarding trial validation request:', error);
+    res.status(500).json({ message: 'Internal server error during trial validation' });
+  }
+});
+
 // CORS preflight is now handled by the middleware
 
 // Create a custom router for API requests
