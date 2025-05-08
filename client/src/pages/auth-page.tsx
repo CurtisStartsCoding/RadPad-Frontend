@@ -227,9 +227,6 @@ const Login = () => {
         </CardContent>
         <CardFooter className="flex justify-center">
           <div className="text-xs text-gray-500 text-center">
-            <p>Test Accounts:</p>
-            <p>Physician: physician@abcfamilymedicine.com / Physician123</p>
-            <p>Radiologist: radiologist@xyzradiology.com / radiologist123</p>
             <p className="mt-2">HIPAA-Compliant | Secure Authentication | PHI Protected</p>
           </div>
         </CardFooter>
