@@ -346,11 +346,9 @@ app.use('/api', apiRouter);
     serveStatic(app);
   }
 
-  // ALWAYS serve the app on port 5000
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
-  // Temporarily using port 3000 for local development since 5000 is in use
-  const port = 3000;
+  // Use the PORT environment variable if available, otherwise default to 3000
+  // This allows DigitalOcean to set the port via environment variable
+  const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
   server.listen({
     port,
     host: "0.0.0.0",
