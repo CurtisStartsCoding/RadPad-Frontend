@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -22,7 +22,12 @@ const TrialValidation = () => {
   const { toast } = useToast();
   const [dictationText, setDictationText] = useState("");
   const [isValidating, setIsValidating] = useState(false);
+  const [isListening, setIsListening] = useState(false);
   const [validationComplete, setValidationComplete] = useState(false);
+  const [interimTranscript, setInterimTranscript] = useState("");
+  
+  // Create a ref to store the recognition instance
+  const recognitionRef = useRef<any>(null);
   const [validationResults, setValidationResults] = useState<{
     aucScore: number;
     isCompliant: boolean;
@@ -125,6 +130,184 @@ const TrialValidation = () => {
     setValidationResults(null);
   };
   
+  // Type declarations for Web Speech API
+  interface SpeechRecognitionEvent extends Event {
+    results: SpeechRecognitionResultList;
+    resultIndex: number;
+    interpretation: any;
+  }
+
+  interface SpeechRecognitionErrorEvent extends Event {
+    error: string;
+    message: string;
+  }
+
+  interface SpeechRecognitionResult {
+    isFinal: boolean;
+    [index: number]: SpeechRecognitionAlternative;
+  }
+
+  interface SpeechRecognitionResultList {
+    length: number;
+    item(index: number): SpeechRecognitionResult;
+    [index: number]: SpeechRecognitionResult;
+  }
+
+  interface SpeechRecognitionAlternative {
+    transcript: string;
+    confidence: number;
+  }
+
+  interface SpeechRecognition extends EventTarget {
+    continuous: boolean;
+    interimResults: boolean;
+    lang: string;
+    start(): void;
+    stop(): void;
+    abort(): void;
+    onresult: (event: SpeechRecognitionEvent) => void;
+    onerror: (event: SpeechRecognitionErrorEvent) => void;
+    onend: () => void;
+    onstart: () => void;
+  }
+
+  // Handle voice input using Web Speech API
+  const toggleVoiceInput = () => {
+    if (!isListening) {
+      startListening();
+    } else {
+      stopListening();
+    }
+  };
+
+  const startListening = () => {
+    // Check if SpeechRecognition is available
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+      toast({
+        title: "Speech Recognition Not Supported",
+        description: "Your browser doesn't support speech recognition. Try using Chrome or Edge.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      // Initialize speech recognition
+      // @ts-ignore - TypeScript doesn't know about these browser-specific APIs
+      const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
+      const recognition = new SpeechRecognitionAPI() as SpeechRecognition;
+      
+      // Configure recognition
+      recognition.continuous = false; // Get one complete phrase at a time
+      recognition.interimResults = true; // Still get interim results for feedback
+      recognition.lang = 'en-US';
+      
+      recognition.onstart = () => {
+        setIsListening(true);
+        toast({
+          title: "Listening...",
+          description: "Speak clearly into your microphone",
+        });
+      };
+      
+      recognition.onresult = (event: SpeechRecognitionEvent) => {
+        let finalTranscript = '';
+        let currentInterimTranscript = '';
+        
+        // Process results
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const result = event.results[i];
+          if (result.isFinal) {
+            finalTranscript += result[0].transcript;
+          } else {
+            currentInterimTranscript += result[0].transcript;
+          }
+        }
+        
+        // Update interim transcript for visual feedback
+        setInterimTranscript(currentInterimTranscript);
+        
+        // Only update the main text area with final results
+        if (finalTranscript) {
+          setDictationText(prevText => {
+            const newText = prevText ? `${prevText} ${finalTranscript}` : finalTranscript;
+            return newText.trim();
+          });
+          
+          // Clear interim transcript when we have a final result
+          setInterimTranscript('');
+          
+          // Restart recognition to get the next phrase
+          // This creates a small pause between phrases for better accuracy
+          recognition.stop();
+        }
+      };
+      
+      // When recognition ends, restart it if still in listening mode
+      recognition.onend = () => {
+        if (isListening && recognitionRef.current) {
+          // Small delay before restarting to avoid rapid restarts
+          setTimeout(() => {
+            try {
+              recognitionRef.current.start();
+            } catch (error) {
+              // Ignore errors from trying to start when already started
+              console.log("Recognition restart error (can be ignored):", error);
+            }
+          }, 300);
+        } else {
+          setIsListening(false);
+          setInterimTranscript('');
+        }
+      };
+      
+      recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+        console.error('Speech recognition error', event.error);
+        setIsListening(false);
+        toast({
+          title: "Error",
+          description: `Speech recognition error: ${event.error}`,
+          variant: "destructive",
+        });
+      };
+      
+      
+      // Store the recognition instance in our ref
+      recognitionRef.current = recognition;
+      
+      // Start listening
+      recognition.start();
+    } catch (error) {
+      console.error('Error initializing speech recognition:', error);
+      toast({
+        title: "Error",
+        description: "Failed to initialize speech recognition",
+        variant: "destructive",
+      });
+    }
+  };
+  
+  const stopListening = () => {
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+      setIsListening(false);
+      setInterimTranscript('');
+      toast({
+        title: "Voice Input Stopped",
+        description: "Text has been added to your dictation",
+      });
+    }
+  };
+  
+  // Clean up speech recognition when component unmounts
+  useEffect(() => {
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+    };
+  }, []);
+  
   return (
     <div className="p-6">
       <PageHeader 
@@ -160,6 +343,12 @@ const TrialValidation = () => {
                   value={dictationText}
                   disabled={isValidating}
                 />
+                {interimTranscript && (
+                  <div className="absolute bottom-12 left-0 right-0 bg-blue-50 px-3 py-2 text-blue-700 text-sm border-t border-blue-200">
+                    <span className="opacity-70">{interimTranscript}</span>
+                    <span className="ml-1 animate-pulse">...</span>
+                  </div>
+                )}
                 <div className="absolute bottom-2 right-2 flex space-x-2">
                   <Button 
                     variant="outline" 
@@ -171,14 +360,15 @@ const TrialValidation = () => {
                     <XCircle className="h-4 w-4 mr-1.5" />
                     Clear
                   </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="h-8 px-2"
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className={`h-8 px-2 ${isListening ? 'bg-red-50 text-red-600 border-red-300' : ''}`}
                     disabled={isValidating}
+                    onClick={toggleVoiceInput}
                   >
-                    <Mic className="h-4 w-4 mr-1.5" />
-                    Voice Input
+                    <Mic className={`h-4 w-4 mr-1.5 ${isListening ? 'text-red-600 animate-pulse' : ''}`} />
+                    {isListening ? 'Stop Recording' : 'Voice Input'}
                   </Button>
                 </div>
               </div>
