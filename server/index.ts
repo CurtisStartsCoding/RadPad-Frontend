@@ -7,6 +7,33 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
+// CORS middleware to handle all CORS requests
+app.use((req, res, next) => {
+  const allowedOrigins = ['https://radpad-dd83h.ondigitalocean.app'];
+  const origin = req.headers.origin;
+  
+  // Check if the origin is in our allowed origins list
+  if (origin && allowedOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+  } else {
+    // For local development or unknown origins, you can use a wildcard
+    // but credentials won't work with wildcard origins
+    res.setHeader('Access-Control-Allow-Origin', '*');
+  }
+  
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+  
+  // Handle preflight requests
+  if (req.method === 'OPTIONS') {
+    res.setHeader('Access-Control-Max-Age', '86400'); // 24 hours
+    return res.status(204).end();
+  }
+  
+  next();
+});
+
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
@@ -127,10 +154,7 @@ app.post('/api/auth/login', async (req, res) => {
     
     console.log('=== END AUTH RESPONSE ===\n');
     
-    // Add CORS headers
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    // CORS headers are now handled by the middleware
     
     // Copy any headers from the original response
     for (const [key, value] of Object.entries(Object.fromEntries(response.headers))) {
@@ -192,10 +216,7 @@ app.get('/api/auth/session', (req, res) => {
           console.log('Returning authenticated session:', sessionResponse);
           console.log('=== END SESSION CHECK ===\n');
           
-          // Add CORS headers
-          res.setHeader('Access-Control-Allow-Origin', '*');
-          res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-          res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+          // CORS headers are now handled by the middleware
           
           res.status(200).json(sessionResponse);
           
@@ -217,10 +238,7 @@ app.get('/api/auth/session', (req, res) => {
   console.log('No valid token found, returning unauthenticated');
   console.log('=== END SESSION CHECK ===\n');
   
-  // Add CORS headers
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  // CORS headers are now handled by the middleware
   
   res.status(200).json({ authenticated: false });
   
@@ -228,20 +246,7 @@ app.get('/api/auth/session', (req, res) => {
   console.log(`Response sent to client with status 200 (unauthenticated)`);
 });
 
-// Add CORS preflight handler
-app.options('/api/*', (req, res) => {
-  console.log('Handling CORS preflight request for:', req.path);
-  
-  // Add CORS headers
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  res.setHeader('Access-Control-Max-Age', '86400'); // 24 hours
-  
-  // Respond with 204 No Content
-  res.status(204).end();
-  console.log('CORS preflight response sent');
-});
+// CORS preflight is now handled by the middleware
 
 // Create a custom router for API requests
 const apiRouter = express.Router();
@@ -280,10 +285,7 @@ apiRouter.use((req, res, next) => {
       // Log response headers
       log(`Response headers: ${JSON.stringify(proxyRes.headers)}`);
       
-      // Handle CORS headers
-      res.setHeader('Access-Control-Allow-Origin', '*');
-      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+      // CORS headers are now handled by the middleware
       
       // Copy authentication token from response header if present
       if (proxyRes.headers['x-auth-token']) {
