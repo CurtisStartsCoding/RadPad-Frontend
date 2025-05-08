@@ -25,6 +25,8 @@ import MyProfile from "@/pages/MyProfile";
 import Security from "@/pages/Security";
 import AuthPage from "@/pages/auth-page";
 import TrialAuthPage from "@/pages/trial-auth";
+import TrialPage from "@/pages/trial";
+import TrialValidation from "@/pages/TrialValidation";
 import NotFound from "@/pages/not-found";
 // Removed import for Login component that was deleted
 
@@ -195,8 +197,8 @@ function App() {
         if (location === "/auth") {
           setLocation("/");
         }
-      } else if (location !== "/auth" && location !== "/trial-auth") {
-        // User is not authenticated and not on auth page, redirect to login
+      } else if (location !== "/auth" && location !== "/trial-auth" && location !== "/trial" && location !== "/trial-validation") {
+        // User is not authenticated and not on auth or trial pages, redirect to login
         console.log("User is not authenticated, redirecting to login");
         setLocation("/auth");
       }
@@ -218,7 +220,7 @@ function App() {
   }, []);
 
   // Check if the current location is an auth page
-  const isAuthPage = location === "/auth" || location === "/trial-auth";
+  const isAuthPage = location === "/auth" || location === "/trial-auth" || location === "/trial" || location === "/trial-validation";
 
   // Function to handle navigation from sidebar - simply update the current page
   const handleNavigate = (page: AppPage) => {
@@ -297,8 +299,14 @@ function App() {
           <Route path="/auth">
             <AuthPage />
           </Route>
+          <Route path="/trial">
+            <TrialPage />
+          </Route>
           <Route path="/trial-auth">
             <TrialAuthPage />
+          </Route>
+          <Route path="/trial-validation">
+            <TrialValidation />
           </Route>
           <Route>
             {effectiveLoading ? (

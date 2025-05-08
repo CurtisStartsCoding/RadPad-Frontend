@@ -1,31 +1,190 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { Eye, EyeOff, FileText, CheckCircle2 } from "lucide-react";
+import { Eye, EyeOff, FileText, CheckCircle2, AlertCircle } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { REMOTE_API_URL } from "@/lib/config";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-
 export default function TrialAuthPage() {
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [activeTab, setActiveTab] = useState("login");
   const [_, setLocation] = useLocation();
+  const { toast } = useToast();
+  
+  // Form state
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [specialty, setSpecialty] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
   
   const togglePasswordVisibility = () => {
     setIsPasswordVisible(!isPasswordVisible);
   };
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    // In a real app, we would authenticate here
-    setLocation("/");
+    
+    if (!email || !password) {
+      toast({
+        title: "Error",
+        description: "Please enter both email and password",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setIsSubmitting(true);
+    
+    try {
+      // Show a toast that we're attempting login
+      const loginToast = toast({
+        title: "Logging in",
+        description: "Verifying your trial credentials...",
+        duration: 5000,
+      });
+      
+      // Call the trial login API endpoint
+      const response = await fetch(`${REMOTE_API_URL}/api/auth/trial/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.message || 'Login failed');
+      }
+      
+      // Store the token in localStorage
+      localStorage.setItem('rad_order_pad_access_token', data.token);
+      
+      // Calculate expiry time (1 hour from now) and save it
+      const expiryTime = Date.now() + 60 * 60 * 1000;
+      localStorage.setItem('rad_order_pad_token_expiry', expiryTime.toString());
+      
+      toast({
+        title: "Login Successful",
+        description: "Welcome to the RadOrderPad Trial",
+        variant: "default",
+        duration: 3000,
+      });
+      
+      // Navigate to the trial validation page
+      setTimeout(() => {
+        setLocation("/trial-validation");
+      }, 500);
+      
+    } catch (error) {
+      console.error("Trial login error:", error);
+      
+      let errorMessage = "Invalid email or password. Please try again.";
+      if (error instanceof Error) {
+        errorMessage = error.message || errorMessage;
+      }
+      
+      toast({
+        title: "Authentication Failed",
+        description: errorMessage,
+        variant: "destructive",
+        duration: 5000,
+      });
+      
+      // Clear password field on error for security
+      setPassword("");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleRegister = (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    // In a real app, we would register here
-    setLocation("/");
+    
+    // Validate form fields
+    if (!email || !password || !firstName || !lastName || !specialty) {
+      toast({
+        title: "Error",
+        description: "Please fill in all fields",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setIsSubmitting(true);
+    
+    try {
+      // Show a toast that we're attempting registration
+      const registerToast = toast({
+        title: "Creating Account",
+        description: "Setting up your trial account...",
+        duration: 5000,
+      });
+      
+      // Call the trial registration API endpoint
+      const response = await fetch(`${REMOTE_API_URL}/api/auth/trial/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email,
+          password,
+          firstName,
+          lastName,
+          specialty
+        }),
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.message || 'Registration failed');
+      }
+      
+      // Store the token in localStorage
+      localStorage.setItem('rad_order_pad_access_token', data.token);
+      
+      // Calculate expiry time (1 hour from now) and save it
+      const expiryTime = Date.now() + 60 * 60 * 1000;
+      localStorage.setItem('rad_order_pad_token_expiry', expiryTime.toString());
+      
+      toast({
+        title: "Registration Successful",
+        description: "Your trial account has been created",
+        variant: "default",
+        duration: 3000,
+      });
+      
+      // Navigate to the trial validation page
+      setTimeout(() => {
+        setLocation("/trial-validation");
+      }, 500);
+      
+    } catch (error) {
+      console.error("Trial registration error:", error);
+      
+      let errorMessage = "Registration failed. Please try again.";
+      if (error instanceof Error) {
+        errorMessage = error.message || errorMessage;
+      }
+      
+      toast({
+        title: "Registration Failed",
+        description: errorMessage,
+        variant: "destructive",
+        duration: 5000,
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -50,11 +209,14 @@ export default function TrialAuthPage() {
                 <form onSubmit={handleLogin} className="space-y-4">
                   <div className="space-y-2">
                     <label htmlFor="email" className="text-sm font-medium">Email</label>
-                    <Input 
-                      id="email" 
-                      type="email" 
-                      placeholder="physician@abcfamilymedicine.com" 
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="physician@abcfamilymedicine.com"
                       className="w-full"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      disabled={isSubmitting}
                     />
                   </div>
                   
@@ -62,10 +224,13 @@ export default function TrialAuthPage() {
                     <label htmlFor="password" className="text-sm font-medium">Password</label>
                     <div className="relative">
                       <Input 
-                        id="password" 
-                        type={isPasswordVisible ? "text" : "password"} 
-                        placeholder="••••••••••" 
+                        id="password"
+                        type={isPasswordVisible ? "text" : "password"}
+                        placeholder="••••••••••"
                         className="w-full pr-10"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        disabled={isSubmitting}
                       />
                       <button 
                         type="button" 
@@ -81,8 +246,17 @@ export default function TrialAuthPage() {
                     </div>
                   </div>
                   
-                  <Button type="submit" className="w-full">
-                    Login
+                  <Button
+                    type="submit"
+                    className="w-full"
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <span className="mr-2">Logging in...</span>
+                        <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      </>
+                    ) : "Login"}
                   </Button>
                 </form>
               </TabsContent>
@@ -92,19 +266,25 @@ export default function TrialAuthPage() {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <label htmlFor="firstName" className="text-sm font-medium">First Name</label>
-                      <Input 
-                        id="firstName" 
-                        placeholder="John" 
+                      <Input
+                        id="firstName"
+                        placeholder="John"
                         className="w-full"
+                        value={firstName}
+                        onChange={(e) => setFirstName(e.target.value)}
+                        disabled={isSubmitting}
                       />
                     </div>
                     
                     <div className="space-y-2">
                       <label htmlFor="lastName" className="text-sm font-medium">Last Name</label>
-                      <Input 
-                        id="lastName" 
-                        placeholder="Smith" 
+                      <Input
+                        id="lastName"
+                        placeholder="Smith"
                         className="w-full"
+                        value={lastName}
+                        onChange={(e) => setLastName(e.target.value)}
+                        disabled={isSubmitting}
                       />
                     </div>
                   </div>
@@ -114,8 +294,11 @@ export default function TrialAuthPage() {
                     <Input 
                       id="trialEmail" 
                       type="email" 
-                      placeholder="physician@abcfamilymedicine.com" 
+                      placeholder="physician@abcfamilymedicine.com"
                       className="w-full"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      disabled={isSubmitting}
                     />
                   </div>
                   
@@ -127,6 +310,9 @@ export default function TrialAuthPage() {
                         type={isPasswordVisible ? "text" : "password"} 
                         placeholder="••••••••••" 
                         className="w-full pr-10"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        disabled={isSubmitting}
                       />
                       <button 
                         type="button" 
@@ -144,7 +330,11 @@ export default function TrialAuthPage() {
                   
                   <div className="space-y-2">
                     <label htmlFor="specialty" className="text-sm font-medium">Medical Specialty</label>
-                    <Select>
+                    <Select
+                      value={specialty}
+                      onValueChange={setSpecialty}
+                      disabled={isSubmitting}
+                    >
                       <SelectTrigger className="w-full">
                         <SelectValue placeholder="Select specialty" />
                       </SelectTrigger>
@@ -161,8 +351,17 @@ export default function TrialAuthPage() {
                     </Select>
                   </div>
                   
-                  <Button type="submit" className="w-full">
-                    Register
+                  <Button
+                    type="submit"
+                    className="w-full"
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <span className="mr-2">Registering...</span>
+                        <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      </>
+                    ) : "Register"}
                   </Button>
                 </form>
               </TabsContent>

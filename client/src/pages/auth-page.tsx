@@ -2,6 +2,7 @@ import { useState } from "react";
 import PatentPendingNotice from "@/components/common/PatentPendingNotice";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation, Link } from "wouter";
+import { ArrowRight } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,7 +18,7 @@ const Login = () => {
   const [rememberMe, setRememberMe] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast, dismiss } = useToast();
-  const [_, navigate] = useLocation();
+  const [_, setLocation] = useLocation();
   const { login, isLoading: authLoading } = useAuth();
   
   // Combined loading state for UI
@@ -85,7 +86,7 @@ const Login = () => {
       setTimeout(() => {
         console.log("Navigating to dashboard...");
         // First set the location to root
-        navigate("/");
+        setLocation("/");
         
         // Then force a page reload to ensure all auth state is properly updated
         window.location.href = "/";
@@ -222,6 +223,25 @@ const Login = () => {
               disabled={isLoading}
             >
               {isLoading ? "Signing in..." : "Sign In"}
+            </Button>
+            
+            <div className="mt-4 relative">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t border-gray-200" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-white px-2 text-gray-500">Or</span>
+              </div>
+            </div>
+            
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full mt-4"
+              onClick={() => setLocation("/trial")}
+            >
+              Try Without Registration
+              <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           </form>
         </CardContent>
