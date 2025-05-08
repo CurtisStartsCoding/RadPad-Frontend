@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useLocation } from "wouter";
 import { Eye, EyeOff, FileText, CheckCircle2, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { REMOTE_API_URL } from "@/lib/config";
+import { getApiUrl } from "@/lib/config";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -50,7 +50,7 @@ export default function TrialAuthPage() {
       });
       
       // Call the trial login API endpoint
-      const response = await fetch(`${REMOTE_API_URL}/api/auth/trial/login`, {
+      const response = await fetch(getApiUrl('/auth/trial/login'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -129,7 +129,7 @@ export default function TrialAuthPage() {
       });
       
       // Call the trial registration API endpoint
-      const response = await fetch(`${REMOTE_API_URL}/api/auth/trial/register`, {
+      const response = await fetch(getApiUrl('/auth/trial/register'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

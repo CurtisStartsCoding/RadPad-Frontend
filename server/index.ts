@@ -246,6 +246,138 @@ app.get('/api/auth/session', (req, res) => {
   console.log(`Response sent to client with status 200 (unauthenticated)`);
 });
 
+// Add specific endpoint for trial login with enhanced logging
+app.post('/api/auth/trial/login', async (req, res) => {
+  try {
+    console.log('\n=== TRIAL LOGIN REQUEST ===');
+    console.log('Forwarding trial login request to real API');
+    
+    const { email, password } = req.body;
+    console.log('Request body:', JSON.stringify({ email, password: '***REDACTED***' }, null, 2));
+    
+    // Forward the request to the real API
+    const response = await fetch('https://api.radorderpad.com/api/auth/trial/login', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      },
+      body: JSON.stringify({ email, password })
+    });
+    
+    // Get the response data
+    const contentType = response.headers.get('content-type');
+    let data;
+    
+    if (contentType && contentType.includes('application/json')) {
+      data = await response.json();
+    } else {
+      data = await response.text();
+    }
+    
+    // Log response details
+    console.log('\nResponse Status:', response.status, response.statusText);
+    console.log('Response Headers:');
+    response.headers.forEach((value, name) => {
+      console.log(`  ${name}: ${value}`);
+    });
+    
+    console.log('\nResponse Body:', typeof data === 'string' ? data : JSON.stringify(data, null, 2));
+    console.log('=== END TRIAL LOGIN ===\n');
+    
+    // Copy any headers from the original response
+    for (const [key, value] of Object.entries(Object.fromEntries(response.headers))) {
+      if (key.toLowerCase() !== 'content-length') {  // Skip content-length as it will be set automatically
+        res.setHeader(key, value);
+      }
+    }
+    
+    // Forward the status and data back to the client
+    if (typeof data === 'string') {
+      res.status(response.status).send(data);
+    } else {
+      res.status(response.status).json(data);
+    }
+    
+    console.log(`Response sent to client with status ${response.status}`);
+  } catch (error) {
+    console.error('Error forwarding trial login request:', error);
+    res.status(500).json({ message: 'Internal server error during trial login' });
+  }
+});
+
+// Add specific endpoint for trial registration with enhanced logging
+app.post('/api/auth/trial/register', async (req, res) => {
+  try {
+    console.log('\n=== TRIAL REGISTRATION REQUEST ===');
+    console.log('Forwarding trial registration request to real API');
+    
+    const { email, password, firstName, lastName, specialty } = req.body;
+    console.log('Request body:', JSON.stringify({
+      email,
+      password: '***REDACTED***',
+      firstName,
+      lastName,
+      specialty
+    }, null, 2));
+    
+    // Forward the request to the real API
+    const response = await fetch('https://api.radorderpad.com/api/auth/trial/register', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      },
+      body: JSON.stringify({ email, password, firstName, lastName, specialty })
+    });
+    
+    // Get the response data
+    const contentType = response.headers.get('content-type');
+    let data;
+    
+    if (contentType && contentType.includes('application/json')) {
+      data = await response.json();
+    } else {
+      data = await response.text();
+    }
+    
+    // Log response details
+    console.log('\nResponse Status:', response.status, response.statusText);
+    console.log('Response Headers:');
+    response.headers.forEach((value, name) => {
+      console.log(`  ${name}: ${value}`);
+    });
+    
+    console.log('\nResponse Body:', typeof data === 'string' ? data : JSON.stringify(data, null, 2));
+    console.log('=== END TRIAL REGISTRATION ===\n');
+    
+    // Copy any headers from the original response
+    for (const [key, value] of Object.entries(Object.fromEntries(response.headers))) {
+      if (key.toLowerCase() !== 'content-length') {  // Skip content-length as it will be set automatically
+        res.setHeader(key, value);
+      }
+    }
+    
+    // Forward the status and data back to the client
+    if (typeof data === 'string') {
+      res.status(response.status).send(data);
+    } else {
+      res.status(response.status).json(data);
+    }
+    
+    console.log(`Response sent to client with status ${response.status}`);
+  } catch (error) {
+    console.error('Error forwarding trial registration request:', error);
+    res.status(500).json({ message: 'Internal server error during trial registration' });
+  }
+});
+
 // Add specific endpoint for order validation with enhanced logging
 app.post('/api/orders/validate', async (req, res) => {
   try {
