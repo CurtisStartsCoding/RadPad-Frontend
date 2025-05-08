@@ -59,6 +59,7 @@ const NewOrder = ({ userRole = UserRole.Physician }: NewOrderProps) => {
   const [submittedOrderId, setSubmittedOrderId] = useState<number | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
+  const [interimTranscript, setInterimTranscript] = useState("");
   const recognitionRef = useRef<any>(null);
   
   // Check if user is trial user - use the role from auth if available
@@ -72,47 +73,55 @@ const NewOrder = ({ userRole = UserRole.Physician }: NewOrderProps) => {
     }
   }, [isLoading, isAuthenticated]);
   
-  // Set up speech recognition if available
+  // Type declarations for Web Speech API
+  interface SpeechRecognitionEvent extends Event {
+    results: SpeechRecognitionResultList;
+    resultIndex: number;
+    interpretation: any;
+  }
+
+  interface SpeechRecognitionErrorEvent extends Event {
+    error: string;
+    message: string;
+  }
+
+  interface SpeechRecognitionResult {
+    isFinal: boolean;
+    [index: number]: SpeechRecognitionAlternative;
+  }
+
+  interface SpeechRecognitionResultList {
+    length: number;
+    item(index: number): SpeechRecognitionResult;
+    [index: number]: SpeechRecognitionResult;
+  }
+
+  interface SpeechRecognitionAlternative {
+    transcript: string;
+    confidence: number;
+  }
+
+  interface SpeechRecognition extends EventTarget {
+    continuous: boolean;
+    interimResults: boolean;
+    lang: string;
+    start(): void;
+    stop(): void;
+    abort(): void;
+    onresult: (event: SpeechRecognitionEvent) => void;
+    onerror: (event: SpeechRecognitionErrorEvent) => void;
+    onend: () => void;
+    onstart: () => void;
+  }
+
+  // Clean up speech recognition when component unmounts
   useEffect(() => {
-    // Handle WebSpeechAPI TypeScript definitions
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    
-    if (SpeechRecognition) {
-      recognitionRef.current = new SpeechRecognition();
-      recognitionRef.current.continuous = true;
-      recognitionRef.current.interimResults = true;
-      
-      recognitionRef.current.onresult = (event: any) => {
-        const results = Array.from({ length: event.results.length }, (_, i) => event.results[i]);
-        const transcript = results
-          .map((result: any) => result[0].transcript)
-          .join('');
-        
-        // Always append to existing text when using speech recognition
-        const updatedText = dictationText && dictationText.trim().length > 0
-          ? `${dictationText}\n${transcript}`
-          : transcript;
-        
-        setDictationText(updatedText);
-        setCharacterCount(updatedText.length);
-      };
-      
-      recognitionRef.current.onerror = (event: any) => {
-        console.error('Speech recognition error', event.error);
-        setIsRecording(false);
-      };
-      
-      recognitionRef.current.onend = () => {
-        setIsRecording(false);
-      };
-    }
-    
     return () => {
       if (recognitionRef.current) {
         recognitionRef.current.stop();
       }
     };
-  }, [dictationText]);
+  }, []);
   
   // Handle opening patient identification dialog
   const handleEditPatient = () => {
@@ -374,18 +383,115 @@ const NewOrder = ({ userRole = UserRole.Physician }: NewOrderProps) => {
 
   // Handle voice input using Web Speech API
   const handleVoiceInput = () => {
-    if (!recognitionRef.current) {
+    if (isRecording) {
+      stopListening();
+    } else {
+      startListening();
+    }
+  };
+
+  const startListening = () => {
+    // Check if SpeechRecognition is available
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
       alert("Voice Recognition Not Available. Your browser doesn't support voice recognition. Please type manually.");
       return;
     }
-    
-    if (isRecording) {
+
+    try {
+      // Initialize speech recognition
+      // @ts-ignore - TypeScript doesn't know about these browser-specific APIs
+      const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
+      const recognition = new SpeechRecognitionAPI() as SpeechRecognition;
+      
+      // Configure recognition
+      recognition.continuous = false; // Get one complete phrase at a time
+      recognition.interimResults = true; // Still get interim results for feedback
+      recognition.lang = 'en-US';
+      
+      recognition.onstart = () => {
+        setIsRecording(true);
+        console.log("Speech recognition started");
+      };
+      
+      recognition.onresult = (event: SpeechRecognitionEvent) => {
+        let finalTranscript = '';
+        let currentInterimTranscript = '';
+        
+        console.log("Speech recognition result received", event.results);
+        
+        // Process results
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const result = event.results[i];
+          if (result.isFinal) {
+            finalTranscript += result[0].transcript;
+            console.log("Final transcript:", result[0].transcript);
+          } else {
+            currentInterimTranscript += result[0].transcript;
+            console.log("Interim transcript:", result[0].transcript);
+          }
+        }
+        
+        // Update interim transcript for visual feedback
+        console.log("Setting interim transcript:", currentInterimTranscript);
+        setInterimTranscript(currentInterimTranscript);
+        
+        // Only update the main text area with final results
+        if (finalTranscript) {
+          console.log("Updating dictation text with final transcript:", finalTranscript);
+          setDictationText(prevText => {
+            const newText = prevText ? `${prevText} ${finalTranscript}` : finalTranscript;
+            setCharacterCount(newText.length);
+            return newText.trim();
+          });
+          
+          // Clear interim transcript when we have a final result
+          setInterimTranscript('');
+          
+          // Restart recognition to get the next phrase
+          // This creates a small pause between phrases for better accuracy
+          recognition.stop();
+        }
+      };
+      
+      // When recognition ends, restart it if still in recording mode
+      recognition.onend = () => {
+        if (isRecording && recognitionRef.current) {
+          // Small delay before restarting to avoid rapid restarts
+          setTimeout(() => {
+            try {
+              recognitionRef.current.start();
+            } catch (error) {
+              // Ignore errors from trying to start when already started
+              console.log("Recognition restart error (can be ignored):", error);
+            }
+          }, 300);
+        } else {
+          setIsRecording(false);
+          setInterimTranscript('');
+        }
+      };
+      
+      recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+        console.error('Speech recognition error', event.error);
+        setIsRecording(false);
+        setInterimTranscript('');
+      };
+      
+      // Store the recognition instance in our ref
+      recognitionRef.current = recognition;
+      
+      // Start listening
+      recognition.start();
+    } catch (error) {
+      console.error('Error initializing speech recognition:', error);
+    }
+  };
+  
+  const stopListening = () => {
+    if (recognitionRef.current) {
       recognitionRef.current.stop();
       setIsRecording(false);
-    } else {
-      recognitionRef.current.start();
-      setIsRecording(true);
-      alert("Voice Recognition Activated. Speak clearly into your microphone. Click the button again to stop recording.");
+      setInterimTranscript('');
     }
   };
 
@@ -520,13 +626,18 @@ const NewOrder = ({ userRole = UserRole.Physician }: NewOrderProps) => {
                 </Alert>
               )}
               
-              <div className="mt-3">
-                <textarea 
+              <div className="mt-3 relative">
+                <textarea
                   className="w-full h-48 p-3 border border-gray-200 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-none"
                   placeholder="Examples: '55-year-old female with newly diagnosed breast cancer. Request CT chest, abdomen and pelvis for staging.'"
                   value={dictationText}
                   onChange={handleDictationChange}
                 />
+                {/* Always render the interim transcript div, but only show content when there is interim text */}
+                <div className={`absolute bottom-12 left-0 right-0 bg-blue-50 px-3 py-2 text-blue-700 text-sm border-t border-blue-200 ${interimTranscript ? 'block' : 'hidden'}`}>
+                  <span className="opacity-70">{interimTranscript}</span>
+                  <span className="ml-1 animate-pulse">...</span>
+                </div>
                 <div className="flex justify-between items-center mt-2">
                   <div className="flex space-x-2">
                     <button
@@ -544,7 +655,7 @@ const NewOrder = ({ userRole = UserRole.Physician }: NewOrderProps) => {
                       onClick={handleVoiceInput}
                     >
                       <Mic className={`h-4 w-4 mr-2 ${isRecording ? 'animate-pulse text-red-600' : ''}`} />
-                      {isRecording ? 'Recording...' : 'Voice Input'}
+                      {isRecording ? 'Stop Recording' : 'Voice Input'}
                     </button>
                   </div>
                   <div className="text-xs text-gray-500">
