@@ -35,6 +35,11 @@ The following environment variables are used:
 
 - `NODE_ENV`: Set to "production" for deployment
 - `PORT`: The port the application will run on (default: 8080)
+- `ALLOWED_ORIGINS`: Comma-separated list of allowed origins for CORS (default: "https://radpad-dd83h.ondigitalocean.app")
+- `API_URL`: The URL of the API server (default: "https://api.radorderpad.com")
+- `VITE_API_URL`: Client-side version of API_URL for the frontend (used in Vite builds)
+
+A `.env.example` file is provided as a template. Copy this file to `.env` and update the values as needed for your environment.
 
 ### Troubleshooting
 

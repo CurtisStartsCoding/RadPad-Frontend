@@ -3,13 +3,18 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { createProxyMiddleware, type Options } from "http-proxy-middleware";
 
+// Get API URL from environment variable or use default
+const apiUrl = process.env.API_URL || 'https://api.radorderpad.com';
+
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
 // CORS middleware to handle all CORS requests
 app.use((req, res, next) => {
-  const allowedOrigins = ['https://radpad-dd83h.ondigitalocean.app'];
+  // Get allowed origins from environment variable or use default
+  const allowedOriginsStr = process.env.ALLOWED_ORIGINS || 'https://radpad-dd83h.ondigitalocean.app';
+  const allowedOrigins = allowedOriginsStr.split(',').map(origin => origin.trim());
   const origin = req.headers.origin;
   
   // Check if the origin is in our allowed origins list
@@ -65,8 +70,8 @@ app.use((req, res, next) => {
 });
 
 // Test the API connection
-console.log("Testing API connection to https://api.radorderpad.com");
-fetch('https://api.radorderpad.com/api/auth/session', {
+console.log(`Testing API connection to ${apiUrl}`);
+fetch(`${apiUrl}/api/auth/session`, {
   method: 'GET',
   headers: {
     'Accept': 'application/json',
@@ -105,7 +110,7 @@ app.post('/api/auth/login', async (req, res) => {
     const { email, password } = req.body;
     
     // Forward the request to the real API
-    const response = await fetch('https://api.radorderpad.com/api/auth/login', {
+    const response = await fetch(`${apiUrl}/api/auth/login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -256,7 +261,7 @@ app.post('/api/auth/trial/login', async (req, res) => {
     console.log('Request body:', JSON.stringify({ email, password: '***REDACTED***' }, null, 2));
     
     // Forward the request to the real API
-    const response = await fetch('https://api.radorderpad.com/api/auth/trial/login', {
+    const response = await fetch(`${apiUrl}/api/auth/trial/login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -325,7 +330,7 @@ app.post('/api/auth/trial/register', async (req, res) => {
     }, null, 2));
     
     // Forward the request to the real API
-    const response = await fetch('https://api.radorderpad.com/api/auth/trial/register', {
+    const response = await fetch(`${apiUrl}/api/auth/trial/register`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -392,7 +397,7 @@ app.post('/api/orders/validate', async (req, res) => {
     console.log('Request body:', JSON.stringify(req.body, null, 2));
     
     // Forward the request to the real API
-    const response = await fetch('https://api.radorderpad.com/api/orders/validate', {
+    const response = await fetch(`${apiUrl}/api/orders/validate`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -460,7 +465,7 @@ app.post('/api/orders/validate/trial', async (req, res) => {
     console.log('Request body:', JSON.stringify(req.body, null, 2));
     
     // Forward the request to the real API
-    const response = await fetch('https://api.radorderpad.com/api/orders/validate/trial', {
+    const response = await fetch(`${apiUrl}/api/orders/validate/trial`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -523,7 +528,7 @@ const apiRouter = express.Router();
 apiRouter.use((req, res, next) => {
   // Proxy all API requests to the real API
   const proxy = createProxyMiddleware({
-    target: 'https://api.radorderpad.com',
+    target: apiUrl,
     changeOrigin: true,
     secure: true,
     timeout: 30000, // 30 seconds timeout
@@ -533,7 +538,7 @@ apiRouter.use((req, res, next) => {
     },
     onProxyReq: (proxyReq: any, req: Request, _res: Response) => {
       // Log the headers being sent to the target
-      log(`Proxying ${req.method} ${req.url} to https://api.radorderpad.com`);
+      log(`Proxying ${req.method} ${req.url} to ${apiUrl}`);
       log(`Request headers: ${JSON.stringify(req.headers)}`);
       
       // Log request body if it exists
@@ -608,7 +613,7 @@ app.get('/api/analytics/dashboard', async (req, res) => {
     }
     
     // First, fetch orders from the real API to generate analytics from
-    const ordersResponse = await fetch('https://api.radorderpad.com/api/orders', {
+    const ordersResponse = await fetch(`${apiUrl}/api/orders`, {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
@@ -791,7 +796,7 @@ app.get('/api/orders', async (req, res) => {
     console.log('Authorization header:', authHeader ? 'Present' : 'Not present');
     
     // Forward the request to the real API
-    const response = await fetch(`https://api.radorderpad.com/api/orders${req.url.includes('?') ? req.url.substring(req.url.indexOf('?')) : ''}`, {
+    const response = await fetch(`${apiUrl}/api/orders${req.url.includes('?') ? req.url.substring(req.url.indexOf('?')) : ''}`, {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
@@ -854,7 +859,7 @@ app.get('/api/analytics/dashboard', async (req, res) => {
     console.log('Authorization header:', authHeader ? 'Present' : 'Not present');
     
     // Forward the request to the real API
-    const response = await fetch('https://api.radorderpad.com/api/analytics/dashboard', {
+    const response = await fetch(`${apiUrl}/api/analytics/dashboard`, {
       method: 'GET',
       headers: {
         'Accept': 'application/json',

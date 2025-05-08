@@ -7,7 +7,7 @@
 export const API_SERVER_URL = import.meta.env.VITE_API_SERVER_URL || '';
 
 // Remote API URL - This is the actual remote API endpoint (only used for logging)
-export const REMOTE_API_URL = 'https://api.radorderpad.com';
+export const REMOTE_API_URL = import.meta.env.VITE_API_URL || 'https://api.radorderpad.com';
 
 // Other configuration settings can be added here
 export const APP_CONFIG = {
@@ -38,5 +38,6 @@ export function logApiConfiguration(): void {
   console.log(`🔗 Using Relative Paths: Always (to go through proxy server)`);
   console.log(`🔄 Using Mock Endpoints: ${APP_CONFIG.useMockEndpoints ? 'Yes' : 'No'}`);
   console.log(`🔌 API requests are being proxied to ${REMOTE_API_URL}`);
+  console.log(`🌍 Environment: ${import.meta.env.MODE}`);
   console.groupEnd();
 }
