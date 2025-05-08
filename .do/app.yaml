@@ -1,0 +1,14 @@
+name: frontend-mockup
+services:
+  - name: web
+    github:
+      branch: main
+      deploy_on_push: true
+    build_command: npm run build
+    run_command: npm start
+    envs:
+      - key: NODE_ENV
+        value: production
+    http_port: 8080
+    routes:
+      - path: /

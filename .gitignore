@@ -1,40 +1,36 @@
-# Dependencies
-node_modules
-.pnp
-.pnp.js
+# Only include essential files for deployment
+# Exclude everything by default
+*
+!.gitignore
+!Procfile
+!package.json
+!.do/
+!.do/app.yaml
 
-# Build outputs
-dist
-dist-ssr
-build
-*.local
+# Include only necessary source code
+!client/
+!client/src/
+!client/src/**
+!server/
+!server/**
+!shared/
+!shared/**
 
-# Testing
-coverage
-.nyc_output
+# Include necessary config files
+!vite.config.ts
+!tsconfig.json
+!tailwind.config.ts
+!postcss.config.js
+!components.json
+!drizzle.config.ts
 
-# Environment variables
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-
-# Logs
-logs
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
+# Exclude node_modules and build artifacts
+node_modules/
+dist/
 
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
 .idea
 .DS_Store
 *.suo
@@ -43,30 +39,36 @@ lerna-debug.log*
 *.sln
 *.sw?
 
-# TypeScript
-*.tsbuildinfo
-
-# Vite
-.vite
-
-# Drizzle
-.drizzle
-
-# Cache
-.cache
-.eslintcache
-.stylelintcache
-
-# Misc
-.temp
-.tmp
-.turbo
-
-# Project-specific
-generated-icon.png
-my_profile_content.txt
-.replit
-scratch/
-
 # VSCode server files
 .config/
+.vscode-server/
+**/.vscode-server/**
+**/.config/**
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Build output
+dist
+
+# Generated files
+generated-icon.png
+my_profile_content.txt
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.svg
+*.ico
+
+# Temporary files
+scratch/
+
+# Lock files (optional, uncomment if you want to exclude)
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml
