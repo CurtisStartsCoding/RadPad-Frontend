@@ -63,7 +63,7 @@ const OrderList = () => {
   const [selectedFilter, setSelectedFilter] = useState("all");
   
   // Fetch orders from the API
-  const { data: orders, isLoading, error } = useQuery<ApiOrder[]>({
+  const { data, isLoading, error } = useQuery<{orders: ApiOrder[]}>({
     queryKey: ['/api/orders'],
     queryFn: async () => {
       const response = await apiRequest('GET', '/api/orders', undefined);
@@ -76,8 +76,11 @@ const OrderList = () => {
     staleTime: 60000, // 1 minute
   });
   
+  // Extract orders array from response
+  const orders = data?.orders || [];
+  
   // Filter orders by status
-  const filteredOrders = orders?.filter(order => {
+  const filteredOrders = orders.filter(order => {
     if (selectedFilter === "all") {
       return true;
     } else if (selectedFilter === "pending") {
@@ -90,16 +93,18 @@ const OrderList = () => {
       return order.status === 'cancelled';
     }
     return false;
-  }) || [];
+  });
   
   // Further filter by search query
   const searchFilteredOrders = filteredOrders.filter(order => {
+    if (!order || !order.patient || !order.radiology_group) return false;
+    
     const searchLower = searchQuery.toLowerCase();
     return (
-      order.patient.name.toLowerCase().includes(searchLower) ||
-      order.patient.mrn.toLowerCase().includes(searchLower) ||
-      order.modality.toLowerCase().includes(searchLower) ||
-      order.radiology_group.name.toLowerCase().includes(searchLower)
+      (order.patient.name?.toLowerCase() || '').includes(searchLower) ||
+      (order.patient.mrn?.toLowerCase() || '').includes(searchLower) ||
+      (order.modality?.toLowerCase() || '').includes(searchLower) ||
+      (order.radiology_group.name?.toLowerCase() || '').includes(searchLower)
     );
   });
   
@@ -277,16 +282,16 @@ const OrderList = () => {
                   ) : (
                     searchFilteredOrders.map((order) => (
                       <TableRow key={order.id}>
-                        <TableCell className="font-medium">{order.patient.name}</TableCell>
-                        <TableCell className="font-mono text-xs">{order.patient.mrn}</TableCell>
+                        <TableCell className="font-medium">{order.patient?.name || 'Unknown'}</TableCell>
+                        <TableCell className="font-mono text-xs">{order.patient?.mrn || 'N/A'}</TableCell>
                         <TableCell>
                           <div className="flex items-center">
                             <Calendar className="h-3.5 w-3.5 mr-1.5 text-slate-500" />
-                            {formatDate(order.created_at)}
+                            {order.created_at ? formatDate(order.created_at) : 'N/A'}
                           </div>
                         </TableCell>
-                        <TableCell>{order.modality}</TableCell>
-                        <TableCell>{order.radiology_group.name}</TableCell>
+                        <TableCell>{order.modality || 'N/A'}</TableCell>
+                        <TableCell>{order.radiology_group?.name || 'N/A'}</TableCell>
                         <TableCell>{getStatusBadge(order.status)}</TableCell>
                         <TableCell>{getActionButtons(order.status)}</TableCell>
                       </TableRow>
