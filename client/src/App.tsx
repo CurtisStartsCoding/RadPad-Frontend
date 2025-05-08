@@ -316,15 +316,15 @@ function App() {
               </div>
             ) : shouldBeAuthenticated ? (
               // User is authenticated, show the main app
-              <div className="h-screen overflow-hidden">
-                <div className="w-full overflow-auto">
+              <div className="h-screen flex flex-col">
+                <div className="w-full flex-1 overflow-auto">
                   <AppHeader
                     title={getPageTitle(currentPage)}
                     subtitle={getPageSubtitle(currentPage)}
                     onNavigate={handleNavigate}
                     userRole={currentRole}
                   />
-                  <main className="min-h-screen">
+                  <main className="h-full">
                     {renderCurrentPage()}
                   </main>
                 </div>
