@@ -3,40 +3,30 @@
  * This file provides access to environment variables and configuration settings
  */
 
-// API server URL - Use environment variable if available, otherwise use the production URL
+// API server URL - Use environment variable if available, otherwise use relative paths
 export const API_SERVER_URL = import.meta.env.VITE_API_SERVER_URL || '';
 
-// Remote API URL - This is the actual remote API endpoint
+// Remote API URL - This is the actual remote API endpoint (only used for logging)
 export const REMOTE_API_URL = 'https://api.radorderpad.com';
 
 // Other configuration settings can be added here
 export const APP_CONFIG = {
-  apiServerUrl: API_SERVER_URL || REMOTE_API_URL,
+  // Always use relative paths in production to go through our proxy server
+  apiServerUrl: '',
   // Add other configuration settings as needed
   useMockEndpoints: false, // Set to false to ensure we're using the real API
 };
 
 // Export a function to get the full API URL
 export function getApiUrl(path: string): string {
-  // If we're in development mode and using a local proxy, we can use relative paths
-  if (API_SERVER_URL) {
-    // If path already starts with /api, use it directly
-    if (path.startsWith('/api')) {
-      return path;
-    }
-    
-    // Otherwise, prepend /api to the path
-    return `/api${path}`;
-  }
-  
-  // In production, we need to use the full remote URL
-  // If path already starts with /api, append it to the remote URL
+  // Always use relative paths to ensure requests go through our proxy server
+  // If path already starts with /api, use it directly
   if (path.startsWith('/api')) {
-    return `${REMOTE_API_URL}${path}`;
+    return path;
   }
   
-  // Otherwise, prepend /api to the path and append to remote URL
-  return `${REMOTE_API_URL}/api${path}`;
+  // Otherwise, prepend /api to the path
+  return `/api${path}`;
 }
 
 /**
@@ -45,8 +35,8 @@ export function getApiUrl(path: string): string {
  */
 export function logApiConfiguration(): void {
   console.group('🌐 API Configuration');
-  console.log(`🔗 Remote API URL: ${REMOTE_API_URL}`);
+  console.log(`🔗 Using Relative Paths: Always (to go through proxy server)`);
   console.log(`🔄 Using Mock Endpoints: ${APP_CONFIG.useMockEndpoints ? 'Yes' : 'No'}`);
-  console.log(`🔌 API requests are being forwarded to the real API at ${REMOTE_API_URL}`);
+  console.log(`🔌 API requests are being proxied to ${REMOTE_API_URL}`);
   console.groupEnd();
 }
