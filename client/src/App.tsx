@@ -223,7 +223,7 @@ function App() {
   const renderCurrentPage = () => {
     switch (currentPage) {
       case AppPage.Dashboard:
-        return <Dashboard />;
+        return <Dashboard navigateTo={(page) => setCurrentPage(page)} />;
       case AppPage.NewOrder:
         return <NewOrder userRole={currentRole} />;
       case AppPage.OrderList:
@@ -279,7 +279,7 @@ function App() {
         return <BillingCredits userRole={UserRole.SuperAdmin} />;
       // Test pages
       default:
-        return <Dashboard />;
+        return <Dashboard navigateTo={(page) => setCurrentPage(page)} />;
     }
   };
 

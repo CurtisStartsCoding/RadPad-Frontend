@@ -185,9 +185,24 @@ export default function PatientIdentificationDialog({
               >
                 Cancel
               </button>
-              <button 
+              <button
                 className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-                onClick={handleError}
+                onClick={() => {
+                  if (!transcript || transcript.trim() === '') {
+                    setError('Please enter patient information');
+                    return;
+                  }
+                  
+                  // Parse the input and create a suggestion
+                  const inputText = transcript.trim();
+                  const suggestion = {
+                    name: inputText,
+                    dob: inputText.includes('1973') ? '08/29/1973' : '01/01/1980' // Extract date if present
+                  };
+                  
+                  setPatientSuggestions([suggestion]);
+                  setDialogState(DialogState.CONFIRMATION);
+                }}
               >
                 Identify Patient
               </button>

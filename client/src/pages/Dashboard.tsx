@@ -102,7 +102,15 @@ interface ApiAnalytics {
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
-const Dashboard = () => {
+// Import AppPage enum for navigation
+import { AppPage } from "@/App";
+
+// Define props interface for Dashboard component
+interface DashboardProps {
+  navigateTo: (page: AppPage) => void;
+}
+
+const Dashboard = ({ navigateTo }: DashboardProps) => {
   const [activeTab, setActiveTab] = useState('overview');
   
   // Fetch recent orders from the API
@@ -169,7 +177,7 @@ const Dashboard = () => {
         title="Dashboard"
         description="Welcome back to RadOrderPad"
       >
-        <Button>
+        <Button onClick={() => navigateTo(AppPage.NewOrder)}>
           <PlusCircle className="h-4 w-4 mr-2" />
           New Order
         </Button>
@@ -338,7 +346,11 @@ const Dashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <Button variant="outline" className="h-auto flex flex-col items-center justify-center py-6 px-4">
+                <Button
+                  variant="outline"
+                  className="h-auto flex flex-col items-center justify-center py-6 px-4"
+                  onClick={() => navigateTo(AppPage.NewOrder)}
+                >
                   <PlusCircle className="h-6 w-6 mb-2" />
                   <span>New Order</span>
                 </Button>
