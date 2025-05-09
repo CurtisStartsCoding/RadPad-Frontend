@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import PageHeader from "@/components/layout/PageHeader";
 import { getApiUrl, logApiConfiguration, REMOTE_API_URL } from "@/lib/config";
+import { TRIAL_ACCESS_TOKEN_KEY } from "@/lib/useAuth";
 import {
   Mic,
   RefreshCcw,
@@ -73,8 +74,8 @@ const TrialValidation = () => {
     setIsValidating(true);
     
     try {
-      // Get the auth token from localStorage - ensure we're getting the correct token
-      const token = localStorage.getItem('rad_order_pad_access_token');
+      // Get the trial auth token from localStorage
+      const token = localStorage.getItem(TRIAL_ACCESS_TOKEN_KEY);
       
       if (!token) {
         console.error('No authentication token found in localStorage');

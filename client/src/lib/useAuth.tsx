@@ -2,11 +2,15 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { apiRequest, queryClient } from './queryClient';
 import { User } from './types';
-import { ApiUserResponse, getCurrentSession, isTokenExpired } from './auth';
+import { ApiUserResponse, getCurrentSession, isTokenExpired, isTrialTokenExpired } from './auth';
 
-// Local storage keys for tokens
+// Local storage keys for regular authentication
 const ACCESS_TOKEN_KEY = 'rad_order_pad_access_token';
 const TOKEN_EXPIRY_KEY = 'rad_order_pad_token_expiry';
+
+// Local storage keys for trial authentication
+export const TRIAL_ACCESS_TOKEN_KEY = 'rad_order_pad_trial_access_token';
+export const TRIAL_TOKEN_EXPIRY_KEY = 'rad_order_pad_trial_token_expiry';
 
 interface AuthContextType {
   user: User | null;
@@ -51,25 +55,52 @@ export function AuthProvider({ children }: AuthProviderProps) {
   };
 
   // Function to clear auth token
-  const clearToken = () => {
+  const clearToken = (clearTrialTokens: boolean = true) => {
     localStorage.removeItem(ACCESS_TOKEN_KEY);
     localStorage.removeItem(TOKEN_EXPIRY_KEY);
     
-    console.log("Authentication token cleared from localStorage");
+    if (clearTrialTokens) {
+      localStorage.removeItem(TRIAL_ACCESS_TOKEN_KEY);
+      localStorage.removeItem(TRIAL_TOKEN_EXPIRY_KEY);
+    }
+    
+    console.log("Authentication tokens cleared from localStorage");
   };
 
   // Check for existing token on initial load
   useEffect(() => {
+    // Check regular token
     if (isTokenExpired()) {
-      clearToken();
+      clearToken(false); // Only clear regular tokens
+    }
+    
+    // Check trial token
+    if (isTrialTokenExpired()) {
+      // Only clear trial tokens
+      localStorage.removeItem(TRIAL_ACCESS_TOKEN_KEY);
+      localStorage.removeItem(TRIAL_TOKEN_EXPIRY_KEY);
     }
   }, []);
 
   // Check for token expiry
   useEffect(() => {
     const checkTokenExpiry = () => {
+      let shouldInvalidateQueries = false;
+      
+      // Check regular token
       if (isTokenExpired()) {
-        clearToken();
+        clearToken(false); // Only clear regular tokens
+        shouldInvalidateQueries = true;
+      }
+      
+      // Check trial token
+      if (isTrialTokenExpired()) {
+        // Only clear trial tokens
+        localStorage.removeItem(TRIAL_ACCESS_TOKEN_KEY);
+        localStorage.removeItem(TRIAL_TOKEN_EXPIRY_KEY);
+      }
+      
+      if (shouldInvalidateQueries) {
         setUser(null);
         queryClient.invalidateQueries({ queryKey: ['/api/auth/session'] });
       }

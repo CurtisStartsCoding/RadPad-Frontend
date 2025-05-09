@@ -3,6 +3,7 @@ import { useLocation } from "wouter";
 import { Eye, EyeOff, FileText, CheckCircle2, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { getApiUrl } from "@/lib/config";
+import { TRIAL_ACCESS_TOKEN_KEY, TRIAL_TOKEN_EXPIRY_KEY } from "@/lib/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -64,12 +65,12 @@ export default function TrialAuthPage() {
         throw new Error(data.message || 'Login failed');
       }
       
-      // Store the token in localStorage
-      localStorage.setItem('rad_order_pad_access_token', data.token);
+      // Store the token in localStorage using trial-specific keys
+      localStorage.setItem(TRIAL_ACCESS_TOKEN_KEY, data.token);
       
       // Calculate expiry time (1 hour from now) and save it
       const expiryTime = Date.now() + 60 * 60 * 1000;
-      localStorage.setItem('rad_order_pad_token_expiry', expiryTime.toString());
+      localStorage.setItem(TRIAL_TOKEN_EXPIRY_KEY, expiryTime.toString());
       
       toast({
         title: "Login Successful",
@@ -149,12 +150,12 @@ export default function TrialAuthPage() {
         throw new Error(data.message || 'Registration failed');
       }
       
-      // Store the token in localStorage
-      localStorage.setItem('rad_order_pad_access_token', data.token);
+      // Store the token in localStorage using trial-specific keys
+      localStorage.setItem(TRIAL_ACCESS_TOKEN_KEY, data.token);
       
       // Calculate expiry time (1 hour from now) and save it
       const expiryTime = Date.now() + 60 * 60 * 1000;
-      localStorage.setItem('rad_order_pad_token_expiry', expiryTime.toString());
+      localStorage.setItem(TRIAL_TOKEN_EXPIRY_KEY, expiryTime.toString());
       
       toast({
         title: "Registration Successful",

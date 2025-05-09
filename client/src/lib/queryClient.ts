@@ -1,5 +1,6 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
 import { getApiUrl } from "./config";
+import { getAuthToken } from "./auth";
 
 /**
  * Custom error handling for API responses
@@ -38,8 +39,9 @@ export async function apiRequest(
   // For authentication-related endpoints, add extra cache prevention
   const isAuthEndpoint = url.includes('/api/auth/');
   
-  // Get auth token from localStorage
-  const accessToken = localStorage.getItem('rad_order_pad_access_token');
+  // Get auth token - use trial token for trial endpoints, otherwise use regular token
+  const isTrial = url.includes('/trial');
+  const accessToken = getAuthToken(isTrial);
   
   // Prepare headers
   const headers: Record<string, string> = {
@@ -120,11 +122,20 @@ export async function apiRequest(
       const refreshToken = res.headers.get('X-Refresh-Token');
       if (refreshToken) {
         console.log('Received X-Refresh-Token header, updating token');
-        localStorage.setItem('rad_order_pad_access_token', refreshToken);
-        
-        // Update token expiry (add 15 minutes)
-        const expiryTime = Date.now() + 15 * 60 * 1000;
-        localStorage.setItem('rad_order_pad_token_expiry', expiryTime.toString());
+        // Store the refreshed token in the appropriate storage location
+        if (isTrial) {
+          localStorage.setItem('rad_order_pad_trial_access_token', refreshToken);
+          
+          // Update token expiry (add 15 minutes)
+          const expiryTime = Date.now() + 15 * 60 * 1000;
+          localStorage.setItem('rad_order_pad_trial_token_expiry', expiryTime.toString());
+        } else {
+          localStorage.setItem('rad_order_pad_access_token', refreshToken);
+          
+          // Update token expiry (add 15 minutes)
+          const expiryTime = Date.now() + 15 * 60 * 1000;
+          localStorage.setItem('rad_order_pad_token_expiry', expiryTime.toString());
+        }
       }
       
       await throwIfResNotOk(res);
@@ -164,8 +175,9 @@ export const getQueryFn: <T>(options: {
       `${url}${url.includes('?') ? '&' : '?'}_=${Date.now()}` :
       url;
     
-    // Get auth token from localStorage
-    const accessToken = localStorage.getItem('rad_order_pad_access_token');
+    // Get auth token - use trial token for trial endpoints, otherwise use regular token
+    const isTrial = url.includes('/trial');
+    const accessToken = getAuthToken(isTrial);
     
     try {
       // Prepare headers with auth token
@@ -219,11 +231,20 @@ export const getQueryFn: <T>(options: {
         const refreshToken = res.headers.get('X-Refresh-Token');
         if (refreshToken) {
           console.log('Received X-Refresh-Token header in query, updating token');
-          localStorage.setItem('rad_order_pad_access_token', refreshToken);
-          
-          // Update token expiry (add 15 minutes)
-          const expiryTime = Date.now() + 15 * 60 * 1000;
-          localStorage.setItem('rad_order_pad_token_expiry', expiryTime.toString());
+          // Store the refreshed token in the appropriate storage location
+          if (isTrial) {
+            localStorage.setItem('rad_order_pad_trial_access_token', refreshToken);
+            
+            // Update token expiry (add 15 minutes)
+            const expiryTime = Date.now() + 15 * 60 * 1000;
+            localStorage.setItem('rad_order_pad_trial_token_expiry', expiryTime.toString());
+          } else {
+            localStorage.setItem('rad_order_pad_access_token', refreshToken);
+            
+            // Update token expiry (add 15 minutes)
+            const expiryTime = Date.now() + 15 * 60 * 1000;
+            localStorage.setItem('rad_order_pad_token_expiry', expiryTime.toString());
+          }
         }
 
         // Handle specific status codes more explicitly

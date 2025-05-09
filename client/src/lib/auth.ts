@@ -1,5 +1,10 @@
 import { User } from "./types";
 import { apiRequest, queryClient } from "./queryClient";
+import { TRIAL_ACCESS_TOKEN_KEY, TRIAL_TOKEN_EXPIRY_KEY } from "./useAuth";
+
+// Regular authentication token keys
+const ACCESS_TOKEN_KEY = 'rad_order_pad_access_token';
+const TOKEN_EXPIRY_KEY = 'rad_order_pad_token_expiry';
 
 /**
  * Authentication helper utilities
@@ -76,12 +81,12 @@ export async function loginUser(email: string, password: string): Promise<User> 
         updatedAt: new Date(apiUser.updated_at)
       };
       
-      // Store the token in localStorage
-      localStorage.setItem('rad_order_pad_access_token', result.token);
+      // Store the token in localStorage using regular auth keys
+      localStorage.setItem(ACCESS_TOKEN_KEY, result.token);
       
       // Calculate expiry time (1 hour from now) and save it
       const expiryTime = Date.now() + 60 * 60 * 1000;
-      localStorage.setItem('rad_order_pad_token_expiry', expiryTime.toString());
+      localStorage.setItem(TOKEN_EXPIRY_KEY, expiryTime.toString());
       
       // Clear any stale queries and reset the cache
       await queryClient.clear();
@@ -115,9 +120,11 @@ export async function logoutUser(): Promise<void> {
     const response = await apiRequest('GET', `/api/auth/logout?_=${timestamp}`, undefined);
     await response.json();
     
-    // Remove the token from localStorage
-    localStorage.removeItem('rad_order_pad_access_token');
-    localStorage.removeItem('rad_order_pad_token_expiry');
+    // Remove both regular and trial tokens from localStorage
+    localStorage.removeItem(ACCESS_TOKEN_KEY);
+    localStorage.removeItem(TOKEN_EXPIRY_KEY);
+    localStorage.removeItem(TRIAL_ACCESS_TOKEN_KEY);
+    localStorage.removeItem(TRIAL_TOKEN_EXPIRY_KEY);
     
     // Clear all queries from the cache to force a fresh state
     await queryClient.clear();
@@ -132,9 +139,11 @@ export async function logoutUser(): Promise<void> {
     // Even if there was an error, still clear local cache to ensure UI shows logged out state
     await queryClient.clear();
     
-    // Remove the token from localStorage even if the server request failed
-    localStorage.removeItem('rad_order_pad_access_token');
-    localStorage.removeItem('rad_order_pad_token_expiry');
+    // Remove both regular and trial tokens from localStorage even if the server request failed
+    localStorage.removeItem(ACCESS_TOKEN_KEY);
+    localStorage.removeItem(TOKEN_EXPIRY_KEY);
+    localStorage.removeItem(TRIAL_ACCESS_TOKEN_KEY);
+    localStorage.removeItem(TRIAL_TOKEN_EXPIRY_KEY);
     
     // Rethrow to allow proper error handling
     throw error;
@@ -194,8 +203,8 @@ export async function getCurrentSession(): Promise<SessionResponse> {
  * @returns True if the token is expired or not present, false otherwise
  */
 export function isTokenExpired(): boolean {
-  const token = localStorage.getItem('rad_order_pad_access_token');
-  const expiryTime = localStorage.getItem('rad_order_pad_token_expiry');
+  const token = localStorage.getItem(ACCESS_TOKEN_KEY);
+  const expiryTime = localStorage.getItem(TOKEN_EXPIRY_KEY);
   
   if (!token || !expiryTime) {
     return true;
@@ -203,4 +212,42 @@ export function isTokenExpired(): boolean {
   
   const expiryTimeNum = parseInt(expiryTime, 10);
   return expiryTimeNum <= Date.now();
+}
+
+/**
+ * Check if the current trial token is expired
+ *
+ * @returns True if the trial token is expired or not present, false otherwise
+ */
+export function isTrialTokenExpired(): boolean {
+  const token = localStorage.getItem(TRIAL_ACCESS_TOKEN_KEY);
+  const expiryTime = localStorage.getItem(TRIAL_TOKEN_EXPIRY_KEY);
+  
+  if (!token || !expiryTime) {
+    return true;
+  }
+  
+  const expiryTimeNum = parseInt(expiryTime, 10);
+  return expiryTimeNum <= Date.now();
+}
+
+/**
+ * Get the current authentication token
+ *
+ * @param trialOnly If true, only return the trial token
+ * @returns The authentication token or null if not present
+ */
+export function getAuthToken(trialOnly: boolean = false): string | null {
+  // If trialOnly is true, only check for trial token
+  if (trialOnly) {
+    return localStorage.getItem(TRIAL_ACCESS_TOKEN_KEY);
+  }
+  
+  // Otherwise, prioritize regular token, then fall back to trial token
+  const regularToken = localStorage.getItem(ACCESS_TOKEN_KEY);
+  if (regularToken) {
+    return regularToken;
+  }
+  
+  return localStorage.getItem(TRIAL_ACCESS_TOKEN_KEY);
 }
