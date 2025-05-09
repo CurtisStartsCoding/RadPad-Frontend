@@ -18,7 +18,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
   subtitle,
   onNavigate,
   className,
-  userRole = UserRole.Physician
+  userRole
 }) => {
   const [showMenu, setShowMenu] = useState(false);
   const { logout } = useAuth(); // Call useAuth hook at the top level
@@ -43,8 +43,16 @@ const AppHeader: React.FC<AppHeaderProps> = ({
     }
   };
 
-  // Get user display name based on role
+  // Get user information from auth context
+  const { user } = useAuth();
+  
+  // Get user display name
   const getUserDisplayName = () => {
+    if (user && user.name) {
+      return user.name;
+    }
+    
+    // Fallback based on role if user name is not available
     switch(userRole) {
       case UserRole.Physician:
         return "Dr. Jane Smith";
@@ -63,8 +71,13 @@ const AppHeader: React.FC<AppHeaderProps> = ({
     }
   };
   
-  // Get user email based on role
+  // Get user email
   const getUserEmail = () => {
+    if (user && user.email) {
+      return user.email;
+    }
+    
+    // Fallback based on role if user email is not available
     switch(userRole) {
       case UserRole.Physician:
         return "drjane@example.com";
@@ -87,9 +100,14 @@ const AppHeader: React.FC<AppHeaderProps> = ({
   const getMenuItems = () => {
     const menuItems = [];
     
+    // Determine the actual role to use
+    // Use the user's role from auth context if available, otherwise fall back to the prop
+    // Make sure we have a valid UserRole by providing a default if both are undefined
+    const effectiveRole = (user?.role || userRole || UserRole.Physician) as UserRole;
+    
     // Home/Dashboard is available to everyone
     menuItems.push(
-      <button 
+      <button
         key="home"
         className="flex items-center w-full px-3 py-2.5 text-gray-800 hover:bg-gray-100 rounded-md"
         onClick={() => handleNavigation(AppPage.Dashboard)}
@@ -99,10 +117,10 @@ const AppHeader: React.FC<AppHeaderProps> = ({
       </button>
     );
     
-    // New Order (for physicians and admin staff)
-    if (hasAccess(userRole, AppPage.NewOrder)) {
+    // New Order (for physicians only)
+    if (hasAccess(effectiveRole, AppPage.NewOrder)) {
       menuItems.push(
-        <button 
+        <button
           key="new-order"
           className="flex items-center w-full px-3 py-2.5 text-gray-800 hover:bg-gray-100 rounded-md"
           onClick={() => handleNavigation(AppPage.NewOrder)}
@@ -114,9 +132,9 @@ const AppHeader: React.FC<AppHeaderProps> = ({
     }
     
     // Orders List
-    if (hasAccess(userRole, AppPage.OrderList)) {
+    if (hasAccess(effectiveRole, AppPage.OrderList)) {
       menuItems.push(
-        <button 
+        <button
           key="orders"
           className="flex items-center w-full px-3 py-2.5 text-gray-800 hover:bg-gray-100 rounded-md"
           onClick={() => handleNavigation(AppPage.OrderList)}
@@ -128,9 +146,9 @@ const AppHeader: React.FC<AppHeaderProps> = ({
     }
     
     // Admin Queue (for admin staff)
-    if (hasAccess(userRole, AppPage.AdminQueue)) {
+    if (hasAccess(effectiveRole, AppPage.AdminQueue)) {
       menuItems.push(
-        <button 
+        <button
           key="admin-queue"
           className="flex items-center w-full px-3 py-2.5 text-gray-800 hover:bg-gray-100 rounded-md"
           onClick={() => handleNavigation(AppPage.AdminQueue)}
@@ -142,7 +160,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
     }
     
     // Radiology Queue (for radiology staff)
-    if (hasAccess(userRole, AppPage.RadiologyQueue)) {
+    if (hasAccess(effectiveRole, AppPage.RadiologyQueue)) {
       menuItems.push(
         <button 
           key="radiology-queue"
@@ -156,7 +174,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
     }
     
     // Organization Profile
-    if (hasAccess(userRole, AppPage.OrgProfile)) {
+    if (hasAccess(effectiveRole, AppPage.OrgProfile)) {
       menuItems.push(
         <button 
           key="org-profile"
@@ -170,7 +188,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
     }
     
     // Users management
-    if (hasAccess(userRole, AppPage.Users)) {
+    if (hasAccess(effectiveRole, AppPage.Users)) {
       menuItems.push(
         <button 
           key="users"
@@ -183,8 +201,8 @@ const AppHeader: React.FC<AppHeaderProps> = ({
       );
     }
     
-    // Billing 
-    if (hasAccess(userRole, AppPage.Billing)) {
+    // Billing
+    if (hasAccess(effectiveRole, AppPage.Billing)) {
       menuItems.push(
         <button 
           key="billing"
@@ -221,7 +239,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
     );
     
     // Super Admin sections
-    if (userRole === UserRole.SuperAdmin) {
+    if (effectiveRole === UserRole.SuperAdmin) {
       menuItems.push(
         <button 
           key="superadmin-dashboard"
