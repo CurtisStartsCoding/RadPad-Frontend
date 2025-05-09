@@ -240,7 +240,7 @@ const Login = () => {
               className="w-full mt-4"
               onClick={() => setLocation("/trial")}
             >
-              Try Without Registration
+              Free Trial
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           </form>
