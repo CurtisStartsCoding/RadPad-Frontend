@@ -13,7 +13,7 @@ app.use(express.urlencoded({ extended: false }));
 // CORS middleware to handle all CORS requests
 app.use((req, res, next) => {
   // Get allowed origins from environment variable or use default
-  const allowedOriginsStr = process.env.ALLOWED_ORIGINS || 'https://radpad-dd83h.ondigitalocean.app';
+  const allowedOriginsStr = process.env.ALLOWED_ORIGINS || process.env.DEFAULT_ALLOWED_ORIGIN || 'http://localhost:3000';
   const allowedOrigins = allowedOriginsStr.split(',').map(origin => origin.trim());
   const origin = req.headers.origin;
   

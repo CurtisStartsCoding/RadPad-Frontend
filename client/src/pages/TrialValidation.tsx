@@ -6,13 +6,14 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import PageHeader from "@/components/layout/PageHeader";
-import { 
-  Mic, 
-  RefreshCcw, 
-  CheckCircle, 
-  AlertCircle, 
-  XCircle, 
-  FileText, 
+import { getApiUrl, logApiConfiguration, REMOTE_API_URL } from "@/lib/config";
+import {
+  Mic,
+  RefreshCcw,
+  CheckCircle,
+  AlertCircle,
+  XCircle,
+  FileText,
   Sparkles,
   InfoIcon,
   MoveDown
@@ -41,6 +42,12 @@ const TrialValidation = () => {
   // Track remaining validation credits
   const [remainingCredits, setRemainingCredits] = useState(5);
   
+  // Log API configuration on component mount
+  useEffect(() => {
+    logApiConfiguration();
+    console.log(`API requests will be sent to: ${REMOTE_API_URL}`);
+  }, []);
+  
   // Handle dictation text change
   const handleDictationTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setDictationText(e.target.value);
@@ -52,7 +59,7 @@ const TrialValidation = () => {
   };
   
   // Handle validation
-  const handleValidate = () => {
+  const handleValidate = async () => {
     // Basic validation
     if (!dictationText.trim()) {
       toast({
@@ -65,48 +72,64 @@ const TrialValidation = () => {
     
     setIsValidating(true);
     
-    // Simulate API call to validate order
-    setTimeout(() => {
-      // Determine mock results based on text content
-      const mentionsKnee = dictationText.toLowerCase().includes('knee');
-      const mentionsBrain = dictationText.toLowerCase().includes('brain') || dictationText.toLowerCase().includes('headache') || dictationText.toLowerCase().includes('migraine');
-      const mentionsPain = dictationText.toLowerCase().includes('pain');
-      const mentionsHistory = dictationText.toLowerCase().includes('history');
+    try {
+      // Get the auth token from localStorage - ensure we're getting the correct token
+      const token = localStorage.getItem('rad_order_pad_access_token');
       
-      let score = 0;
-      const feedback: string[] = [];
-      
-      // Calculate compliance score based on content
-      if (mentionsKnee || mentionsBrain) score += 3;
-      if (mentionsPain) score += 2;
-      if (mentionsHistory) score += 2;
-      
-      // Determine which body part is being discussed to provide relevant feedback
-      const isKneeIssue = mentionsKnee && (!mentionsBrain || dictationText.toLowerCase().indexOf('knee') < dictationText.toLowerCase().indexOf('brain'));
-      
-      // Add feedback messages
-      if (!mentionsKnee && !mentionsBrain) {
-        feedback.push("Clinical indication should specifically mention the anatomical region (e.g., knee, brain, chest)");
-      }
-      if (!mentionsPain) {
-        feedback.push("Include details about symptoms or pain characteristics (location, severity, duration)");
-      }
-      if (!mentionsHistory) {
-        feedback.push("Include relevant patient history and previous treatments");
+      if (!token) {
+        console.error('No authentication token found in localStorage');
+        toast({
+          title: "Authentication Error",
+          description: "You need to be logged in to validate orders",
+          variant: "destructive",
+        });
+        setIsValidating(false);
+        return;
       }
       
-      // Advanced mock validation
-      const mockResults = {
-        aucScore: Math.min(7, score),
-        isCompliant: score >= 5,
-        suggestedCptCode: isKneeIssue ? "73721" : "70551",
-        suggestedCptDescription: isKneeIssue ? "MRI knee without contrast" : "MRI brain without contrast",
-        suggestedIcd10Code: isKneeIssue ? "M25.561" : "G43.909",
-        suggestedIcd10Description: isKneeIssue ? "Pain in right knee" : "Migraine, unspecified, not intractable",
-        feedback: feedback.length ? feedback : ["Order appears appropriate based on clinical indication"]
+      console.log('Sending validation request to remote API:', REMOTE_API_URL);
+      console.log('Using authorization token:', token.substring(0, 15) + '...');
+      
+      // Make a real API call to validate the order
+      const response = await fetch(getApiUrl('/orders/validate/trial'), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          dictationText: dictationText
+        })
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+        console.error(`API error: ${response.status}`, errorData);
+        throw new Error(errorData.message || `API error: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log('Validation response received:', data);
+      
+      // Check if the response has the expected structure
+      if (!data.success || !data.validationResult) {
+        throw new Error('Invalid API response format');
+      }
+      
+      const result = data.validationResult;
+      
+      // Transform the API response to match our expected format
+      const validationResults = {
+        aucScore: result.complianceScore || 0,
+        isCompliant: result.validationStatus === 'appropriate',
+        suggestedCptCode: result.suggestedCPTCodes && result.suggestedCPTCodes.length > 0 ? result.suggestedCPTCodes[0].code : "",
+        suggestedCptDescription: result.suggestedCPTCodes && result.suggestedCPTCodes.length > 0 ? result.suggestedCPTCodes[0].description : "",
+        suggestedIcd10Code: result.suggestedICD10Codes && result.suggestedICD10Codes.length > 0 ? result.suggestedICD10Codes[0].code : "",
+        suggestedIcd10Description: result.suggestedICD10Codes && result.suggestedICD10Codes.length > 0 ? result.suggestedICD10Codes[0].description : "",
+        feedback: result.feedback ? [result.feedback] : ["Order appears appropriate based on clinical indication"]
       };
       
-      setValidationResults(mockResults);
+      setValidationResults(validationResults);
       setIsValidating(false);
       setValidationComplete(true);
       
@@ -114,13 +137,22 @@ const TrialValidation = () => {
       setRemainingCredits(prev => Math.max(0, prev - 1));
       
       toast({
-        title: mockResults.isCompliant ? "Validation Successful" : "Validation Complete with Suggestions",
-        description: mockResults.isCompliant 
-          ? "Your order meets clinical appropriateness criteria" 
+        title: validationResults.isCompliant ? "Validation Successful" : "Validation Complete with Suggestions",
+        description: validationResults.isCompliant
+          ? "Your order meets clinical appropriateness criteria"
           : "We've identified some suggestions to improve this order",
-        variant: mockResults.isCompliant ? "default" : "destructive",
+        variant: validationResults.isCompliant ? "default" : "destructive",
       });
-    }, 2000);
+    } catch (error) {
+      console.error('Validation error:', error);
+      setIsValidating(false);
+      
+      toast({
+        title: "Validation Error",
+        description: error instanceof Error ? error.message : "There was an error validating your order. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
   
   // Handle trying another validation
