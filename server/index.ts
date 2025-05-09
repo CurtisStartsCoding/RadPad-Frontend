@@ -979,6 +979,83 @@ app.put('/api/orders/:id', async (req, res) => {
   }
 });
 
+// Add specific endpoint for admin orders queue with mock data
+app.get('/api/admin/orders/queue', async (req, res) => {
+  try {
+    console.log('\n=== ADMIN ORDERS QUEUE REQUEST ===');
+    console.log('Generating mock admin orders queue data');
+    
+    // Get auth token from request
+    const authHeader = req.headers.authorization;
+    console.log('Authorization header:', authHeader ? 'Present' : 'Not present');
+    
+    // First, fetch orders from the real API to use as a base for our mock data
+    const ordersResponse = await fetch(`${apiUrl}/api/orders`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+        ...(authHeader ? { 'Authorization': authHeader } : {})
+      }
+    });
+    
+    if (!ordersResponse.ok) {
+      console.log(`Error fetching orders: ${ordersResponse.status} ${ordersResponse.statusText}`);
+      return res.status(500).json({ message: 'Error fetching orders data' });
+    }
+    
+    const ordersData = await ordersResponse.json();
+    const orders = ordersData.orders || [];
+    
+    // Transform the orders into the format expected by the admin queue
+    const adminQueueOrders = orders.map((order: any) => {
+      return {
+        id: order.id,
+        order_number: order.order_number || `ORD-${Date.now()}`,
+        status: order.status,
+        modality: order.modality || 'MRI',
+        created_at: order.created_at,
+        updated_at: order.updated_at,
+        patient: {
+          id: order.patient_id,
+          name: `${order.patient_first_name || 'John'} ${order.patient_last_name || 'Smith'}`,
+          mrn: order.patient_mrn || `MRN-${Math.floor(Math.random() * 10000)}`,
+          dob: order.patient_dob || '1980-01-01',
+          gender: order.patient_gender || 'Male'
+        },
+        radiology_group: {
+          id: order.radiology_organization_id,
+          name: order.radiology_organization_name || 'City Radiology Center'
+        }
+      };
+    });
+    
+    // Create a mock response
+    const mockResponse = {
+      orders: adminQueueOrders,
+      pagination: {
+        total: adminQueueOrders.length,
+        page: 1,
+        limit: 20,
+        pages: 1
+      }
+    };
+    
+    console.log('\nGenerated mock admin queue data successfully');
+    console.log('=== END ADMIN ORDERS QUEUE REQUEST ===\n');
+    
+    // Return the mock data
+    res.status(200).json(mockResponse);
+    
+    console.log(`Response sent to client with status 200`);
+  } catch (error) {
+    console.error('Error generating admin orders queue data:', error);
+    res.status(500).json({ message: 'Internal server error during admin orders queue request' });
+  }
+});
+
 // Mount the API router for all other API routes
 app.use('/api', apiRouter);
 

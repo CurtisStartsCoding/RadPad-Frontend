@@ -46,6 +46,12 @@ interface ApiAdminOrder {
   };
 }
 
+// Define the API response type which might be an array or an object with orders property
+interface ApiOrdersResponse {
+  orders?: ApiAdminOrder[];
+  [key: string]: any;
+}
+
 interface AdminQueueProps {
   navigateTo?: (page: AppPage) => void;
 }
@@ -55,7 +61,7 @@ const AdminQueue: React.FC<AdminQueueProps> = ({ navigateTo }) => {
   const [selectedFilter, setSelectedFilter] = useState("all");
   
   // Fetch orders from the API
-  const { data: orders, isLoading, error } = useQuery<ApiAdminOrder[]>({
+  const { data, isLoading, error } = useQuery<ApiAdminOrder[] | ApiOrdersResponse>({
     queryKey: ['/api/admin/orders/queue'],
     queryFn: async () => {
       const response = await apiRequest('GET', '/api/admin/orders/queue', undefined);
@@ -68,8 +74,11 @@ const AdminQueue: React.FC<AdminQueueProps> = ({ navigateTo }) => {
     staleTime: 60000, // 1 minute
   });
   
+  // Extract orders from the response (handles both array and object with orders property)
+  const orders: ApiAdminOrder[] = Array.isArray(data) ? data : data?.orders || [];
+  
   // Filter orders by status for admin queue
-  const filteredOrders = orders?.filter(order => {
+  const filteredOrders = orders.filter((order: ApiAdminOrder) => {
     if (selectedFilter === "all") {
       return order.status === 'pending_admin' || order.status === 'pending_radiology';
     } else if (selectedFilter === "pending_admin") {
@@ -81,7 +90,7 @@ const AdminQueue: React.FC<AdminQueueProps> = ({ navigateTo }) => {
   }) || [];
   
   // Further filter by search query
-  const searchFilteredOrders = filteredOrders.filter(order => {
+  const searchFilteredOrders = filteredOrders.filter((order: ApiAdminOrder) => {
     const searchLower = searchQuery.toLowerCase();
     return (
       order.patient.name.toLowerCase().includes(searchLower) ||
@@ -136,8 +145,8 @@ const AdminQueue: React.FC<AdminQueueProps> = ({ navigateTo }) => {
           <Tabs defaultValue="orders" className="space-y-4">
             <TabsList>
               <TabsTrigger value="orders">All Orders</TabsTrigger>
-              <TabsTrigger value="incomplete">Needs Completion ({filteredOrders.filter(o => o.status === 'pending_admin').length})</TabsTrigger>
-              <TabsTrigger value="pending">Pending Radiology ({filteredOrders.filter(o => o.status === 'pending_radiology').length})</TabsTrigger>
+              <TabsTrigger value="incomplete">Needs Completion ({filteredOrders.filter((o: ApiAdminOrder) => o.status === 'pending_admin').length})</TabsTrigger>
+              <TabsTrigger value="pending">Pending Radiology ({filteredOrders.filter((o: ApiAdminOrder) => o.status === 'pending_radiology').length})</TabsTrigger>
             </TabsList>
             
             <div className="flex justify-between items-center">
@@ -214,7 +223,7 @@ const AdminQueue: React.FC<AdminQueueProps> = ({ navigateTo }) => {
                         </TableCell>
                       </TableRow>
                     ) : (
-                      searchFilteredOrders.map((order) => (
+                      searchFilteredOrders.map((order: ApiAdminOrder) => (
                         <TableRow key={order.id}>
                           <TableCell className="font-medium">{order.patient.name}</TableCell>
                           <TableCell className="font-mono text-xs">{order.patient.mrn}</TableCell>
@@ -287,8 +296,8 @@ const AdminQueue: React.FC<AdminQueueProps> = ({ navigateTo }) => {
                   </TableHeader>
                   <TableBody>
                     {filteredOrders
-                      .filter(order => order.status === 'pending_admin')
-                      .map((order) => (
+                      .filter((order: ApiAdminOrder) => order.status === 'pending_admin')
+                      .map((order: ApiAdminOrder) => (
                         <TableRow key={order.id}>
                           <TableCell className="font-medium">{order.patient.name}</TableCell>
                           <TableCell className="font-mono text-xs">{order.patient.mrn}</TableCell>
@@ -353,8 +362,8 @@ const AdminQueue: React.FC<AdminQueueProps> = ({ navigateTo }) => {
                   </TableHeader>
                   <TableBody>
                     {filteredOrders
-                      .filter(order => order.status === 'pending_radiology')
-                      .map((order) => (
+                      .filter((order: ApiAdminOrder) => order.status === 'pending_radiology')
+                      .map((order: ApiAdminOrder) => (
                         <TableRow key={order.id}>
                           <TableCell className="font-medium">{order.patient.name}</TableCell>
                           <TableCell className="font-mono text-xs">{order.patient.mrn}</TableCell>
