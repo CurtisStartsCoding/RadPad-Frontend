@@ -41,20 +41,28 @@ import PageHeader from "@/components/layout/PageHeader";
 interface ApiOrder {
   id: number;
   order_number?: string;
-  status: 'pending_admin' | 'pending_radiology' | 'scheduled' | 'completed' | 'cancelled';
-  modality: string;
+  status: 'pending_admin' | 'pending_validation' | 'pending_radiology' | 'scheduled' | 'completed' | 'cancelled';
+  modality?: string;
   created_at: string;
   updated_at: string;
-  patient: {
-    id: number;
-    name: string;
-    mrn: string;
-    dob: string;
-    gender?: string;
-  };
-  radiology_group: {
-    id: number;
-    name: string;
+  patient_first_name?: string;
+  patient_last_name?: string;
+  patient_dob?: string;
+  patient_mrn?: string;
+  patient_gender?: string;
+  radiology_organization_name?: string;
+  clinical_indication?: string;
+  original_dictation?: string;
+}
+
+// Define the API response structure
+interface OrdersApiResponse {
+  orders: ApiOrder[];
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    pages: number;
   };
 }
 
@@ -63,7 +71,7 @@ const OrderList = () => {
   const [selectedFilter, setSelectedFilter] = useState("all");
   
   // Fetch orders from the API
-  const { data, isLoading, error } = useQuery<{orders: ApiOrder[]}>({
+  const { data, isLoading, error } = useQuery<OrdersApiResponse>({
     queryKey: ['/api/orders'],
     queryFn: async () => {
       const response = await apiRequest('GET', '/api/orders', undefined);
@@ -84,7 +92,7 @@ const OrderList = () => {
     if (selectedFilter === "all") {
       return true;
     } else if (selectedFilter === "pending") {
-      return order.status === 'pending_admin' || order.status === 'pending_radiology';
+      return order.status === 'pending_admin' || order.status === 'pending_validation' || order.status === 'pending_radiology';
     } else if (selectedFilter === "scheduled") {
       return order.status === 'scheduled';
     } else if (selectedFilter === "completed") {
@@ -97,14 +105,16 @@ const OrderList = () => {
   
   // Further filter by search query
   const searchFilteredOrders = filteredOrders.filter(order => {
-    if (!order || !order.patient || !order.radiology_group) return false;
+    if (!order) return false;
+    
+    const patientName = `${order.patient_first_name || ''} ${order.patient_last_name || ''}`.trim();
     
     const searchLower = searchQuery.toLowerCase();
     return (
-      (order.patient.name?.toLowerCase() || '').includes(searchLower) ||
-      (order.patient.mrn?.toLowerCase() || '').includes(searchLower) ||
+      (patientName.toLowerCase() || '').includes(searchLower) ||
+      (order.patient_mrn?.toLowerCase() || '').includes(searchLower) ||
       (order.modality?.toLowerCase() || '').includes(searchLower) ||
-      (order.radiology_group.name?.toLowerCase() || '').includes(searchLower)
+      (order.radiology_organization_name?.toLowerCase() || '').includes(searchLower)
     );
   });
   
@@ -125,6 +135,8 @@ const OrderList = () => {
     switch (status) {
       case 'pending_admin':
         return <Badge variant="outline" className="bg-amber-50 border-amber-200 text-amber-700">Processing</Badge>;
+      case 'pending_validation':
+        return <Badge variant="outline" className="bg-purple-50 border-purple-200 text-purple-700">Pending Validation</Badge>;
       case 'pending_radiology':
         return <Badge variant="outline" className="bg-blue-50 border-blue-200 text-blue-700">Awaiting Schedule</Badge>;
       case 'scheduled':
@@ -134,7 +146,7 @@ const OrderList = () => {
       case 'cancelled':
         return <Badge variant="outline" className="bg-red-50 border-red-200 text-red-700">Cancelled</Badge>;
       default:
-        return null;
+        return <Badge variant="outline" className="bg-gray-50 border-gray-200 text-gray-700">{status.replace('_', ' ')}</Badge>;
     }
   };
   
@@ -165,6 +177,7 @@ const OrderList = () => {
           </div>
         );
       case 'pending_admin':
+      case 'pending_validation':
       case 'pending_radiology':
         return (
           <div className="flex justify-end space-x-2">
@@ -282,8 +295,10 @@ const OrderList = () => {
                   ) : (
                     searchFilteredOrders.map((order) => (
                       <TableRow key={order.id}>
-                        <TableCell className="font-medium">{order.patient?.name || 'Unknown'}</TableCell>
-                        <TableCell className="font-mono text-xs">{order.patient?.mrn || 'N/A'}</TableCell>
+                        <TableCell className="font-medium">
+                          {`${order.patient_first_name || ''} ${order.patient_last_name || ''}`.trim() || 'Unknown'}
+                        </TableCell>
+                        <TableCell className="font-mono text-xs">{order.patient_mrn || 'N/A'}</TableCell>
                         <TableCell>
                           <div className="flex items-center">
                             <Calendar className="h-3.5 w-3.5 mr-1.5 text-slate-500" />
@@ -291,7 +306,7 @@ const OrderList = () => {
                           </div>
                         </TableCell>
                         <TableCell>{order.modality || 'N/A'}</TableCell>
-                        <TableCell>{order.radiology_group?.name || 'N/A'}</TableCell>
+                        <TableCell>{order.radiology_organization_name || 'N/A'}</TableCell>
                         <TableCell>{getStatusBadge(order.status)}</TableCell>
                         <TableCell>{getActionButtons(order.status)}</TableCell>
                       </TableRow>

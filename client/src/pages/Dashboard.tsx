@@ -61,20 +61,28 @@ import {
 interface ApiOrder {
   id: number;
   order_number?: string;
-  status: 'pending_admin' | 'pending_radiology' | 'scheduled' | 'completed' | 'cancelled';
-  modality: string;
+  status: 'pending_admin' | 'pending_validation' | 'pending_radiology' | 'scheduled' | 'completed' | 'cancelled';
+  modality?: string;
   created_at: string;
   updated_at: string;
-  patient: {
-    id: number;
-    name: string;
-    mrn: string;
-    dob: string;
-    gender?: string;
-  };
-  radiology_group: {
-    id: number;
-    name: string;
+  patient_first_name?: string;
+  patient_last_name?: string;
+  patient_dob?: string;
+  patient_mrn?: string;
+  patient_gender?: string;
+  radiology_organization_name?: string;
+  clinical_indication?: string;
+  original_dictation?: string;
+}
+
+// Define the API response structure
+interface OrdersApiResponse {
+  orders: ApiOrder[];
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    pages: number;
   };
 }
 
@@ -114,7 +122,7 @@ const Dashboard = ({ navigateTo }: DashboardProps) => {
   const [activeTab, setActiveTab] = useState('overview');
   
   // Fetch recent orders from the API
-  const { data: recentOrders, isLoading: isLoadingOrders, error: ordersError } = useQuery<ApiOrder[]>({
+  const { data: ordersResponse, isLoading: isLoadingOrders, error: ordersError } = useQuery<OrdersApiResponse>({
     queryKey: ['/api/orders', { limit: 5 }],
     queryFn: async () => {
       const response = await apiRequest('GET', '/api/orders?limit=5', undefined);
@@ -126,6 +134,9 @@ const Dashboard = ({ navigateTo }: DashboardProps) => {
     },
     staleTime: 60000, // 1 minute
   });
+  
+  // Extract orders from the response
+  const recentOrders = ordersResponse?.orders;
   
   // Fetch analytics data from the API
   const { data: analytics, isLoading: isLoadingAnalytics, error: analyticsError } = useQuery<ApiAnalytics>({
@@ -158,6 +169,8 @@ const Dashboard = ({ navigateTo }: DashboardProps) => {
     switch (status) {
       case 'pending_admin':
         return <Badge variant="outline" className="bg-amber-50 border-amber-200 text-amber-700">Processing</Badge>;
+      case 'pending_validation':
+        return <Badge variant="outline" className="bg-purple-50 border-purple-200 text-purple-700">Pending Validation</Badge>;
       case 'pending_radiology':
         return <Badge variant="outline" className="bg-blue-50 border-blue-200 text-blue-700">Awaiting Schedule</Badge>;
       case 'scheduled':
@@ -167,7 +180,7 @@ const Dashboard = ({ navigateTo }: DashboardProps) => {
       case 'cancelled':
         return <Badge variant="outline" className="bg-red-50 border-red-200 text-red-700">Cancelled</Badge>;
       default:
-        return null;
+        return <Badge variant="outline" className="bg-gray-50 border-gray-200 text-gray-700">{status.replace('_', ' ')}</Badge>;
     }
   };
 
@@ -295,7 +308,9 @@ const Dashboard = ({ navigateTo }: DashboardProps) => {
                     {recentOrders && recentOrders.length > 0 ? (
                       recentOrders.map((order) => (
                         <TableRow key={order.id}>
-                          <TableCell className="font-medium">{order.patient.name}</TableCell>
+                          <TableCell className="font-medium">
+                            {order.patient_first_name} {order.patient_last_name}
+                          </TableCell>
                           <TableCell>
                             <div className="flex items-center">
                               <Calendar className="h-3.5 w-3.5 mr-1.5 text-slate-500" />
@@ -308,7 +323,7 @@ const Dashboard = ({ navigateTo }: DashboardProps) => {
                               {formatTime(order.created_at)}
                             </div>
                           </TableCell>
-                          <TableCell>{order.modality}</TableCell>
+                          <TableCell>{order.modality || 'N/A'}</TableCell>
                           <TableCell>{getStatusBadge(order.status)}</TableCell>
                           <TableCell className="text-right">
                             <Button variant="ghost" size="sm" className="h-8 px-2">
@@ -330,7 +345,7 @@ const Dashboard = ({ navigateTo }: DashboardProps) => {
             </CardContent>
             <CardFooter className="border-t bg-slate-50 px-6 py-3">
               <div className="flex items-center justify-between w-full">
-                <p className="text-xs text-slate-500">Showing {recentOrders?.length || 0} of {analytics?.stats.total_orders || 0} orders</p>
+                <p className="text-xs text-slate-500">Showing {recentOrders?.length || 0} of {ordersResponse?.pagination.total || analytics?.stats.total_orders || 0} orders</p>
                 <Button variant="outline" size="sm" className="h-8">
                   View All Orders
                 </Button>
