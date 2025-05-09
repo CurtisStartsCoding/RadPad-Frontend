@@ -27,6 +27,7 @@ const TrialValidation = () => {
   const [isListening, setIsListening] = useState(false);
   const [validationComplete, setValidationComplete] = useState(false);
   const [interimTranscript, setInterimTranscript] = useState("");
+  const [validationFeedback, setValidationFeedback] = useState<string | null>(null);
   
   // Create a ref to store the recognition instance
   const recognitionRef = useRef<any>(null);
@@ -56,6 +57,10 @@ const TrialValidation = () => {
     if (validationComplete) {
       setValidationComplete(false);
       setValidationResults(null);
+    }
+    // Clear validation feedback when text changes
+    if (validationFeedback) {
+      setValidationFeedback(null);
     }
   };
   
@@ -134,6 +139,13 @@ const TrialValidation = () => {
       setIsValidating(false);
       setValidationComplete(true);
       
+      // If validation status indicates need for clarification, set the feedback
+      if (result.validationStatus === 'needs_clarification' || !validationResults.isCompliant) {
+        setValidationFeedback(result.feedback || "Additional information needed to validate this order.");
+      } else {
+        setValidationFeedback(null);
+      }
+      
       // Decrement remaining credits
       setRemainingCredits(prev => Math.max(0, prev - 1));
       
@@ -148,6 +160,13 @@ const TrialValidation = () => {
       console.error('Validation error:', error);
       setIsValidating(false);
       
+      // Set validation feedback for display in the UI
+      setValidationFeedback(
+        error instanceof Error
+          ? error.message
+          : "There was an error validating your order. Please try again."
+      );
+      
       toast({
         title: "Validation Error",
         description: error instanceof Error ? error.message : "There was an error validating your order. Please try again.",
@@ -161,6 +180,23 @@ const TrialValidation = () => {
     setDictationText("");
     setValidationComplete(false);
     setValidationResults(null);
+    setValidationFeedback(null);
+  };
+  
+  // Function to add additional clarification section
+  const addAdditionalClarification = () => {
+    const newText = dictationText + "\n\n--------Additional Clarification----------\n\n";
+    setDictationText(newText);
+    
+    // Focus and move cursor to end of textarea
+    setTimeout(() => {
+      const textarea = document.querySelector('textarea');
+      if (textarea) {
+        textarea.focus();
+        textarea.selectionStart = newText.length;
+        textarea.selectionEnd = newText.length;
+      }
+    }, 0);
   };
   
   // Type declarations for Web Speech API
@@ -366,7 +402,38 @@ const TrialValidation = () => {
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
-
+              
+              {validationFeedback && (
+                <Alert variant="destructive" className="bg-red-50 border-red-200 text-red-800">
+                  <div className="flex justify-between">
+                    <div className="flex items-start">
+                      <AlertCircle className="h-4 w-4 mt-0.5 mr-2 flex-shrink-0" />
+                      <AlertDescription className="text-sm">
+                        <div className="font-medium mb-1">Issues with Dictation</div>
+                        {validationFeedback}
+                      </AlertDescription>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 w-6 p-0 text-gray-400 hover:text-gray-500"
+                      onClick={() => setValidationFeedback(null)}
+                    >
+                      <XCircle className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <div className="mt-2 ml-6">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-2 text-xs bg-white border border-gray-200 hover:bg-gray-50 hover:text-gray-800"
+                      onClick={addAdditionalClarification}
+                    >
+                      + Add Clarification
+                    </Button>
+                  </div>
+                </Alert>
+              )}
               
               <div className="relative">
                 <Textarea
@@ -424,6 +491,7 @@ const TrialValidation = () => {
                   ) : "Validate Order"}
                 </Button>
               </div>
+              
               
               {remainingCredits <= 0 && (
                 <Alert variant="destructive" className="mt-4">
@@ -510,15 +578,28 @@ const TrialValidation = () => {
                 </div>
                 
                 <div className="pt-4">
-                  <Button 
-                    onClick={handleTryAnother} 
-                    className="w-full" 
-                    variant="outline"
-                    disabled={remainingCredits <= 0}
-                  >
-                    <RefreshCcw className="h-4 w-4 mr-1.5" />
-                    Try Another Validation
-                  </Button>
+                  <div className="flex space-x-2">
+                    <Button
+                      onClick={handleTryAnother}
+                      className="flex-1"
+                      variant="outline"
+                      disabled={remainingCredits <= 0}
+                    >
+                      <RefreshCcw className="h-4 w-4 mr-1.5" />
+                      Try Another Validation
+                    </Button>
+                    
+                    <Button
+                      variant="outline"
+                      className="bg-white border border-gray-200 hover:bg-gray-50 hover:text-gray-800"
+                      onClick={() => {
+                        addAdditionalClarification();
+                        setValidationComplete(false);
+                      }}
+                    >
+                      + Add Clarification
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>
