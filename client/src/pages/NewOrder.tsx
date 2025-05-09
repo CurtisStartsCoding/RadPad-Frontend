@@ -575,11 +575,9 @@ const NewOrder = ({ userRole = UserRole.Physician }: NewOrderProps) => {
               </div>
               <p className="text-sm text-gray-600 mt-1">
                 Include clinical indications, relevant history, and requested study details.
-                {dictationText.trim().length > 0 && validationFeedback && (
-                  <span className="ml-1 text-blue-600 font-medium">
-                    You may edit or append to your existing text.
-                  </span>
-                )}
+                <span className="ml-1 text-blue-600 font-medium">
+                  You may edit or append to your existing text.
+                </span>
               </p>
               
               {validationFeedback && (

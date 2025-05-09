@@ -443,6 +443,12 @@ const TrialValidation = () => {
                   value={dictationText}
                   disabled={isValidating}
                 />
+                <p className="text-sm text-slate-500 mt-2">
+                  Include clinical indications, relevant history, and requested study details.
+                  <span className="ml-1 text-blue-600 font-medium">
+                    You may edit or append to your existing text.
+                  </span>
+                </p>
                 {interimTranscript && (
                   <div className="absolute bottom-12 left-0 right-0 bg-blue-50 px-3 py-2 text-blue-700 text-sm border-t border-blue-200">
                     <span className="opacity-70">{interimTranscript}</span>
