@@ -74,7 +74,7 @@ export function PatientInfoCard({ patient, onEditPatient }: PatientInfoCardProps
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-3 w-3 mr-1">
                   <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path>
                 </svg>
-                <span className="hidden sm:inline">Edit</span> Patient
+                <span className="hidden sm:inline">Edit Patient</span> 
               </>
             ) : (
               <>
@@ -84,7 +84,7 @@ export function PatientInfoCard({ patient, onEditPatient }: PatientInfoCardProps
                   <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
                   <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
                 </svg>
-                <span className="hidden sm:inline">Add</span> Patient
+                <span className="hidden sm:inline">Add Patient</span> 
               </>
             )}
           </button>
