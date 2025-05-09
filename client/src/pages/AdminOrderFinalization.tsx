@@ -59,7 +59,7 @@ const AdminOrderFinalization: React.FC<AdminOrderFinalizationProps> = ({ navigat
   // Just use first order for mock, but override modality for this example
   const [order, setOrder] = useState({
     ...allOrders[0], 
-    modality: "MRI Knee"
+    modality: "MOCK-MRI Knee (Test)"
   });
   
   // Function to update radiology group
@@ -72,27 +72,27 @@ const AdminOrderFinalization: React.FC<AdminOrderFinalizationProps> = ({ navigat
   
   // Patient information state
   const [patientInfo, setPatientInfo] = useState({
-    firstName: order.patient.name.split(' ')[0] || '',
-    lastName: order.patient.name.split(' ')[1] || '',
+    firstName: "TEST_" + (order.patient.name.split(' ')[0] || ''),
+    lastName: "MOCK_" + (order.patient.name.split(' ')[1] || ''),
     dateOfBirth: order.patient.dob,
     gender: "female",
-    addressLine1: "123 Main Street",
-    addressLine2: "",
-    city: "Anytown",
-    state: "CA",
-    zipCode: "90210",
-    phoneNumber: "(555) 123-4567",
-    email: "",
-    mrn: order.patient.mrn
+    addressLine1: "123 FAKE Street",
+    addressLine2: "MOCK Suite 456",
+    city: "TESTVILLE",
+    state: "ZZ",
+    zipCode: "00000",
+    phoneNumber: "(555) MOCK-DATA",
+    email: "fake.patient@mockdata.test",
+    mrn: "MOCK-" + order.patient.mrn
   });
   
   // Insurance information state
   const [insuranceInfo, setInsuranceInfo] = useState({
-    insurerName: "Blue Cross Blue Shield",
-    planName: "BlueCare PPO",
-    policyNumber: "BCBS123456789",
-    groupNumber: "GRP12345",
-    policyHolderName: order.patient.name,
+    insurerName: "MOCK-Insurance Company (TEST)",
+    planName: "FAKE-Care PPO SAMPLE",
+    policyNumber: "TEST-POLICY-123456789",
+    groupNumber: "MOCK-GRP-12345",
+    policyHolderName: "TEST_" + order.patient.name,
     policyHolderRelationship: "self",
     policyHolderDateOfBirth: order.patient.dob,
     secondaryInsurerName: "",
@@ -103,34 +103,34 @@ const AdminOrderFinalization: React.FC<AdminOrderFinalizationProps> = ({ navigat
   
   // Supplemental information state
   const [supplementalInfo, setSupplementalInfo] = useState({
-    text: "Patient has history of right knee pain. Previous imaging from 2024 showed no significant findings. Patient reports worsening symptoms in the past month."
+    text: "[MOCK DATA] Patient has fictional history of right knee pain. Previous SAMPLE imaging from 2024 showed no significant findings. TEST patient reports worsening symptoms in the past month. THIS IS FAKE CLINICAL DATA FOR TESTING PURPOSES ONLY."
   });
   
   // Clinical Summary for Review Page - Matches the reference image
-  const clinicalSummaryForReview = "Patient has history of right knee pain. Previous imaging from 2024 showed no significant findings. Patient reports worsening symptoms in the past month.";
+  const clinicalSummaryForReview = "[MOCK DATA] Patient has fictional history of right knee pain. Previous SAMPLE imaging from 2024 showed no significant findings. TEST patient reports worsening symptoms in the past month. THIS IS FAKE CLINICAL DATA FOR TESTING PURPOSES ONLY.";
   
   // Order details state
   const [orderDetails, setOrderDetails] = useState({
-    orderNumber: `ROP-${new Date().toISOString().slice(2,4)}${new Date().toISOString().slice(5,7)}${new Date().toISOString().slice(8,10)}-01`,
-    location: "Advanced Imaging Center – East Campus",
-    scheduling: "Within 14 days",
-    priority: "Routine",
-    primaryIcd10: "M25.561",
-    primaryDescription: "Pain in right knee",
-    secondaryIcd10: "M17.11",
-    secondaryDescription: "Unilateral primary osteoarthritis, right knee",
-    cptCode: "73721",
-    cptDescription: "MRI knee without contrast",
-    instructions: "✓ No contraindications to contrast.\n✓ No known drug allergies.\n→ Patient reports claustrophobia; sedation may be required."
+    orderNumber: `TEST-ROP-${new Date().toISOString().slice(2,4)}${new Date().toISOString().slice(5,7)}${new Date().toISOString().slice(8,10)}-MOCK`,
+    location: "MOCK Imaging Center – TEST Campus",
+    scheduling: "Within 14 days (SAMPLE)",
+    priority: "Routine (TEST)",
+    primaryIcd10: "M25.561-MOCK",
+    primaryDescription: "FAKE Pain in right knee (TEST)",
+    secondaryIcd10: "M17.11-MOCK",
+    secondaryDescription: "SAMPLE Unilateral primary osteoarthritis, right knee (TEST)",
+    cptCode: "73721-TEST",
+    cptDescription: "MOCK MRI knee without contrast (SAMPLE)",
+    instructions: "✓ MOCK: No contraindications to contrast.\n✓ TEST: No known drug allergies.\n→ SAMPLE: Patient reports claustrophobia; sedation may be required.\n→ THIS IS FAKE DATA FOR TESTING PURPOSES ONLY."
   });
   
   // Referring physician state
   const [referringPhysician, setReferringPhysician] = useState({
-    name: "Dr. Sarah Johnson",
-    npi: "1234567890",
-    clinic: "Internal Medicine Associates",
-    phone: "(212) 555-1234",
-    signedDate: "04/15/2025"
+    name: "Dr. TEST_Sarah MOCK_Johnson",
+    npi: "TEST-1234567890",
+    clinic: "MOCK Internal Medicine Associates (TEST)",
+    phone: "(555) FAKE-TEST",
+    signedDate: "04/15/2025 (MOCK DATE)"
   });
   
   // Handle patient info change
@@ -218,33 +218,33 @@ const AdminOrderFinalization: React.FC<AdminOrderFinalizationProps> = ({ navigat
       // Mock successful parsing
       setPatientInfo({
         ...patientInfo,
-        firstName: "Margaret",
-        lastName: "Thompson",
+        firstName: "MOCK_Margaret",
+        lastName: "TEST_Thompson",
         dateOfBirth: "1975-08-15",
         gender: "female",
-        addressLine1: "456 Park Avenue",
-        addressLine2: "Apt 7B",
-        city: "New York",
-        state: "NY",
-        zipCode: "10022",
-        phoneNumber: "(212) 555-9876",
-        email: "m.thompson@example.com",
-        mrn: "PT789012"
+        addressLine1: "456 FAKE Park Avenue",
+        addressLine2: "TEST Apt 7B",
+        city: "MOCK New York",
+        state: "ZZ",
+        zipCode: "00000",
+        phoneNumber: "(555) MOCK-TEST",
+        email: "fake.patient@mockdata.test",
+        mrn: "MOCK-PT789012-TEST"
       });
       
       setInsuranceInfo({
         ...insuranceInfo,
-        insurerName: "Aetna Health Insurance",
-        planName: "Aetna Choice POS II",
-        policyNumber: "AET12345678",
-        groupNumber: "GRP-98765",
-        policyHolderName: "Margaret Thompson",
+        insurerName: "MOCK Aetna Health Insurance (TEST)",
+        planName: "FAKE Aetna Choice POS II (SAMPLE)",
+        policyNumber: "TEST-AET12345678-MOCK",
+        groupNumber: "MOCK-GRP-98765-TEST",
+        policyHolderName: "MOCK_Margaret TEST_Thompson",
         policyHolderRelationship: "self",
         policyHolderDateOfBirth: "1975-08-15",
-        secondaryInsurerName: "Medicare Part B",
-        secondaryPlanName: "Original Medicare",
-        secondaryPolicyNumber: "MED87654321",
-        secondaryGroupNumber: "MEDGRP-54321"
+        secondaryInsurerName: "MOCK Medicare Part B (TEST)",
+        secondaryPlanName: "FAKE Original Medicare (SAMPLE)",
+        secondaryPolicyNumber: "TEST-MED87654321-MOCK",
+        secondaryGroupNumber: "MOCK-MEDGRP-54321-TEST"
       });
       
       setIsParsing(false);
@@ -376,8 +376,8 @@ const AdminOrderFinalization: React.FC<AdminOrderFinalizationProps> = ({ navigat
                 </div>
                 <div>
                   <p className="text-sm font-medium mb-1">Ordering Physician</p>
-                  <p className="text-slate-600">Dr. Sarah Johnson</p>
-                  <p className="text-xs text-slate-400">Internal Medicine</p>
+                  <p className="text-slate-600">Dr. TEST_Sarah MOCK_Johnson</p>
+                  <p className="text-xs text-slate-400">MOCK Internal Medicine (TEST)</p>
                 </div>
                 <div>
                   <p className="text-sm font-medium mb-1">Radiology Group</p>
@@ -391,11 +391,12 @@ const AdminOrderFinalization: React.FC<AdminOrderFinalizationProps> = ({ navigat
                   <div>
                     <p className="text-sm font-medium text-blue-800 mb-1">Clinical Indication</p>
                     <p className="text-sm text-blue-700">
-                      45-year-old female with right knee pain persisting for over 3 months. 
-                      Patient reports pain with weight bearing and difficulty climbing stairs.
-                      Not responsive to NSAIDs and physical therapy. 
-                      Previous X-ray from 2024 showed mild degenerative changes.
-                      Request MRI knee to evaluate for meniscal tear and ligament integrity.
+                      [MOCK DATA] 45-year-old female with fictional right knee pain persisting for over 3 months.
+                      TEST patient reports pain with weight bearing and difficulty climbing stairs.
+                      SAMPLE: Not responsive to NSAIDs and physical therapy.
+                      FAKE X-ray from 2024 showed mild degenerative changes.
+                      TEST Request: MRI knee to evaluate for meniscal tear and ligament integrity.
+                      THIS IS FAKE CLINICAL DATA FOR TESTING PURPOSES ONLY.
                     </p>
                   </div>
                 </div>
@@ -434,31 +435,35 @@ const AdminOrderFinalization: React.FC<AdminOrderFinalizationProps> = ({ navigat
                         <Button 
                           variant="link" 
                           className="h-auto p-0 text-xs text-blue-500"
-                          onClick={() => setEmrText(`PATIENT DEMOGRAPHICS:
-Name: Thompson, Margaret
+                          onClick={() => setEmrText(`*** MOCK DATA - FOR TESTING ONLY ***
+
+PATIENT DEMOGRAPHICS:
+Name: TEST_Thompson, MOCK_Margaret
 DOB: 08/15/1975
 Sex: Female
-MRN: PT789012
-Address: 456 Park Avenue, Apt 7B, New York, NY 10022
-Phone: (212) 555-9876
-Email: m.thompson@example.com
+MRN: MOCK-PT789012-TEST
+Address: 456 FAKE Park Avenue, TEST Apt 7B, MOCK New York, ZZ 00000
+Phone: (555) MOCK-TEST
+Email: fake.patient@mockdata.test
 
 INSURANCE INFORMATION:
-Primary Insurance: Aetna Health Insurance
-Policy #: AET12345678
-Group #: GRP-98765
-Policy Holder: Thompson, Margaret
+Primary Insurance: MOCK Aetna Health Insurance (TEST)
+Policy #: TEST-AET12345678-MOCK
+Group #: MOCK-GRP-98765-TEST
+Policy Holder: TEST_Thompson, MOCK_Margaret
 Relationship to Patient: Self
 Policy Holder DOB: 08/15/1975
 
-Secondary Insurance: Medicare Part B
-Policy #: MED87654321
-Group #: MEDGRP-54321
+Secondary Insurance: MOCK Medicare Part B (TEST)
+Policy #: TEST-MED87654321-MOCK
+Group #: MOCK-MEDGRP-54321-TEST
 
 HEALTHCARE PROVIDER:
-PCP: Dr. James Wilson
-PCP Phone: (212) 555-1234
-Referring Provider: Dr. Sarah Johnson`)}
+PCP: Dr. TEST_James MOCK_Wilson
+PCP Phone: (555) FAKE-TEST
+Referring Provider: Dr. TEST_Sarah MOCK_Johnson
+
+*** THIS IS FAKE DATA FOR TESTING PURPOSES ONLY ***`)}
                         >
                           Load example text
                         </Button>
@@ -1107,8 +1112,8 @@ Referring Provider: Dr. Sarah Johnson`)}
                       <Alert className="bg-blue-50 border-blue-200 mt-4">
                         <InfoIcon className="h-4 w-4 text-blue-600" />
                         <AlertDescription className="text-blue-700">
-                          <strong>Credit Usage:</strong> Sending this order will use 1 credit from your organization's balance. 
-                          You currently have 42 credits remaining.
+                          <strong>Credit Usage (MOCK):</strong> Sending this order will use 1 credit from your organization's balance.
+                          You currently have 42 TEST credits remaining.
                         </AlertDescription>
                       </Alert>
                     </div>
