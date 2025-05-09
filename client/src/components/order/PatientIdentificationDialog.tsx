@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Mic } from "lucide-react";
 
 interface PatientIdentificationDialogProps {
@@ -15,6 +15,46 @@ enum DialogState {
   SUCCESS = 'success',
 }
 
+// Type declarations for Web Speech API
+interface SpeechRecognitionEvent extends Event {
+  results: SpeechRecognitionResultList;
+  resultIndex: number;
+}
+
+interface SpeechRecognitionErrorEvent extends Event {
+  error: string;
+  message: string;
+}
+
+interface SpeechRecognitionResult {
+  isFinal: boolean;
+  [index: number]: SpeechRecognitionAlternative;
+}
+
+interface SpeechRecognitionResultList {
+  length: number;
+  item(index: number): SpeechRecognitionResult;
+  [index: number]: SpeechRecognitionResult;
+}
+
+interface SpeechRecognitionAlternative {
+  transcript: string;
+  confidence: number;
+}
+
+interface SpeechRecognition extends EventTarget {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  start(): void;
+  stop(): void;
+  abort(): void;
+  onresult: (event: SpeechRecognitionEvent) => void;
+  onerror: (event: SpeechRecognitionErrorEvent) => void;
+  onend: () => void;
+  onstart: () => void;
+}
+
 export default function PatientIdentificationDialog({
   open,
   onCancel,
@@ -22,34 +62,182 @@ export default function PatientIdentificationDialog({
 }: PatientIdentificationDialogProps) {
   const [dialogState, setDialogState] = useState<DialogState>(DialogState.LISTENING);
   const [transcript, setTranscript] = useState<string>('');
+  const [interimTranscript, setInterimTranscript] = useState<string>('');
   const [error, setError] = useState<string>('');
   const [isListening, setIsListening] = useState<boolean>(false);
   const [patientSuggestions, setPatientSuggestions] = useState<Array<{name: string, dob: string}>>([]);
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  
+  // Clean up speech recognition when component unmounts
+  useEffect(() => {
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+    };
+  }, []);
   
   // Toggle recording
   const toggleRecording = () => {
     if (isListening) {
-      setIsListening(false);
-      // After stopping, move to confirmation with example data
-      setTimeout(() => {
-        const exampleSuggestion = {
-          name: "Brad DeWitt",
-          dob: "01/01/1980"
-        };
-        setPatientSuggestions([exampleSuggestion]);
-        setDialogState(DialogState.CONFIRMATION);
-      }, 500);
+      stopListening();
     } else {
-      setIsListening(true);
-      setTranscript('');
-      setError('');
-      
-      // Simulate dictation after a delay
-      setTimeout(() => {
-        setTranscript('Brad DeWitt January 1 1980');
-        setDialogState(DialogState.DICTATING);
-      }, 1000);
+      startListening();
     }
+  };
+  
+  // Start listening with Web Speech API
+  const startListening = () => {
+    // Check if SpeechRecognition is available
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+      setError("Voice Recognition Not Available. Your browser doesn't support voice recognition. Please type manually.");
+      setDialogState(DialogState.ERROR);
+      return;
+    }
+
+    try {
+      // Initialize speech recognition
+      // @ts-ignore - TypeScript doesn't know about these browser-specific APIs
+      const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
+      const recognition = new SpeechRecognitionAPI() as SpeechRecognition;
+      
+      // Configure recognition
+      recognition.continuous = false; // Get one complete phrase at a time
+      recognition.interimResults = true; // Get interim results for feedback
+      recognition.lang = 'en-US';
+      
+      recognition.onstart = () => {
+        setIsListening(true);
+        setDialogState(DialogState.DICTATING);
+        console.log("Speech recognition started");
+      };
+      
+      recognition.onresult = (event: SpeechRecognitionEvent) => {
+        let finalTranscript = '';
+        let currentInterimTranscript = '';
+        
+        console.log("Speech recognition result received", event.results);
+        
+        // Process results
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const result = event.results[i];
+          if (result.isFinal) {
+            finalTranscript += result[0].transcript;
+            console.log("Final transcript:", result[0].transcript);
+          } else {
+            currentInterimTranscript += result[0].transcript;
+            console.log("Interim transcript:", result[0].transcript);
+          }
+        }
+        
+        // Update interim transcript for visual feedback
+        setInterimTranscript(currentInterimTranscript);
+        
+        // Only update the main text area with final results
+        if (finalTranscript) {
+          setTranscript(prevText => {
+            const newText = prevText ? `${prevText} ${finalTranscript}` : finalTranscript;
+            return newText.trim();
+          });
+          
+          // Clear interim transcript when we have a final result
+          setInterimTranscript('');
+        }
+      };
+      
+      recognition.onend = () => {
+        console.log("Speech recognition ended");
+        setIsListening(false);
+        
+        // If we have a transcript, move to confirmation
+        if (transcript) {
+          // Parse the transcript to extract name and DOB
+          const parsedInfo = parsePatientInfo(transcript);
+          setPatientSuggestions([parsedInfo]);
+          setDialogState(DialogState.CONFIRMATION);
+        }
+      };
+      
+      recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+        console.error('Speech recognition error', event.error);
+        setIsListening(false);
+        setInterimTranscript('');
+        setError(`Speech recognition error: ${event.error}`);
+        setDialogState(DialogState.ERROR);
+      };
+      
+      // Store the recognition instance in our ref
+      recognitionRef.current = recognition;
+      
+      // Start listening
+      recognition.start();
+    } catch (error) {
+      console.error('Error initializing speech recognition:', error);
+      setError('Failed to initialize speech recognition. Please try again or type manually.');
+      setDialogState(DialogState.ERROR);
+    }
+  };
+  
+  // Stop listening
+  const stopListening = () => {
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+    }
+  };
+  
+  // Parse patient information from transcript
+  const parsePatientInfo = (text: string): {name: string, dob: string} => {
+    // This is a simple parser that could be improved with more sophisticated NLP
+    // For now, we'll look for date patterns and assume the rest is the name
+    
+    const datePatterns = [
+      // MM/DD/YYYY
+      /\b(0?[1-9]|1[0-2])[\/\-](0?[1-9]|[12]\d|3[01])[\/\-](19|20)\d{2}\b/,
+      // Month DD, YYYY
+      /\b(January|February|March|April|May|June|July|August|September|October|November|December)\s+(0?[1-9]|[12]\d|3[01])(?:st|nd|rd|th)?,?\s+((?:19|20)\d{2})\b/i,
+      // Month DD YYYY (no comma)
+      /\b(January|February|March|April|May|June|July|August|September|October|November|December)\s+(0?[1-9]|[12]\d|3[01])(?:st|nd|rd|th)?\s+((?:19|20)\d{2})\b/i,
+      // MM-DD-YYYY
+      /\b(0?[1-9]|1[0-2])\-(0?[1-9]|[12]\d|3[01])\-(19|20)\d{2}\b/,
+    ];
+    
+    let dob = "01/01/1980"; // Default date
+    let name = text;
+    
+    // Try to extract date of birth
+    for (const pattern of datePatterns) {
+      const match = text.match(pattern);
+      if (match) {
+        console.log("Date match found:", match);
+        
+        // Format the date as MM/DD/YYYY
+        if (match[0].includes('/') || match[0].includes('-')) {
+          // Already in a date format, standardize it
+          const parts = match[0].split(/[\/\-]/);
+          dob = `${parts[0].padStart(2, '0')}/${parts[1].padStart(2, '0')}/${parts[2]}`;
+        } else {
+          // Convert from text format (e.g., "January 1 1980")
+          const months: Record<string, string> = {
+            'january': '01', 'february': '02', 'march': '03', 'april': '04',
+            'may': '05', 'june': '06', 'july': '07', 'august': '08',
+            'september': '09', 'october': '10', 'november': '11', 'december': '12'
+          };
+          
+          const monthText = match[1].toLowerCase();
+          const day = match[2].replace(/(?:st|nd|rd|th)/g, '').padStart(2, '0');
+          const year = match[3];
+          
+          console.log("Parsed date components:", { monthText, day, year });
+          dob = `${months[monthText]}/${day}/${year}`;
+        }
+        
+        // Remove the date from the name
+        name = text.replace(match[0], '').trim();
+        break;
+      }
+    }
+    
+    return { name, dob };
   };
   
   // Handle selection of a suggestion
@@ -136,7 +324,10 @@ export default function PatientIdentificationDialog({
               {dialogState === DialogState.DICTATING && (
                 <div className="text-sm border p-2 rounded-md bg-gray-50">
                   <span className="font-medium text-blue-600">Saying: </span>
-                  <span className="italic">{transcript || "..."}</span>
+                  <span className="italic">
+                    {transcript || interimTranscript || "..."}
+                    {interimTranscript && transcript && ` ${interimTranscript}`}
+                  </span>
                   <p className="text-xs text-gray-500 mt-1">
                     Example: "Patient John Smith, date of birth January 15, 1980"
                   </p>
@@ -170,7 +361,19 @@ export default function PatientIdentificationDialog({
                   />
                   <button
                     className="px-3 py-1 border border-gray-300 rounded-md text-sm"
-                    onClick={toggleRecording}
+                    onClick={() => {
+                      if (!transcript || transcript.trim() === '') {
+                        setError('Please enter patient information');
+                        return;
+                      }
+                      
+                      // Parse the input and create a suggestion
+                      const inputText = transcript.trim();
+                      const suggestion = parsePatientInfo(inputText);
+                      
+                      setPatientSuggestions([suggestion]);
+                      setDialogState(DialogState.CONFIRMATION);
+                    }}
                   >
                     Parse
                   </button>
