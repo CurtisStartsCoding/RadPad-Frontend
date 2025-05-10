@@ -304,9 +304,9 @@ const TrialValidation = () => {
 
     try {
       // Initialize speech recognition
-      // @ts-ignore - TypeScript doesn't know about these browser-specific APIs
-      const SpeechRecognitionAPI =
-        window.SpeechRecognition || window.webkitSpeechRecognition;
+      // TypeScript declarations for browser-specific Speech APIs
+      const SpeechRecognitionAPI = (window as any).SpeechRecognition ||
+                                  (window as any).webkitSpeechRecognition;
       const recognition = new SpeechRecognitionAPI() as SpeechRecognition;
 
       // Configure recognition
@@ -454,7 +454,7 @@ const TrialValidation = () => {
               <div className="flex justify-between items-center">
                 <div>
                   <CardTitle className="flex items-center">
-                    <span className="text-sm">Clinical Dictation</span>
+                    <span className="text-base font-medium">Clinical Dictation</span>
                     <div className="ml-2 bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-full text-xs font-medium flex items-center">
                       <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-3 w-3 mr-1">
                         <circle cx="12" cy="12" r="10"></circle>
@@ -529,41 +529,41 @@ const TrialValidation = () => {
                 )}
               </div>
               
-              <div className="mt-2 flex space-x-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-8 px-2"
-                  disabled={isValidating}
-                  onClick={() => setDictationText("")}
-                >
-                  <XCircle className="h-4 w-4 mr-1.5" />
-                  Clear
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className={`h-8 px-2 ${
-                    isListening ? "bg-red-50 text-red-600 border-red-300" : ""
-                  }`}
-                  disabled={isValidating}
-                  onClick={toggleVoiceInput}
-                >
-                  <Mic
-                    className={`h-4 w-4 mr-1.5 ${
-                      isListening ? "text-red-600 animate-pulse" : ""
+              <div className="mt-2 flex justify-between items-center">
+                <div className="flex space-x-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 px-2"
+                    disabled={isValidating}
+                    onClick={() => setDictationText("")}
+                  >
+                    <XCircle className="h-4 w-4 mr-1.5" />
+                    Clear
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className={`h-8 px-2 ${
+                      isListening ? "bg-red-50 text-red-600 border-red-300" : ""
                     }`}
-                  />
-                  {isListening ? "Stop Recording" : "Voice Input"}
-                </Button>
+                    disabled={isValidating}
+                    onClick={toggleVoiceInput}
+                  >
+                    <Mic
+                      className={`h-4 w-4 mr-1.5 ${
+                        isListening ? "text-red-600 animate-pulse" : ""
+                      }`}
+                    />
+                    {isListening ? "Stop Recording" : "Voice Input"}
+                  </Button>
+                </div>
+                <div className="text-sm text-slate-500">
+                  <span>{dictationText.length} characters</span>
+                </div>
               </div>
 
-              <div className="pt-4 flex justify-between items-center">
-                <div className="text-sm text-slate-500">
-                  {dictationText.length > 0 && (
-                    <span>{dictationText.length} characters</span>
-                  )}
-                </div>
+              <div className="pt-4 flex justify-end items-center">
                 <Button
                   onClick={handleValidate}
                   disabled={
