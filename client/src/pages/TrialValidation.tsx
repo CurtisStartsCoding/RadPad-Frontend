@@ -58,10 +58,9 @@ const TrialValidation = () => {
       setValidationComplete(false);
       setValidationResults(null);
     }
-    // Clear validation feedback when text changes
-    if (validationFeedback) {
-      setValidationFeedback(null);
-    }
+    // We no longer clear validation feedback when text changes
+    // This allows the "Issues with Dictation" section to remain visible
+    // even when the user starts typing
   };
   
   // Handle validation
@@ -409,7 +408,7 @@ const TrialValidation = () => {
                     <div className="flex items-start">
                       <AlertCircle className="h-4 w-4 mt-0.5 mr-2 flex-shrink-0" />
                       <AlertDescription className="text-sm">
-                        <div className="font-medium mb-1">Issues with Dictation</div>
+                        {!isValidating && <div className="font-medium mb-1">Issues with Dictation</div>}
                         {validationFeedback}
                       </AlertDescription>
                     </div>

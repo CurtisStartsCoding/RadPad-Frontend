@@ -586,7 +586,7 @@ const NewOrder = ({ userRole = UserRole.Physician }: NewOrderProps) => {
                     <div className="flex items-start">
                       <AlertCircle className="h-4 w-4 mt-0.5 mr-2 flex-shrink-0" />
                       <AlertDescription className="text-sm">
-                        <div className="font-medium mb-1">Issues with Dictation</div>
+                        {!isProcessing && <div className="font-medium mb-1">Issues with Dictation</div>}
                         {validationFeedback}
                       </AlertDescription>
                     </div>
