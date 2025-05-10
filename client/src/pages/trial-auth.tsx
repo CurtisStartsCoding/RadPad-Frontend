@@ -218,13 +218,14 @@ export default function TrialAuthPage() {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       disabled={isSubmitting}
+                      autoComplete="username"
                     />
                   </div>
                   
                   <div className="space-y-2">
                     <label htmlFor="password" className="text-sm font-medium">Password</label>
                     <div className="relative">
-                      <Input 
+                      <Input
                         id="password"
                         type={isPasswordVisible ? "text" : "password"}
                         placeholder="••••••••••"
@@ -232,6 +233,7 @@ export default function TrialAuthPage() {
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         disabled={isSubmitting}
+                        autoComplete="current-password"
                       />
                       <button 
                         type="button" 
@@ -292,28 +294,30 @@ export default function TrialAuthPage() {
                   
                   <div className="space-y-2">
                     <label htmlFor="trialEmail" className="text-sm font-medium">Email</label>
-                    <Input 
-                      id="trialEmail" 
-                      type="email" 
+                    <Input
+                      id="trialEmail"
+                      type="email"
                       placeholder="physician@abcfamilymedicine.com"
                       className="w-full"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       disabled={isSubmitting}
+                      autoComplete="username"
                     />
                   </div>
                   
                   <div className="space-y-2">
                     <label htmlFor="trialPassword" className="text-sm font-medium">Password</label>
                     <div className="relative">
-                      <Input 
-                        id="trialPassword" 
-                        type={isPasswordVisible ? "text" : "password"} 
-                        placeholder="••••••••••" 
+                      <Input
+                        id="trialPassword"
+                        type={isPasswordVisible ? "text" : "password"}
+                        placeholder="••••••••••"
                         className="w-full pr-10"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         disabled={isSubmitting}
+                        autoComplete="new-password"
                       />
                       <button 
                         type="button" 
