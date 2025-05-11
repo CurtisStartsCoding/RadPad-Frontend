@@ -84,12 +84,20 @@ const Login = () => {
       
       // Force a reload of the page to ensure all auth state is properly updated
       setTimeout(() => {
-        console.log("Navigating to dashboard...");
-        // First set the location to root
-        setLocation("/");
+        // Check user role to determine where to navigate
+        const radiologyRoles = ['radiologist', 'admin_radiology', 'scheduler'];
         
-        // Then force a page reload to ensure all auth state is properly updated
-        window.location.href = "/";
+        if (radiologyRoles.includes(user.role)) {
+          console.log(`User has role ${user.role}, navigating to Radiology Queue...`);
+          // Navigate to Radiology Queue for radiologist, admin_radiology, or scheduler roles
+          setLocation("/radiology-queue");
+          window.location.href = "/radiology-queue";
+        } else {
+          console.log(`User has role ${user.role}, navigating to Dashboard...`);
+          // Navigate to Dashboard for all other roles
+          setLocation("/");
+          window.location.href = "/";
+        }
       }, 500);
     } catch (error) {
       console.error("Login error:", error);

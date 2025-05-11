@@ -191,11 +191,46 @@ function App() {
       const currentlyAuthenticated = isAuthenticated || hasToken || !!token;
       
       if (currentlyAuthenticated) {
-        // User is authenticated, show dashboard
-        console.log("User is authenticated, showing dashboard");
-        setCurrentPage(AppPage.Dashboard);
-        if (location === "/auth") {
-          setLocation("/");
+        // User is authenticated, check role to determine which page to show
+        const radiologyRoles = ['radiologist', 'admin_radiology', 'scheduler'];
+        
+        // Try to get role from token if user object is not available
+        let userRole = null;
+        if (user) {
+          userRole = user.role;
+        } else {
+          // Try to extract role from token
+          try {
+            const token = localStorage.getItem('rad_order_pad_access_token');
+            if (token) {
+              const tokenParts = token.split('.');
+              if (tokenParts.length === 3) {
+                const payload = JSON.parse(atob(tokenParts[1]));
+                if (payload && payload.role) {
+                  userRole = payload.role;
+                  console.log(`Extracted role from token: ${userRole}`);
+                }
+              }
+            }
+          } catch (e) {
+            console.error("Error extracting role from token:", e);
+          }
+        }
+        
+        if (userRole && radiologyRoles.includes(userRole)) {
+          // User has a radiology role, show Radiology Queue
+          console.log(`User has role ${userRole}, showing Radiology Queue`);
+          setCurrentPage(AppPage.RadiologyQueue);
+          if (location === "/auth") {
+            setLocation("/radiology-queue");
+          }
+        } else {
+          // User has a non-radiology role or role couldn't be determined, show Dashboard
+          console.log("User is authenticated, showing dashboard");
+          setCurrentPage(AppPage.Dashboard);
+          if (location === "/auth") {
+            setLocation("/");
+          }
         }
       } else if (location !== "/auth" && location !== "/trial-auth" && location !== "/trial" && location !== "/trial-validation") {
         // User is not authenticated and not on auth or trial pages, redirect to login
