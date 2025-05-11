@@ -350,9 +350,7 @@ const NewOrder = ({ userRole = UserRole.Physician }: NewOrderProps) => {
   const handleDictationChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setDictationText(e.target.value);
     setCharacterCount(e.target.value.length);
-    if (validationFeedback) {
-      setValidationFeedback(null);
-    }
+    // Don't clear validation feedback when typing
   };
 
   // Handle voice input using Web Speech API

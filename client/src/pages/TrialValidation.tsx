@@ -50,11 +50,9 @@ const TrialValidation = () => {
   const handleDictationTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setDictationText(e.target.value);
     setCharacterCount(e.target.value.length);
-    if (validationFeedback) {
-      setValidationFeedback(null);
-    }
     
-    // Reset validation state when text changes
+    // Don't clear validation feedback when typing
+    // Only reset validation completion state
     if (validationComplete) {
       setValidationComplete(false);
       setValidationResults(null);
