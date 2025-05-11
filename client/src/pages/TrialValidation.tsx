@@ -1,45 +1,35 @@
 import { useState, useEffect, useRef } from "react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import ValidationView from "@/components/order/ValidationView";
+import { ArrowLeft, AlertCircle, Info, X, Beaker, InfoIcon, Mic, RefreshCcw, CheckCircle, XCircle, FileText, Sparkles, MoveDown } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { useToast } from "@/hooks/use-toast";
+import { UserRole } from "@/lib/roles";
 import PageHeader from "@/components/layout/PageHeader";
-import { getApiUrl, logApiConfiguration, REMOTE_API_URL } from "@/lib/config";
+import { useToast } from "@/hooks/use-toast";
 import { TRIAL_ACCESS_TOKEN_KEY } from "@/lib/useAuth";
-import {
-  Mic,
-  RefreshCcw,
-  CheckCircle,
-  AlertCircle,
-  Beaker,
-  XCircle,
-  FileText,
-  Sparkles,
-  InfoIcon,
-  MoveDown,
-} from "lucide-react";
+import { getApiUrl, logApiConfiguration, REMOTE_API_URL } from "@/lib/config";
+import { Textarea } from "@/components/ui/textarea";
 
 const TrialValidation = () => {
   const { toast } = useToast();
+  const [orderStep, setOrderStep] = useState<'dictation' | 'validation' | 'signature'>('dictation');
   const [dictationText, setDictationText] = useState("");
-  const [isValidating, setIsValidating] = useState(false);
+  const [validationResult, setValidationResult] = useState<any>(null);
+  const [validationFeedback, setValidationFeedback] = useState<string | null>(null);
+  const [attemptCount, setAttemptCount] = useState(0);
+  const [characterCount, setCharacterCount] = useState(0);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [isListening, setIsListening] = useState(false);
-  const [validationComplete, setValidationComplete] = useState(false);
   const [interimTranscript, setInterimTranscript] = useState("");
-  const [validationFeedback, setValidationFeedback] = useState<string | null>(
-    null
-  );
-
-  // Create a ref to store the recognition instance
   const recognitionRef = useRef<any>(null);
+  
+  // Track remaining validation credits
+  const [remainingCredits, setRemainingCredits] = useState(5);
+  
+  // For compatibility with the existing validation results structure
+  const [validationComplete, setValidationComplete] = useState(false);
   const [validationResults, setValidationResults] = useState<{
     aucScore: number;
     isCompliant: boolean;
@@ -50,31 +40,28 @@ const TrialValidation = () => {
     feedback: string[];
   } | null>(null);
 
-  // Track remaining validation credits
-  const [remainingCredits, setRemainingCredits] = useState(5);
-
   // Log API configuration on component mount
   useEffect(() => {
     logApiConfiguration();
     console.log(`API requests will be sent to: ${REMOTE_API_URL}`);
   }, []);
 
-  // Handle dictation text change
-  const handleDictationTextChange = (
-    e: React.ChangeEvent<HTMLTextAreaElement>
-  ) => {
+  // Handle dictation input
+  const handleDictationTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setDictationText(e.target.value);
+    setCharacterCount(e.target.value.length);
+    if (validationFeedback) {
+      setValidationFeedback(null);
+    }
+    
     // Reset validation state when text changes
     if (validationComplete) {
       setValidationComplete(false);
       setValidationResults(null);
     }
-    // We no longer clear validation feedback when text changes
-    // This allows the "Issues with Dictation" section to remain visible
-    // even when the user starts typing
   };
 
-  // Handle validation
+  // Process order (validation)
   const handleValidate = async () => {
     // Basic validation
     if (!dictationText.trim()) {
@@ -86,8 +73,8 @@ const TrialValidation = () => {
       return;
     }
 
-    setIsValidating(true);
-
+    setIsProcessing(true);
+    
     try {
       // Get the trial auth token from localStorage
       const token = localStorage.getItem(TRIAL_ACCESS_TOKEN_KEY);
@@ -99,13 +86,19 @@ const TrialValidation = () => {
           description: "You need to be logged in to validate orders",
           variant: "destructive",
         });
-        setIsValidating(false);
+        setIsProcessing(false);
         return;
       }
 
       console.log("Sending validation request to remote API:", REMOTE_API_URL);
       console.log("Using authorization token:", token.substring(0, 15) + "...");
-
+      
+      // Prepare the request payload
+      const requestPayload = {
+        dictationText,
+        isOverrideValidation: attemptCount > 0
+      };
+      
       // Make a real API call to validate the order
       const response = await fetch(getApiUrl("/orders/validate/trial"), {
         method: "POST",
@@ -113,9 +106,7 @@ const TrialValidation = () => {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          dictationText: dictationText,
-        }),
+        body: JSON.stringify(requestPayload),
       });
 
       if (!response.ok) {
@@ -161,21 +152,42 @@ const TrialValidation = () => {
           : ["Order appears appropriate based on clinical indication"],
       };
 
+      // Set both validation structures for compatibility
       setValidationResults(validationResults);
-      setIsValidating(false);
+      setValidationResult({
+        validationStatus: validationResults.isCompliant ? 'valid' : 'invalid',
+        feedback: validationResults.feedback[0],
+        complianceScore: validationResults.aucScore,
+        suggestedCodes: [
+          ...(result.suggestedICD10Codes?.map((icd: any) => ({
+            code: icd.code,
+            description: icd.description,
+            type: 'ICD-10' as const,
+            confidence: icd.confidence || 0.8
+          })) || []),
+          ...(result.suggestedCPTCodes?.map((cpt: any) => ({
+            code: cpt.code,
+            description: cpt.description,
+            type: 'CPT' as const,
+            confidence: cpt.confidence || 0.8
+          })) || [])
+        ]
+      });
+      
+      setIsProcessing(false);
       setValidationComplete(true);
-
-      // If validation status indicates need for clarification, set the feedback
-      if (
-        result.validationStatus === "needs_clarification" ||
-        !validationResults.isCompliant
-      ) {
+      
+      // If validation is successful, move to validation step
+      if (validationResults.isCompliant) {
+        setOrderStep('validation');
+        setValidationFeedback(null);
+      } else {
+        // If validation has issues, show feedback
         setValidationFeedback(
           result.feedback ||
             "Additional information needed to validate this order."
         );
-      } else {
-        setValidationFeedback(null);
+        setAttemptCount(prev => prev + 1);
       }
 
       // Decrement remaining credits
@@ -192,7 +204,7 @@ const TrialValidation = () => {
       });
     } catch (error) {
       console.error("Validation error:", error);
-      setIsValidating(false);
+      setIsProcessing(false);
 
       // Set validation feedback for display in the UI
       setValidationFeedback(
@@ -212,20 +224,40 @@ const TrialValidation = () => {
     }
   };
 
+  // Handle returning to dictation
+  const handleBackToDictation = () => {
+    setOrderStep('dictation');
+  };
+  
+  // Handle signing the order
+  const handleSignOrder = () => {
+    setOrderStep('signature');
+  };
+  
   // Handle trying another validation
   const handleTryAnother = () => {
     setDictationText("");
     setValidationComplete(false);
     setValidationResults(null);
+    setValidationResult(null);
     setValidationFeedback(null);
+    setOrderStep('dictation');
+    setAttemptCount(0);
+    setCharacterCount(0);
+  };
+  
+  // Handle clear dictation text
+  const handleClearText = () => {
+    setDictationText("");
+    setCharacterCount(0);
   };
 
   // Function to add additional clarification section
   const addAdditionalClarification = () => {
-    const newText =
-      dictationText + "\n\n--------Additional Clarification----------\n\n";
+    const newText = dictationText + "\n\n--------Additional Clarification----------\n\n";
     setDictationText(newText);
-
+    setCharacterCount(newText.length);
+    
     // Focus and move cursor to end of textarea
     setTimeout(() => {
       const textarea = document.querySelector("textarea");
@@ -345,6 +377,7 @@ const TrialValidation = () => {
             const newText = prevText
               ? `${prevText} ${finalTranscript}`
               : finalTranscript;
+            setCharacterCount(newText.length);
             return newText.trim();
           });
 
@@ -423,80 +456,80 @@ const TrialValidation = () => {
 
   return (
     <div className="p-6">
-      <Card className="mb-4 border-blue-200 bg-blue-50">
-        <CardHeader className="pb-2">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <Beaker className="h-5 w-5 text-blue-500 mr-2" />
-              <CardTitle className="text-lg text-blue-700">
-                Trial Mode
-              </CardTitle>
-            </div>
-            <Badge
-              variant="outline"
-              className="bg-white text-blue-700 border-blue-200"
-            >
-              {remainingCredits} validation credits remaining
-            </Badge>
+      <PageHeader title="Trial Validation">
+        <div className="flex items-center space-x-2">
+          <div className="flex items-center">
+            <span className="h-2 w-2 bg-blue-600 rounded-full mr-1"></span>
+            <span className="h-2 w-2 bg-gray-300 rounded-full mr-1"></span>
+            <span className="h-2 w-2 bg-gray-300 rounded-full"></span>
           </div>
-          <CardDescription className="text-blue-700 mt-1">
-            You are using RadOrderPad in trial mode. In this mode, you can test
-            the clinical validation features without sending orders to radiology
-            groups.
-          </CardDescription>
-        </CardHeader>
-      </Card>
-
-      <div className="flex flex-col lg:flex-row gap-6 max-w-6xl">
-        <div className="w-full lg:w-3/5">
-          <Card className="h-full">
-            <CardHeader>
-              <div className="flex justify-between items-center">
-                <div>
-                  <CardTitle className="flex items-center">
-                    <span className="text-base font-medium">Clinical Dictation</span>
-                    <div className="ml-2 bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-full text-xs font-medium flex items-center">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-3 w-3 mr-1">
-                        <circle cx="12" cy="12" r="10"></circle>
-                        <line x1="12" y1="8" x2="12" y2="12"></line>
-                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
-                      </svg>
-                      HIPAA Protected
-                    </div>
-                  </CardTitle>
-                  
-                  <CardDescription>
-                    Include clinical indications, relevant history, and requested study details.
-                  </CardDescription>
-                </div>
-                
+        </div>
+      </PageHeader>
+      
+      <div>
+        {/* Trial User Banner */}
+        <Card className="mb-4 border-blue-200 bg-blue-50">
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <Beaker className="h-5 w-5 text-blue-500 mr-2" />
+                <CardTitle className="text-lg text-blue-700">Trial Mode</CardTitle>
               </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
+              <Badge variant="outline" className="bg-white text-blue-700 border-blue-200">
+                {remainingCredits} validation credits remaining
+              </Badge>
+            </div>
+            <CardDescription className="text-blue-700 mt-1">
+              You are using RadOrderPad in trial mode. In this mode, you can test the clinical validation features without sending orders to radiology groups.
+            </CardDescription>
+          </CardHeader>
+        </Card>
+        
+        <div className="text-sm font-medium text-blue-600 mb-4">
+          Step 1 of 3: Dictation
+        </div>
+        
+        {/* Dictation Form */}
+        {orderStep === 'dictation' && (
+          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+            <div className="p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <span className="text-base font-medium text-gray-900">Clinical Dictation</span>
+                  <div className="ml-2 bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-full text-xs font-medium flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-3 w-3 mr-1">
+                      <circle cx="12" cy="12" r="10"></circle>
+                      <line x1="12" y1="8" x2="12" y2="12"></line>
+                      <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                    </svg>
+                    HIPAA Protected
+                  </div>
+                </div>
+              </div>
+              <p className="text-sm text-gray-600 mt-1">
+                Include clinical indications, relevant history, and requested study details.
+                <span className="ml-1 text-blue-600 font-medium">
+                  You may edit or append to your existing text.
+                </span>
+              </p>
+              
               {validationFeedback && (
-                <Alert
-                  variant="destructive"
-                  className="bg-red-50 border-red-200 text-red-800"
-                >
+                <Alert variant="destructive" className="mt-3 bg-red-50 border-red-200 text-red-800">
                   <div className="flex justify-between">
                     <div className="flex items-start">
                       <AlertCircle className="h-4 w-4 mt-0.5 mr-2 flex-shrink-0" />
                       <AlertDescription className="text-sm">
-                        {!isValidating && (
-                          <div className="font-medium mb-1">
-                            Issues with Dictation
-                          </div>
-                        )}
+                        {!isProcessing && <div className="font-medium mb-1">Issues with Dictation</div>}
                         {validationFeedback}
                       </AlertDescription>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
                       className="h-6 w-6 p-0 text-gray-400 hover:text-gray-500"
                       onClick={() => setValidationFeedback(null)}
                     >
-                      <XCircle className="h-4 w-4" />
+                      <X className="h-4 w-4" />
                     </Button>
                   </div>
                   <div className="mt-2 ml-6">
@@ -508,247 +541,157 @@ const TrialValidation = () => {
                     >
                       + Add Clarification
                     </Button>
-                  </div>
-                </Alert>
-              )}
-
-              <div className="relative">
-                <Textarea
-                  placeholder="Enter your clinical dictation here. For example: '45-year-old female with right knee pain persisting for over 3 months, not responsive to NSAIDs and physical therapy. Previous X-ray showed mild degenerative changes.'"
-                  className="min-h-[200px] resize-none"
-                  onChange={handleDictationTextChange}
-                  value={dictationText}
-                  disabled={isValidating}
-                />
-                
-                {interimTranscript && (
-                  <div className="absolute bottom-0 left-0 right-0 bg-blue-50 px-3 py-2 text-blue-700 text-sm border-t border-blue-200">
-                    <span className="opacity-70">{interimTranscript}</span>
-                    <span className="ml-1 animate-pulse">...</span>
-                  </div>
-                )}
-              </div>
-              
-              <div className="mt-2 flex justify-between items-center">
-                <div className="flex space-x-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-8 px-2"
-                    disabled={isValidating}
-                    onClick={() => setDictationText("")}
-                  >
-                    <XCircle className="h-4 w-4 mr-1.5" />
-                    Clear
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className={`h-8 px-2 ${
-                      isListening ? "bg-red-50 text-red-600 border-red-300" : ""
-                    }`}
-                    disabled={isValidating}
-                    onClick={toggleVoiceInput}
-                  >
-                    <Mic
-                      className={`h-4 w-4 mr-1.5 ${
-                        isListening ? "text-red-600 animate-pulse" : ""
-                      }`}
-                    />
-                    {isListening ? "Stop Recording" : "Voice Input"}
-                  </Button>
-                </div>
-                <div className="text-sm text-slate-500">
-                  <span>{dictationText.length} characters</span>
-                </div>
-              </div>
-
-              <div className="pt-4 flex justify-end items-center">
-                <Button
-                  onClick={handleValidate}
-                  disabled={
-                    isValidating ||
-                    !dictationText.trim() ||
-                    remainingCredits <= 0
-                  }
-                >
-                  {isValidating ? (
-                    <>
-                      <span className="mr-2">Validating...</span>
-                      <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    </>
-                  ) : (
-                    "Validate Order"
-                  )}
-                </Button>
-              </div>
-
-              {remainingCredits <= 0 && (
-                <Alert variant="destructive" className="mt-4">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertTitle>Trial limit reached</AlertTitle>
-                  <AlertDescription>
-                    You've used all your trial validations. Sign up for a full
-                    account to continue using the service.
-                  </AlertDescription>
-                </Alert>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className="w-full lg:w-2/5">
-          {validationComplete && validationResults && (
-            <Card className="h-full">
-              <CardHeader
-                className={`pb-3 ${
-                  validationResults.isCompliant ? "bg-green-50" : "bg-amber-50"
-                }`}
-              >
-                <div className="flex items-start">
-                  {validationResults.isCompliant ? (
-                    <div className="mr-3 bg-green-100 rounded-full p-1.5">
-                      <CheckCircle className="h-5 w-5 text-green-600" />
-                    </div>
-                  ) : (
-                    <div className="mr-3 bg-amber-100 rounded-full p-1.5">
-                      <AlertCircle className="h-5 w-5 text-amber-600" />
-                    </div>
-                  )}
-                  <div>
-                    <CardTitle
-                      className={
-                        validationResults.isCompliant
-                          ? "text-green-800"
-                          : "text-amber-800"
-                      }
-                    >
-                      {validationResults.isCompliant
-                        ? "Order Meets Appropriateness Criteria"
-                        : "Suggestions for Order Improvement"}
-                    </CardTitle>
-                    <CardDescription
-                      className={
-                        validationResults.isCompliant
-                          ? "text-green-600"
-                          : "text-amber-600"
-                      }
-                    >
-                      Appropriateness Score: {validationResults.aucScore}/8
-                    </CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4 pt-4">
-                <div>
-                  <h3 className="text-sm font-medium text-slate-500 mb-2 flex items-center">
-                    <FileText className="h-4 w-4 mr-1.5 text-slate-400" />
-                    Your Dictation
-                  </h3>
-                  <p className="text-sm bg-slate-50 p-3 rounded-md">
-                    {dictationText}
-                  </p>
-                </div>
-
-                <div>
-                  <h3 className="text-sm font-medium text-slate-500 mb-2 flex items-center">
-                    <Sparkles className="h-4 w-4 mr-1.5 text-slate-400" />
-                    Suggested Codes
-                  </h3>
-                  <div className="bg-slate-50 p-3 rounded-md space-y-2">
-                    <div>
-                      <p className="text-xs text-slate-500">CPT Code</p>
-                      <p className="text-sm font-medium">
-                        {validationResults.suggestedCptCode}:{" "}
-                        {validationResults.suggestedCptDescription}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-slate-500">ICD-10 Code</p>
-                      <p className="text-sm font-medium">
-                        {validationResults.suggestedIcd10Code}:{" "}
-                        {validationResults.suggestedIcd10Description}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <h3 className="text-sm font-medium text-slate-500 mb-2 flex items-center">
-                    <InfoIcon className="h-4 w-4 mr-1.5 text-slate-400" />
-                    Feedback
-                  </h3>
-                  <div className="bg-slate-50 p-3 rounded-md">
-                    <ul className="space-y-1.5">
-                      {validationResults.feedback.map((item, index) => (
-                        <li key={index} className="text-sm flex items-start">
-                          <div
-                            className={`mt-0.5 mr-2 h-3 w-3 rounded-full flex-shrink-0 ${
-                              validationResults.isCompliant
-                                ? "bg-green-500"
-                                : "bg-amber-500"
-                            }`}
-                          ></div>
-                          {item}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-
-                <div className="pt-4">
-                  <div className="flex space-x-2">
                     <Button
-                      onClick={handleTryAnother}
-                      className="flex-1"
-                      variant="outline"
-                      disabled={remainingCredits <= 0}
-                    >
-                      <RefreshCcw className="h-4 w-4 mr-1.5" />
-                      Try Another Validation
-                    </Button>
-
-                    <Button
-                      variant="outline"
-                      className="bg-white border border-gray-200 hover:bg-gray-50 hover:text-gray-800"
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-2 text-xs bg-amber-50 text-amber-800 border border-amber-200 ml-2 hover:bg-amber-100 hover:text-amber-900 hover:border-amber-300"
                       onClick={() => {
-                        addAdditionalClarification();
-                        setValidationComplete(false);
+                        // Force validation to proceed by setting attemptCount to 3 and resubmitting
+                        setAttemptCount(3);
+                        handleValidate();
                       }}
                     >
-                      + Add Clarification
+                      Override
                     </Button>
                   </div>
+                </Alert>
+              )}
+              
+              <div className="mt-3 relative">
+                <Textarea
+                  className="w-full h-48 p-3 border border-gray-200 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-none"
+                  placeholder="Examples: '55-year-old female with newly diagnosed breast cancer. Request CT chest, abdomen and pelvis for staging.'"
+                  value={dictationText}
+                  onChange={handleDictationTextChange}
+                />
+                
+                <div className={`absolute bottom-12 left-0 right-0 bg-blue-50 px-3 py-2 text-blue-700 text-sm border-t border-blue-200 ${interimTranscript ? 'block' : 'hidden'}`}>
+                  <span className="opacity-70">{interimTranscript}</span>
+                  <span className="ml-1 animate-pulse">...</span>
                 </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {!validationComplete && (
-            <Card className="h-full bg-slate-50 border-dashed border-2 border-slate-200 flex flex-col items-center justify-center p-6">
-              <div className="mb-4 bg-slate-100 rounded-full p-3">
-                <MoveDown className="h-6 w-6 text-slate-400" />
+                
+                <div className="flex justify-between items-center mt-2">
+                  <div className="flex space-x-2">
+                    <button
+                      className="flex items-center justify-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50"
+                      onClick={handleClearText}
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="mr-2">
+                        <rect x="4" y="4" width="16" height="16" rx="1" stroke="currentColor" strokeWidth="2"/>
+                        <path d="M9 9L15 15M15 9L9 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                      </svg>
+                      Clear
+                    </button>
+                    <button
+                      className={`flex items-center justify-center px-4 py-2 ml-2 text-sm font-medium ${isListening ? 'text-red-700 bg-red-50 border-red-300' : 'text-gray-700 bg-white border-gray-300'} rounded-md shadow-sm hover:bg-gray-50`}
+                      onClick={toggleVoiceInput}
+                    >
+                      <Mic className={`h-4 w-4 mr-2 ${isListening ? 'animate-pulse text-red-600' : ''}`} />
+                      {isListening ? 'Stop Recording' : 'Voice Input'}
+                    </button>
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    {characterCount} characters
+                  </div>
+                </div>
               </div>
-              <h3 className="text-lg font-medium text-slate-600 mb-2">
-                Validation Results
-              </h3>
-              <p className="text-sm text-slate-500 text-center mb-4">
-                Enter your clinical dictation, then click "Validate Order" to
-                see results here.
-              </p>
-              <div className="flex flex-col items-center">
-                <span className="text-xs text-slate-400 mb-1">
-                  Example Validations:
-                </span>
-                <ul className="text-xs text-slate-500 space-y-1">
-                  <li>• MRI Knee for chronic pain</li>
-                  <li>• CT Chest for persistent cough</li>
-                  <li>• MRI Brain for recurrent headaches</li>
-                </ul>
+            </div>
+            <div className="flex justify-end p-4 border-t border-gray-200">
+              <Button
+                className="bg-blue-700 hover:bg-blue-800 text-white font-medium px-4 py-2 h-auto"
+                disabled={dictationText.trim().length < 10 || isProcessing || remainingCredits <= 0}
+                onClick={handleValidate}
+              >
+                {isProcessing ? (
+                  <>
+                    <svg className="animate-spin -ml-1 mr-3 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Processing...
+                  </>
+                ) : (
+                  "Process Order"
+                )}
+              </Button>
+            </div>
+          </div>
+        )}
+        
+        {remainingCredits <= 0 && orderStep === 'dictation' && (
+          <Alert variant="destructive" className="mt-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Trial limit reached</AlertTitle>
+            <AlertDescription>
+              You've used all your trial validations. Sign up for a full
+              account to continue using the service.
+            </AlertDescription>
+          </Alert>
+        )}
+        
+        {/* Validation View */}
+        {orderStep === 'validation' && validationResult && (
+          <Card>
+            <CardContent className="p-6">
+              <Alert className="mb-6">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  Please review the clinical information and validation results before signing the order.
+                </AlertDescription>
+              </Alert>
+              
+              <ValidationView 
+                dictationText={dictationText} 
+                validationResult={validationResult}
+                onBack={handleBackToDictation}
+                onSign={handleSignOrder}
+              />
+            </CardContent>
+          </Card>
+        )}
+        
+        {/* Signature Form */}
+        {orderStep === 'signature' && validationResult && (
+          <Card>
+            <CardContent className="p-6">
+              <h2 className="text-xl font-medium mb-4">Order Validation Complete</h2>
+              <Alert className="mb-6 bg-green-50 border-green-200 text-green-800">
+                <div className="flex items-start">
+                  <div className="mr-2 flex-shrink-0">✓</div>
+                  <AlertDescription>
+                    Your order has been successfully validated! In a full account, you would be able to sign and submit this order to a radiology group.
+                  </AlertDescription>
+                </div>
+              </Alert>
+              
+              <Card className="mb-6 bg-blue-50 border-blue-200">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-md text-blue-700">Trial Validation Credits</CardTitle>
+                  <CardDescription className="text-blue-600">
+                    You have used 1 validation credit. You have {remainingCredits} credits remaining in your trial.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="pt-0 pb-4">
+                  <p className="text-sm text-blue-700">
+                    To continue using RadOrderPad with unlimited validations and to submit orders to radiology groups, please sign up for a full account.
+                  </p>
+                  <Button className="mt-3 bg-blue-700 hover:bg-blue-800">
+                    Sign Up for Full Account
+                  </Button>
+                </CardContent>
+              </Card>
+              
+              <div className="flex justify-between">
+                <Button variant="outline" onClick={handleBackToDictation}>
+                  Back to Dictation
+                </Button>
+                <Button className="bg-gray-800 hover:bg-gray-900 text-white" onClick={handleTryAnother}>
+                  Start New Validation
+                </Button>
               </div>
-            </Card>
-          )}
-        </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );
