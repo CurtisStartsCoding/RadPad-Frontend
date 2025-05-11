@@ -18,6 +18,8 @@ interface AuthContextType {
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<User>;
   logout: () => Promise<void>;
+  requestPasswordReset: (email: string) => Promise<void>;
+  resetPassword: (token: string, newPassword: string) => Promise<void>;
 }
 
 // Create the context
@@ -27,6 +29,8 @@ export const AuthContext = createContext<AuthContextType>({
   isAuthenticated: false,
   login: () => Promise.reject('AuthContext not initialized'),
   logout: () => Promise.reject('AuthContext not initialized'),
+  requestPasswordReset: () => Promise.reject('AuthContext not initialized'),
+  resetPassword: () => Promise.reject('AuthContext not initialized'),
 });
 
 interface AuthProviderProps {
@@ -325,12 +329,61 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
+  // Password reset request mutation
+  const requestPasswordResetMutation = useMutation({
+    mutationFn: async (email: string): Promise<any> => {
+      const response = await apiRequest('POST', '/api/auth/request-password-reset', { email });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to request password reset');
+      }
+      return response.json();
+    },
+  });
+
+  // Reset password mutation
+  const resetPasswordMutation = useMutation({
+    mutationFn: async ({ token, newPassword }: { token: string; newPassword: string }): Promise<any> => {
+      const response = await apiRequest('POST', '/api/auth/reset-password', {
+        token,
+        password: newPassword
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to reset password');
+      }
+      return response.json();
+    },
+  });
+
+  // Request password reset function
+  const requestPasswordReset = async (email: string): Promise<void> => {
+    try {
+      await requestPasswordResetMutation.mutateAsync(email);
+    } catch (error) {
+      console.error('Password reset request error:', error);
+      throw error;
+    }
+  };
+
+  // Reset password function
+  const resetPassword = async (token: string, newPassword: string): Promise<void> => {
+    try {
+      await resetPasswordMutation.mutateAsync({ token, newPassword });
+    } catch (error) {
+      console.error('Password reset error:', error);
+      throw error;
+    }
+  };
+
   const contextValue: AuthContextType = {
     user,
     isLoading,
     isAuthenticated: !!user,
     login,
     logout,
+    requestPasswordReset,
+    resetPassword,
   };
 
   return (

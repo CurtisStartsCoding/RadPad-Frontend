@@ -220,9 +220,13 @@ const Login = () => {
                 </div>
                 <Label htmlFor="remember" className="text-sm cursor-pointer">Remember me</Label>
               </div>
-              <Link href="/forgot-password" className="text-sm text-primary hover:underline">
+              <button
+                type="button"
+                onClick={() => window.location.href = "/forgot-password"}
+                className="text-sm text-primary hover:underline"
+              >
                 Forgot password?
-              </Link>
+              </button>
             </div>
             
             <Button

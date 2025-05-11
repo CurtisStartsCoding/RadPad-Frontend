@@ -1,10 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle, ArrowLeft, Eye, EyeOff, Lock, CheckCircle } from "lucide-react";
+import { useAuth } from "@/lib/useAuth";
+import { useToast } from "@/hooks/use-toast";
+import { Link, useLocation } from "wouter";
 
 const ResetPassword = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -12,13 +15,75 @@ const ResetPassword = () => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [resetComplete, setResetComplete] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [resetToken, setResetToken] = useState("");
+  const { resetPassword } = useAuth();
+  const { toast } = useToast();
+  const [location] = useLocation();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Extract token from URL query parameters
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get("token");
+    if (token) {
+      setResetToken(token);
+    } else {
+      toast({
+        title: "Error",
+        description: "Invalid or missing reset token. Please request a new password reset link.",
+        variant: "destructive",
+      });
+    }
+  }, [toast]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // For demo purposes only - in a real app this would call an API
-    if (password === confirmPassword) {
-      console.log("Password reset submitted");
+    
+    if (!resetToken) {
+      toast({
+        title: "Error",
+        description: "Invalid or missing reset token. Please request a new password reset link.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (password !== confirmPassword) {
+      return; // Form validation will show the error
+    }
+    
+    if (password.length < 8) {
+      toast({
+        title: "Error",
+        description: "Password must be at least 8 characters long",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setIsSubmitting(true);
+    
+    try {
+      await resetPassword(resetToken, password);
       setResetComplete(true);
+      toast({
+        title: "Success",
+        description: "Your password has been successfully reset",
+      });
+    } catch (error) {
+      console.error("Password reset error:", error);
+      let errorMessage = "Failed to reset password. The link may have expired.";
+      if (error instanceof Error) {
+        errorMessage = error.message || errorMessage;
+      }
+      
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -101,12 +166,12 @@ const ResetPassword = () => {
                 )}
               </CardContent>
               <CardFooter className="flex flex-col">
-                <Button 
-                  className="w-full" 
+                <Button
+                  className="w-full"
                   type="submit"
-                  disabled={!password || !confirmPassword || password !== confirmPassword}
+                  disabled={!password || !confirmPassword || password !== confirmPassword || isSubmitting || !resetToken}
                 >
-                  Reset Password
+                  {isSubmitting ? "Resetting..." : "Reset Password"}
                 </Button>
               </CardFooter>
             </form>
@@ -123,7 +188,10 @@ const ResetPassword = () => {
                 Your password has been successfully changed
               </p>
               
-              <Button className="w-full">
+              <Button
+                className="w-full"
+                onClick={() => window.location.href = "/auth"}
+              >
                 Continue to login
               </Button>
             </div>

@@ -28,6 +28,8 @@ import TrialAuthPage from "@/pages/trial-auth";
 import TrialPage from "@/pages/trial";
 import TrialValidation from "@/pages/TrialValidation";
 import NotFound from "@/pages/not-found";
+import ForgotPassword from "@/pages/auth/ForgotPassword";
+import ResetPassword from "@/pages/auth/ResetPassword";
 // Removed import for Login component that was deleted
 
 // Onboarding imports
@@ -232,8 +234,13 @@ function App() {
             setLocation("/");
           }
         }
-      } else if (location !== "/auth" && location !== "/trial-auth" && location !== "/trial" && location !== "/trial-validation") {
-        // User is not authenticated and not on auth or trial pages, redirect to login
+      } else if (location !== "/auth" &&
+                location !== "/forgot-password" &&
+                location !== "/reset-password" &&
+                location !== "/trial-auth" &&
+                location !== "/trial" &&
+                location !== "/trial-validation") {
+        // User is not authenticated and not on auth, password reset, or trial pages, redirect to login
         console.log("User is not authenticated, redirecting to login");
         setLocation("/auth");
       }
@@ -333,6 +340,12 @@ function App() {
           <Switch>
           <Route path="/auth">
             <AuthPage />
+          </Route>
+          <Route path="/forgot-password">
+            <ForgotPassword />
+          </Route>
+          <Route path="/reset-password">
+            <ResetPassword />
           </Route>
           <Route path="/trial">
             <TrialPage />

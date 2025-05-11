@@ -5,16 +5,53 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertCircle, ArrowLeft, Mail, CheckCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useAuth } from "@/lib/useAuth";
+import { useToast } from "@/hooks/use-toast";
+import { Link } from "wouter";
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { requestPasswordReset } = useAuth();
+  const { toast } = useToast();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // For demo purposes only - in a real app this would call an API
-    console.log("Password reset requested for:", email);
-    setSubmitted(true);
+    
+    if (!email) {
+      toast({
+        title: "Error",
+        description: "Please enter your email address",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setIsSubmitting(true);
+    
+    try {
+      await requestPasswordReset(email);
+      setSubmitted(true);
+      toast({
+        title: "Success",
+        description: "Password reset instructions have been sent to your email",
+      });
+    } catch (error) {
+      console.error("Password reset request error:", error);
+      let errorMessage = "Failed to send password reset email. Please try again.";
+      if (error instanceof Error) {
+        errorMessage = error.message || errorMessage;
+      }
+      
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -58,18 +95,23 @@ const ForgotPassword = () => {
                 </div>
               </CardContent>
               <CardFooter className="flex flex-col">
-                <Button className="w-full" type="submit">
-                  Send Reset Link
+                <Button
+                  className="w-full"
+                  type="submit"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? "Sending..." : "Send Reset Link"}
                 </Button>
                 
                 <div className="mt-4 text-center">
-                  <a 
-                    href="#" 
+                  <button
+                    type="button"
+                    onClick={() => window.location.href = "/auth"}
                     className="text-sm inline-flex items-center text-slate-600 hover:text-primary"
                   >
                     <ArrowLeft className="h-4 w-4 mr-1" />
                     Back to sign in
-                  </a>
+                  </button>
                 </div>
               </CardFooter>
             </form>
@@ -93,13 +135,14 @@ const ForgotPassword = () => {
               </Alert>
               
               <div className="text-center">
-                <a 
-                  href="#" 
+                <button
+                  type="button"
+                  onClick={() => window.location.href = "/auth"}
                   className="text-sm inline-flex items-center text-slate-600 hover:text-primary"
                 >
                   <ArrowLeft className="h-4 w-4 mr-1" />
                   Back to sign in
-                </a>
+                </button>
               </div>
             </div>
           )}
