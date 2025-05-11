@@ -14,32 +14,6 @@ import { Badge } from "@/components/ui/badge";
 import { UserRole } from "@/lib/roles";
 import PageHeader from "@/components/layout/PageHeader";
 
-// Mock validation result for demo
-const mockValidationResult = {
-  validationStatus: 'valid' as const,
-  feedback: "The clinical information provided is sufficient for the requested MRI of the right knee. This order meets the appropriate use criteria (AUC) for imaging based on the documented history of trauma and ongoing symptoms.",
-  complianceScore: 8,
-  suggestedCodes: [
-    {
-      code: "S83.6XXA",
-      description: "Sprain of the superior tibiofibular joint and ligament, initial encounter",
-      type: "ICD-10" as const,
-      confidence: 0.91
-    },
-    {
-      code: "M25.561",
-      description: "Pain in right knee",
-      type: "ICD-10" as const,
-      confidence: 0.85
-    },
-    {
-      code: "73721",
-      description: "Magnetic resonance imaging, any joint of lower extremity",
-      type: "CPT" as const,
-      confidence: 0.94
-    }
-  ]
-};
 
 interface NewOrderProps {
   userRole?: UserRole;
