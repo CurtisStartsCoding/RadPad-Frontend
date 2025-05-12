@@ -26,7 +26,15 @@ const TrialValidation = () => {
   const recognitionRef = useRef<any>(null);
   
   // Track remaining validation credits
-  const [remainingCredits, setRemainingCredits] = useState(5);
+  const [remainingCredits, setRemainingCredits] = useState(0);
+  
+  // Load validation credits from localStorage on component mount
+  useEffect(() => {
+    const storedCredits = localStorage.getItem('rad_order_pad_trial_validations_remaining');
+    if (storedCredits) {
+      setRemainingCredits(parseInt(storedCredits, 10));
+    }
+  }, []);
   
   // For compatibility with the existing validation results structure
   const [validationComplete, setValidationComplete] = useState(false);
@@ -188,8 +196,12 @@ const TrialValidation = () => {
         setAttemptCount(prev => prev + 1);
       }
 
-      // Decrement remaining credits
-      setRemainingCredits((prev) => Math.max(0, prev - 1));
+      // Decrement remaining credits and update localStorage
+      setRemainingCredits((prev) => {
+        const newValue = Math.max(0, prev - 1);
+        localStorage.setItem('rad_order_pad_trial_validations_remaining', newValue.toString());
+        return newValue;
+      });
 
       toast({
         title: validationResults.isCompliant

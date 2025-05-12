@@ -68,6 +68,11 @@ export default function TrialAuthPage() {
       // Store the token in localStorage using trial-specific keys
       localStorage.setItem(TRIAL_ACCESS_TOKEN_KEY, data.token);
       
+      // Store trial validation credits information if available
+      if (data.trialInfo && data.trialInfo.validationsRemaining !== undefined) {
+        localStorage.setItem('rad_order_pad_trial_validations_remaining', data.trialInfo.validationsRemaining.toString());
+      }
+      
       // Calculate expiry time (1 hour from now) and save it
       const expiryTime = Date.now() + 60 * 60 * 1000;
       localStorage.setItem(TRIAL_TOKEN_EXPIRY_KEY, expiryTime.toString());
@@ -152,6 +157,11 @@ export default function TrialAuthPage() {
       
       // Store the token in localStorage using trial-specific keys
       localStorage.setItem(TRIAL_ACCESS_TOKEN_KEY, data.token);
+      
+      // Store trial validation credits information if available
+      if (data.trialInfo && data.trialInfo.validationsRemaining !== undefined) {
+        localStorage.setItem('rad_order_pad_trial_validations_remaining', data.trialInfo.validationsRemaining.toString());
+      }
       
       // Calculate expiry time (1 hour from now) and save it
       const expiryTime = Date.now() + 60 * 60 * 1000;
