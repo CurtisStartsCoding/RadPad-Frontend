@@ -17,7 +17,6 @@ interface MedicalCode {
   code: string;
   description: string;
   type: 'ICD-10' | 'CPT';
-  confidence: number;
 }
 
 export interface ProcessedDictation {
@@ -121,9 +120,6 @@ const ValidationView: React.FC<ValidationViewProps> = ({
                         <li key={index} className="text-sm">
                           <span className="font-mono text-primary font-medium">{code.code}</span>
                           <span className="text-gray-700 block">{code.description}</span>
-                          <span className="text-xs bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded">
-                            {Math.round(code.confidence * 100)}% confidence
-                          </span>
                         </li>
                       ))}
                     </ul>
@@ -142,9 +138,6 @@ const ValidationView: React.FC<ValidationViewProps> = ({
                         <li key={index} className="text-sm">
                           <span className="font-mono text-primary font-medium">{code.code}</span>
                           <span className="text-gray-700 block">{code.description}</span>
-                          <span className="text-xs bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded">
-                            {Math.round(code.confidence * 100)}% confidence
-                          </span>
                         </li>
                       ))}
                     </ul>

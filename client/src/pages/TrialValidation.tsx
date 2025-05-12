@@ -174,14 +174,12 @@ const TrialValidation = () => {
           ...(result.suggestedICD10Codes?.map((icd: any) => ({
             code: icd.code,
             description: icd.description,
-            type: 'ICD-10' as const,
-            confidence: icd.confidence || 0.8
+            type: 'ICD-10' as const
           })) || []),
           ...(result.suggestedCPTCodes?.map((cpt: any) => ({
             code: cpt.code,
             description: cpt.description,
-            type: 'CPT' as const,
-            confidence: cpt.confidence || 0.8
+            type: 'CPT' as const
           })) || [])
         ]
       });
