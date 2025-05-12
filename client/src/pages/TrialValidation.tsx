@@ -133,6 +133,12 @@ const TrialValidation = () => {
 
       const result = data.validationResult;
 
+      // Update remaining credits from the API response if available
+      if (data.trialInfo && data.trialInfo.validationsRemaining !== undefined) {
+        setRemainingCredits(data.trialInfo.validationsRemaining);
+        localStorage.setItem('rad_order_pad_trial_validations_remaining', data.trialInfo.validationsRemaining.toString());
+      }
+
       // Transform the API response to match our expected format
       const validationResults = {
         aucScore: result.complianceScore || 0,
@@ -196,12 +202,8 @@ const TrialValidation = () => {
         setAttemptCount(prev => prev + 1);
       }
 
-      // Decrement remaining credits and update localStorage
-      setRemainingCredits((prev) => {
-        const newValue = Math.max(0, prev - 1);
-        localStorage.setItem('rad_order_pad_trial_validations_remaining', newValue.toString());
-        return newValue;
-      });
+      // Note: We no longer need to manually decrement credits here
+      // as we're getting the updated count from the API response
 
       toast({
         title: validationResults.isCompliant
