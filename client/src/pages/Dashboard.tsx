@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "@/lib/useAuth";
+import { UserRole } from "@/lib/roles";
 import {
   Card,
   CardContent,
@@ -120,6 +122,21 @@ interface DashboardProps {
 
 const Dashboard = ({ navigateTo }: DashboardProps) => {
   const [activeTab, setActiveTab] = useState('overview');
+  const { user } = useAuth();
+  
+  // Check if user is a trial user
+  const isTrialUser = user?.role === 'trial_user' || localStorage.getItem('rad_order_pad_trial_access_token');
+  
+  // Handle navigation to new order page
+  const handleNewOrderClick = () => {
+    if (isTrialUser) {
+      // For trial users, redirect to trial validation page
+      window.location.href = '/trial-validation';
+    } else {
+      // For regular users, navigate to new order page
+      navigateTo(AppPage.NewOrder);
+    }
+  };
   
   // Fetch recent orders from the API
   const { data: ordersResponse, isLoading: isLoadingOrders, error: ordersError } = useQuery<OrdersApiResponse>({
@@ -190,7 +207,7 @@ const Dashboard = ({ navigateTo }: DashboardProps) => {
         title="Dashboard"
         description="Welcome back to RadOrderPad"
       >
-        <Button onClick={() => navigateTo(AppPage.NewOrder)}>
+        <Button onClick={handleNewOrderClick}>
           <PlusCircle className="h-4 w-4 mr-2" />
           New Order
         </Button>
@@ -364,7 +381,7 @@ const Dashboard = ({ navigateTo }: DashboardProps) => {
                 <Button
                   variant="outline"
                   className="h-auto flex flex-col items-center justify-center py-6 px-4"
-                  onClick={() => navigateTo(AppPage.NewOrder)}
+                  onClick={handleNewOrderClick}
                 >
                   <PlusCircle className="h-6 w-6 mb-2" />
                   <span>New Order</span>
