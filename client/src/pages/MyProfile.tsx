@@ -42,27 +42,135 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { UserRole } from "@/lib/roles";
 
+import { useAuth } from "@/lib/useAuth";
+import { roleDisplayNames } from "@/lib/roles";
+
 interface MyProfileProps {
   userRole?: UserRole;
 }
 
-const MyProfile = ({ userRole = UserRole.Physician }: MyProfileProps) => {
-  // Check if user is a trial user
-  const isTrialUser = userRole === UserRole.TrialPhysician;
-  const [isEditing, setIsEditing] = useState(false);
-  const [firstName, setFirstName] = useState("Sarah");
-  const [lastName, setLastName] = useState("Johnson");
-  const [phoneNumber, setPhoneNumber] = useState("(555) 123-4567");
-  const [specialty, setSpecialty] = useState("Internal Medicine");
-  const [npiNumber, setNpiNumber] = useState("1234567890");
+// Function to format date
+const formatDate = (dateString: string): string => {
+  return new Date(dateString).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
+};
+
+const MyProfile = ({ userRole }: MyProfileProps) => {
+  const { user } = useAuth();
   
-  // Mock user data
-  const userData = {
-    email: "sarah.johnson@example.com",
-    role: "Physician",
-    organization: "Northwest Medical Group",
-    joinedDate: "January 15, 2023",
-    lastLogin: "August 1, 2023",
+  // Use the user role from props or from the auth context
+  const effectiveRole = userRole || (user?.role as UserRole);
+  
+  // Check if user is a trial user
+  const isTrialUser = effectiveRole === UserRole.TrialPhysician || effectiveRole === UserRole.TrialUser;
+  
+  const [isEditing, setIsEditing] = useState(false);
+  
+  // Get user data from localStorage if available
+  const getUserData = () => {
+    try {
+      // First try to get regular user data
+      if (!isTrialUser) {
+        const userDataStr = localStorage.getItem('rad_order_pad_user_data');
+        if (userDataStr) {
+          return JSON.parse(userDataStr);
+        }
+      }
+      
+      // If trial user or regular user data not found, try trial user data
+      const trialUserDataStr = localStorage.getItem('rad_order_pad_trial_user_data');
+      if (trialUserDataStr) {
+        return JSON.parse(trialUserDataStr);
+      }
+      
+      // Fallback to JWT data if direct user data not available
+      const trialUserJWT = localStorage.getItem('rad_order_pad_trial_user');
+      if (trialUserJWT) {
+        return JSON.parse(trialUserJWT);
+      }
+      
+      return null;
+    } catch (e) {
+      console.error("Error parsing user data:", e);
+      return null;
+    }
+  };
+  
+  // Get trial info from localStorage if available
+  const getTrialInfo = () => {
+    try {
+      const trialInfoStr = localStorage.getItem('rad_order_pad_trial_info');
+      if (trialInfoStr) {
+        return JSON.parse(trialInfoStr);
+      }
+      return null;
+    } catch (e) {
+      console.error("Error parsing trial info:", e);
+      return null;
+    }
+  };
+  
+  const userData = getUserData();
+  const trialInfo = getTrialInfo();
+  
+  // Get validation counts for trial users
+  const validationsRemaining = trialInfo?.validationsRemaining !== undefined
+    ? trialInfo.validationsRemaining
+    : (localStorage.getItem('rad_order_pad_trial_validations_remaining')
+      ? parseInt(localStorage.getItem('rad_order_pad_trial_validations_remaining') || '0', 10)
+      : 0);
+  
+  const maxValidations = trialInfo?.maxValidations || 10; // Default max validations for trial users
+  const validationsUsed = trialInfo?.validationsUsed || (maxValidations - validationsRemaining);
+  
+  // Format specialty from snake_case to display format
+  const formatSpecialty = (specialty: string): string => {
+    if (!specialty) return "";
+    return specialty.split('_').map(
+      (word: string) => word.charAt(0).toUpperCase() + word.slice(1)
+    ).join(' ');
+  };
+  
+  // Initialize form state with user data or defaults
+  const [firstName, setFirstName] = useState(
+    userData?.firstName || userData?.first_name || user?.name?.split(' ')[0] || ""
+  );
+  const [lastName, setLastName] = useState(
+    userData?.lastName || userData?.last_name || user?.name?.split(' ')[1] || ""
+  );
+  const [phoneNumber, setPhoneNumber] = useState(userData?.phone || "(555) 123-4567"); // Default as not in JWT
+  
+  // Get specialty from user data
+  const getSpecialtyFromData = (): string => {
+    // Try from direct user data
+    if (userData?.specialty) {
+      return formatSpecialty(userData.specialty);
+    }
+    
+    // Try from auth context
+    if (user?.role) {
+      // This is a fallback, not ideal but better than nothing
+      return user.role.replace(/_/g, ' ');
+    }
+    
+    return "Family Medicine"; // Default
+  };
+  
+  const [specialty, setSpecialty] = useState(getSpecialtyFromData());
+  const [npiNumber, setNpiNumber] = useState(userData?.npi || "1234567890"); // Use NPI from user data if available
+  
+  // User display data from localStorage, auth context, or defaults
+  const userDisplayData = {
+    email: userData?.email || user?.email || "",
+    role: user?.role ? roleDisplayNames[user.role as UserRole] || user.role : "",
+    organization: isTrialUser ? "Trial Account" : (userData?.organization_name || "Medical Practice"),
+    joinedDate: userData?.createdAt || userData?.created_at
+      ? formatDate(userData.createdAt || userData.created_at)
+      : (user?.createdAt ? formatDate(user.createdAt.toString()) : "Today"),
+    lastLogin: user?.lastLoginAt ? formatDate(user.lastLoginAt.toString()) : "Today",
   };
   
   // Function to handle profile edit
@@ -79,16 +187,7 @@ const MyProfile = ({ userRole = UserRole.Physician }: MyProfileProps) => {
   
   // Function to get initials from name
   const getInitials = (first: string, last: string) => {
-    return `${first[0]}${last[0]}`;
-  };
-  
-  // Function to format date
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
+    return `${first[0] || ''}${last[0] || ''}`;
   };
 
   // Trial user profile is simplified
@@ -131,7 +230,7 @@ const MyProfile = ({ userRole = UserRole.Physician }: MyProfileProps) => {
                 <div className="mt-3 grid grid-cols-1 gap-y-2">
                   <div className="flex items-center text-sm">
                     <Mail className="h-4 w-4 mr-2 text-slate-400" />
-                    <span>{userData.email}</span>
+                    <span>{userDisplayData.email}</span>
                   </div>
                 </div>
               </div>
@@ -150,7 +249,7 @@ const MyProfile = ({ userRole = UserRole.Physician }: MyProfileProps) => {
                   <div className="ml-3">
                     <h3 className="text-sm font-medium text-amber-800">Trial Account</h3>
                     <div className="mt-2 text-sm text-amber-700">
-                      <p>You have 5 remaining order validations in your trial. Upgrade to a full account to access all features including dashboard, order history, and organization management.</p>
+                      <p>You have used {validationsUsed} of {maxValidations} order validations in your trial ({validationsRemaining} remaining). Upgrade to a full account to access all features including dashboard, order history, and organization management.</p>
                     </div>
                     <div className="mt-4">
                       <Button className="bg-amber-600 hover:bg-amber-700 text-white">
@@ -227,14 +326,14 @@ const MyProfile = ({ userRole = UserRole.Physician }: MyProfileProps) => {
                   <div>
                     <h2 className="text-xl font-semibold">{firstName} {lastName}</h2>
                     <div className="mt-1 flex items-center">
-                      <Badge variant="secondary">{userData.role}</Badge>
-                      <span className="text-sm text-slate-500 ml-2">{userData.organization}</span>
+                      <Badge variant="secondary">{userDisplayData.role}</Badge>
+                      <span className="text-sm text-slate-500 ml-2">{userDisplayData.organization}</span>
                     </div>
                     
                     <div className="mt-3 grid grid-cols-2 gap-y-2">
                       <div className="flex items-center text-sm">
                         <Mail className="h-4 w-4 mr-2 text-slate-400" />
-                        <span>{userData.email}</span>
+                        <span>{userDisplayData.email}</span>
                       </div>
                       
                       <div className="flex items-center text-sm">
@@ -277,7 +376,7 @@ const MyProfile = ({ userRole = UserRole.Physician }: MyProfileProps) => {
                       <Label htmlFor="email">Email</Label>
                       <Input
                         id="email"
-                        value={userData.email}
+                        value={userDisplayData.email}
                         disabled
                         className="opacity-60"
                       />
@@ -317,12 +416,12 @@ const MyProfile = ({ userRole = UserRole.Physician }: MyProfileProps) => {
                   
                   <div>
                     <p className="text-xs text-slate-500">Organization</p>
-                    <p className="text-sm">{userData.organization}</p>
+                    <p className="text-sm">{userDisplayData.organization}</p>
                   </div>
                   
                   <div>
                     <p className="text-xs text-slate-500">Role</p>
-                    <p className="text-sm">{userData.role}</p>
+                    <p className="text-sm">{userDisplayData.role}</p>
                   </div>
                 </div>
               ) : (
@@ -361,7 +460,7 @@ const MyProfile = ({ userRole = UserRole.Physician }: MyProfileProps) => {
                     <Label htmlFor="organization">Organization</Label>
                     <Input
                       id="organization"
-                      value={userData.organization}
+                      value={userDisplayData.organization}
                       disabled
                       className="opacity-60"
                     />
@@ -372,7 +471,7 @@ const MyProfile = ({ userRole = UserRole.Physician }: MyProfileProps) => {
                     <Label htmlFor="role">Role</Label>
                     <Input
                       id="role"
-                      value={userData.role}
+                      value={userDisplayData.role}
                       disabled
                       className="opacity-60"
                     />
@@ -391,12 +490,12 @@ const MyProfile = ({ userRole = UserRole.Physician }: MyProfileProps) => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4">
                 <div>
                   <p className="text-xs text-slate-500">Member Since</p>
-                  <p className="text-sm">{userData.joinedDate}</p>
+                  <p className="text-sm">{userDisplayData.joinedDate}</p>
                 </div>
                 
                 <div>
                   <p className="text-xs text-slate-500">Last Login</p>
-                  <p className="text-sm">{userData.lastLogin}</p>
+                  <p className="text-sm">{userDisplayData.lastLogin}</p>
                 </div>
               </div>
             </div>
@@ -405,7 +504,11 @@ const MyProfile = ({ userRole = UserRole.Physician }: MyProfileProps) => {
             <div className="w-full flex items-center justify-between">
               <p className="text-xs text-slate-500 flex items-center">
                 <AlertCircle className="h-3.5 w-3.5 mr-1.5 text-slate-400" />
-                Last updated on August 1, 2023
+                Last updated on {new Date().toLocaleDateString('en-US', {
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric'
+                })}
               </p>
               
               {isEditing && (

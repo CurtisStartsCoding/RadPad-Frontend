@@ -69,9 +69,17 @@ export default function TrialAuthPage() {
       // Store the token in localStorage using trial-specific keys
       localStorage.setItem(TRIAL_ACCESS_TOKEN_KEY, data.token);
       
+      // Store user data if available
+      if (data.user) {
+        localStorage.setItem('rad_order_pad_trial_user_data', JSON.stringify(data.user));
+      }
+      
       // Store trial validation credits information if available
-      if (data.trialInfo && data.trialInfo.validationsRemaining !== undefined) {
-        localStorage.setItem('rad_order_pad_trial_validations_remaining', data.trialInfo.validationsRemaining.toString());
+      if (data.trialInfo) {
+        localStorage.setItem('rad_order_pad_trial_info', JSON.stringify(data.trialInfo));
+        if (data.trialInfo.validationsRemaining !== undefined) {
+          localStorage.setItem('rad_order_pad_trial_validations_remaining', data.trialInfo.validationsRemaining.toString());
+        }
       }
       
       // Calculate expiry time (1 hour from now) and save it
@@ -178,9 +186,17 @@ export default function TrialAuthPage() {
       // Store the token in localStorage using trial-specific keys
       localStorage.setItem(TRIAL_ACCESS_TOKEN_KEY, data.token);
       
+      // Store user data if available
+      if (data.user) {
+        localStorage.setItem('rad_order_pad_trial_user_data', JSON.stringify(data.user));
+      }
+      
       // Store trial validation credits information if available
-      if (data.trialInfo && data.trialInfo.validationsRemaining !== undefined) {
-        localStorage.setItem('rad_order_pad_trial_validations_remaining', data.trialInfo.validationsRemaining.toString());
+      if (data.trialInfo) {
+        localStorage.setItem('rad_order_pad_trial_info', JSON.stringify(data.trialInfo));
+        if (data.trialInfo.validationsRemaining !== undefined) {
+          localStorage.setItem('rad_order_pad_trial_validations_remaining', data.trialInfo.validationsRemaining.toString());
+        }
       }
       
       // Calculate expiry time (1 hour from now) and save it

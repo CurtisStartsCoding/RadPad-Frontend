@@ -274,6 +274,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
         // Save token
         const expiresIn = 3600; // Default to 1 hour
         saveToken(data.token, expiresIn);
+        
+        // Store the complete user data in localStorage for profile use
+        localStorage.setItem('rad_order_pad_user_data', JSON.stringify(apiUser));
+        
         return;
       }
     },
@@ -333,6 +337,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
           createdAt: new Date(apiUser.created_at),
           updatedAt: new Date(apiUser.updated_at)
         };
+        
+        // Store the complete user data in localStorage for profile use
+        localStorage.setItem('rad_order_pad_user_data', JSON.stringify(apiUser));
+        
         return userData;
       } else {
         throw new Error('Login failed - no user data returned');
@@ -348,12 +356,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
     try {
       await logoutMutation.mutateAsync();
       
+      // Clear user data from localStorage
+      localStorage.removeItem('rad_order_pad_user_data');
+      
       // Clear all user-related queries
       await queryClient.clear();
     } catch (error) {
       console.error('Logout error:', error);
       // Don't throw the error, just clear tokens and user state
       clearToken();
+      localStorage.removeItem('rad_order_pad_user_data');
       setUser(null);
       await queryClient.clear();
     }
