@@ -180,7 +180,8 @@ function App() {
   // Determine if user should be authenticated based on token and auth state
   // Check token directly from localStorage for the most up-to-date state
   const token = localStorage.getItem('rad_order_pad_access_token');
-  const shouldBeAuthenticated = isAuthenticated || hasToken || !!token;
+  const trialToken = localStorage.getItem('rad_order_pad_trial_access_token');
+  const shouldBeAuthenticated = isAuthenticated || hasToken || !!token || !!trialToken;
   
   // Determine if we should still be in loading state
   const effectiveLoading = isLoading && !forceLoadingComplete;
@@ -190,7 +191,8 @@ function App() {
     if (!effectiveLoading) {
       // Check token directly from localStorage for the most up-to-date state
       const token = localStorage.getItem('rad_order_pad_access_token');
-      const currentlyAuthenticated = isAuthenticated || hasToken || !!token;
+      const trialToken = localStorage.getItem('rad_order_pad_trial_access_token');
+      const currentlyAuthenticated = isAuthenticated || hasToken || !!token || !!trialToken;
       
       if (currentlyAuthenticated) {
         // User is authenticated, check role to determine which page to show
@@ -201,21 +203,41 @@ function App() {
         if (user) {
           userRole = user.role;
         } else {
-          // Try to extract role from token
-          try {
-            const token = localStorage.getItem('rad_order_pad_access_token');
-            if (token) {
-              const tokenParts = token.split('.');
-              if (tokenParts.length === 3) {
-                const payload = JSON.parse(atob(tokenParts[1]));
-                if (payload && payload.role) {
-                  userRole = payload.role;
-                  console.log(`Extracted role from token: ${userRole}`);
+          // First check for trial user data
+          const trialUserData = localStorage.getItem('rad_order_pad_trial_user');
+          if (trialUserData) {
+            try {
+              const trialUser = JSON.parse(trialUserData);
+              userRole = trialUser.role;
+              console.log(`Using role from trial user data: ${userRole}`);
+            } catch (e) {
+              console.error("Error parsing trial user data:", e);
+            }
+          }
+          
+          // If no trial user data, try to extract role from regular token
+          if (!userRole) {
+            try {
+              const token = localStorage.getItem('rad_order_pad_access_token');
+              if (token) {
+                const tokenParts = token.split('.');
+                if (tokenParts.length === 3) {
+                  const payload = JSON.parse(atob(tokenParts[1]));
+                  if (payload && payload.role) {
+                    userRole = payload.role;
+                    console.log(`Extracted role from token: ${userRole}`);
+                  }
                 }
               }
+            } catch (e) {
+              console.error("Error extracting role from token:", e);
             }
-          } catch (e) {
-            console.error("Error extracting role from token:", e);
+          }
+          
+          // If still no role but we have a trial token, use 'trial-user' as the default role
+          if (!userRole && trialToken) {
+            userRole = 'trial-user';
+            console.log('Using default trial-user role');
           }
         }
         

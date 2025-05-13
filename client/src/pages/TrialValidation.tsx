@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -7,6 +8,7 @@ import { ArrowLeft, AlertCircle, Info, X, Beaker, InfoIcon, Mic, RefreshCcw, Che
 import { Badge } from "@/components/ui/badge";
 import { UserRole } from "@/lib/roles";
 import AppHeader from "@/components/layout/AppHeader";
+import { AppPage } from "@/App";
 import { useToast } from "@/hooks/use-toast";
 import { TRIAL_ACCESS_TOKEN_KEY } from "@/lib/useAuth";
 import { getApiUrl, logApiConfiguration, REMOTE_API_URL } from "@/lib/config";
@@ -24,6 +26,7 @@ const TrialValidation = () => {
   const [isListening, setIsListening] = useState(false);
   const [interimTranscript, setInterimTranscript] = useState("");
   const recognitionRef = useRef<any>(null);
+  const [_, setLocation] = useLocation();
   
   // Track remaining validation credits
   const [remainingCredits, setRemainingCredits] = useState(0);
@@ -464,12 +467,37 @@ const TrialValidation = () => {
     };
   }, []);
 
+  // Handle navigation from the hamburger menu
+  const handleNavigate = (page: AppPage) => {
+    switch (page) {
+      case AppPage.Dashboard:
+        setLocation("/");
+        break;
+      case AppPage.NewOrder:
+        setLocation("/new-order");
+        break;
+      case AppPage.Profile:
+        setLocation("/profile");
+        break;
+      case AppPage.Security:
+        setLocation("/security");
+        break;
+      case AppPage.Login:
+        setLocation("/auth");
+        break;
+      default:
+        // For any other page, stay on the current page
+        console.log(`Navigation to ${page} not implemented for trial users`);
+    }
+  };
+
   return (
     <div>
       <AppHeader
         title="Trial Validation"
         subtitle="Step 1 of 3: Dictation"
         userRole={UserRole.TrialUser}
+        onNavigate={handleNavigate}
       />
       <div className="p-6">
         {/* Trial User Banner */}
