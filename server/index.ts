@@ -608,29 +608,73 @@ app.get('/api/analytics/dashboard', async (req, res) => {
     const authHeader = req.headers.authorization;
     console.log('Authorization header:', authHeader ? 'Present' : 'Not present');
     
+    // Check if this is a trial user by examining the token
+    let isTrialUser = false;
+    
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      try {
+        const token = authHeader.split(' ')[1];
+        const tokenParts = token.split('.');
+        if (tokenParts.length === 3) {
+          const payload = JSON.parse(Buffer.from(tokenParts[1], 'base64').toString());
+          isTrialUser = payload.isTrial === true || payload.role === 'trial_physician' || payload.role === 'trial-user';
+          if (isTrialUser) {
+            console.log('Trial user detected');
+          }
+        }
+      } catch (e) {
+        console.error("Error examining token:", e);
+      }
+    }
+    
     if (!authHeader) {
       return res.status(401).json({ message: 'Unauthorized' });
     }
     
-    // First, fetch orders from the real API to generate analytics from
-    const ordersResponse = await fetch(`${apiUrl}/api/orders`, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0',
-        'Authorization': authHeader
+    // First, fetch orders from the API
+    let orders = [];
+    
+    if (isTrialUser) {
+      // For trial users, get orders from the /api/orders endpoint which already handles trial users
+      const ordersResponse = await fetch(`http://localhost:3000/api/orders`, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+          'Authorization': authHeader
+        }
+      });
+      
+      if (!ordersResponse.ok) {
+        console.log(`Error fetching orders for trial user: ${ordersResponse.status} ${ordersResponse.statusText}`);
+        return res.status(ordersResponse.status).json({ message: 'Error fetching orders data' });
       }
-    });
-    
-    if (!ordersResponse.ok) {
-      console.log(`Error fetching orders: ${ordersResponse.status} ${ordersResponse.statusText}`);
-      return res.status(ordersResponse.status).json({ message: 'Error fetching orders data' });
+      
+      const ordersData = await ordersResponse.json();
+      orders = ordersData.orders || [];
+    } else {
+      // For regular users, fetch orders from the real API
+      const ordersResponse = await fetch(`${apiUrl}/api/orders`, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+          'Authorization': authHeader
+        }
+      });
+      
+      if (!ordersResponse.ok) {
+        console.log(`Error fetching orders: ${ordersResponse.status} ${ordersResponse.statusText}`);
+        return res.status(ordersResponse.status).json({ message: 'Error fetching orders data' });
+      }
+      
+      const ordersData = await ordersResponse.json();
+      orders = ordersData.orders || [];
     }
-    
-    const ordersData = await ordersResponse.json();
-    const orders = ordersData.orders || [];
     
     // Generate analytics data based on orders
     const analyticsData = generateAnalyticsFromOrders(orders);
@@ -970,123 +1014,7 @@ app.get('/api/orders', async (req, res) => {
   }
 });
 
-// Add specific endpoint for analytics dashboard with enhanced logging
-app.get('/api/analytics/dashboard', async (req, res) => {
-  try {
-    console.log('\n=== ANALYTICS DASHBOARD REQUEST ===');
-    console.log('Forwarding analytics dashboard request to real API');
-    
-    // Get auth token from request
-    const authHeader = req.headers.authorization;
-    console.log('Authorization header:', authHeader ? 'Present' : 'Not present');
-    
-    // Check if this is a trial user by examining the token
-    let isTrialUser = false;
-    
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      try {
-        const token = authHeader.split(' ')[1];
-        const tokenParts = token.split('.');
-        if (tokenParts.length === 3) {
-          const payload = JSON.parse(Buffer.from(tokenParts[1], 'base64').toString());
-          isTrialUser = payload.isTrial === true || payload.role === 'trial_physician' || payload.role === 'trial-user';
-          if (isTrialUser) {
-            console.log('Trial user detected, will provide mock data');
-          }
-        }
-      } catch (e) {
-        console.error("Error examining token:", e);
-      }
-    }
-    
-    // For trial users, provide mock analytics data
-    if (isTrialUser) {
-      // Generate mock analytics data
-      const mockAnalytics = {
-        activity_data: [
-          { name: "Dec 2024", orders: 12, validations: 10 },
-          { name: "Jan 2025", orders: 15, validations: 13 },
-          { name: "Feb 2025", orders: 18, validations: 16 },
-          { name: "Mar 2025", orders: 22, validations: 20 },
-          { name: "Apr 2025", orders: 25, validations: 23 },
-          { name: "May 2025", orders: 5, validations: 5 }
-        ],
-        modality_distribution: [
-          { name: "MRI", value: 35 },
-          { name: "CT", value: 25 },
-          { name: "X-Ray", value: 20 },
-          { name: "Ultrasound", value: 15 },
-          { name: "Other", value: 5 }
-        ],
-        stats: {
-          total_orders: 97,
-          completed_studies: 85,
-          active_patients: 42,
-          pending_orders: 12,
-          avg_completion_time: 2.3,
-          validation_success_rate: 92.5,
-          orders_this_quarter: 52
-        }
-      };
-      
-      console.log('Returning mock analytics data for trial user');
-      console.log('=== END ANALYTICS DASHBOARD REQUEST ===\n');
-      
-      return res.status(200).json(mockAnalytics);
-    }
-    
-    // For regular users, forward the request to the real API
-    const response = await fetch(`${apiUrl}/api/analytics/dashboard`, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0',
-        ...(authHeader ? { 'Authorization': authHeader } : {})
-      }
-    });
-    
-    // Get the response data
-    const contentType = response.headers.get('content-type');
-    let data;
-    
-    if (contentType && contentType.includes('application/json')) {
-      data = await response.json();
-    } else {
-      data = await response.text();
-    }
-    
-    // Log response details
-    console.log('\nResponse Status:', response.status, response.statusText);
-    console.log('Response Headers:');
-    response.headers.forEach((value, name) => {
-      console.log(`  ${name}: ${value}`);
-    });
-    
-    console.log('\nResponse Body:', typeof data === 'string' ? data : JSON.stringify(data, null, 2));
-    console.log('=== END ANALYTICS DASHBOARD REQUEST ===\n');
-    
-    // Copy any headers from the original response
-    for (const [key, value] of Object.entries(Object.fromEntries(response.headers))) {
-      if (key.toLowerCase() !== 'content-length') {  // Skip content-length as it will be set automatically
-        res.setHeader(key, value);
-      }
-    }
-    
-    // Forward the status and data back to the client
-    if (typeof data === 'string') {
-      res.status(response.status).send(data);
-    } else {
-      res.status(response.status).json(data);
-    }
-    
-    console.log(`Response sent to client with status ${response.status}`);
-  } catch (error) {
-    console.error('Error forwarding analytics dashboard request:', error);
-    res.status(500).json({ message: 'Internal server error during analytics dashboard request' });
-  }
-});
+// Add specific endpoint for order updates with enhanced logging
 
 // Add specific endpoint for order updates with enhanced logging
 app.put('/api/orders/:id', async (req, res) => {
