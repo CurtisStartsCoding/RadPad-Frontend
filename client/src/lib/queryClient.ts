@@ -39,9 +39,15 @@ export async function apiRequest(
   // For authentication-related endpoints, add extra cache prevention
   const isAuthEndpoint = url.includes('/api/auth/');
   
-  // Get auth token - use trial token for trial endpoints, otherwise use regular token
-  const isTrial = url.includes('/trial');
-  const accessToken = getAuthToken(isTrial);
+  // Check if this is a trial user by looking for trial token and trial user data
+  const trialToken = localStorage.getItem('rad_order_pad_trial_access_token');
+  const trialUserData = localStorage.getItem('rad_order_pad_trial_user');
+  const isTrialUser = !!trialToken && !!trialUserData;
+  
+  // For trial users, always use the trial token
+  // For regular users, only use trial token for trial-specific endpoints
+  const isTrial = isTrialUser || url.includes('/trial');
+  const accessToken = isTrialUser ? trialToken : getAuthToken(isTrial);
   
   // Prepare headers
   const headers: Record<string, string> = {
@@ -175,9 +181,15 @@ export const getQueryFn: <T>(options: {
       `${url}${url.includes('?') ? '&' : '?'}_=${Date.now()}` :
       url;
     
-    // Get auth token - use trial token for trial endpoints, otherwise use regular token
-    const isTrial = url.includes('/trial');
-    const accessToken = getAuthToken(isTrial);
+    // Check if this is a trial user by looking for trial token and trial user data
+    const trialToken = localStorage.getItem('rad_order_pad_trial_access_token');
+    const trialUserData = localStorage.getItem('rad_order_pad_trial_user');
+    const isTrialUser = !!trialToken && !!trialUserData;
+    
+    // For trial users, always use the trial token
+    // For regular users, only use trial token for trial-specific endpoints
+    const isTrial = isTrialUser || url.includes('/trial');
+    const accessToken = isTrialUser ? trialToken : getAuthToken(isTrial);
     
     try {
       // Prepare headers with auth token

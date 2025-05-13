@@ -795,7 +795,129 @@ app.get('/api/orders', async (req, res) => {
     const authHeader = req.headers.authorization;
     console.log('Authorization header:', authHeader ? 'Present' : 'Not present');
     
-    // Forward the request to the real API
+    // Check if this is a trial user by examining the token
+    let isTrialUser = false;
+    
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      try {
+        const token = authHeader.split(' ')[1];
+        const tokenParts = token.split('.');
+        if (tokenParts.length === 3) {
+          const payload = JSON.parse(Buffer.from(tokenParts[1], 'base64').toString());
+          isTrialUser = payload.isTrial === true || payload.role === 'trial_physician' || payload.role === 'trial-user';
+          if (isTrialUser) {
+            console.log('Trial user detected, will provide mock data');
+          }
+        }
+      } catch (e) {
+        console.error("Error examining token:", e);
+      }
+    }
+    
+    // For trial users, provide mock data
+    if (isTrialUser) {
+      // Generate mock orders data
+      const mockOrders = [
+        {
+          id: 1001,
+          order_number: "TRIAL-001",
+          status: "completed",
+          modality: "MRI",
+          created_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+          updated_at: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString(),
+          patient_first_name: "John",
+          patient_last_name: "Doe",
+          patient_dob: "1980-05-15",
+          patient_mrn: "MRN12345",
+          patient_gender: "Male",
+          radiology_organization_name: "Trial Radiology Group",
+          clinical_indication: "Lower back pain radiating to left leg",
+          original_dictation: "Patient presents with lower back pain radiating to left leg for 3 weeks. No trauma. Request MRI lumbar spine."
+        },
+        {
+          id: 1002,
+          order_number: "TRIAL-002",
+          status: "pending_radiology",
+          modality: "CT",
+          created_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+          updated_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+          patient_first_name: "Jane",
+          patient_last_name: "Smith",
+          patient_dob: "1975-10-20",
+          patient_mrn: "MRN67890",
+          patient_gender: "Female",
+          radiology_organization_name: "Trial Radiology Group",
+          clinical_indication: "Persistent headaches, rule out intracranial pathology",
+          original_dictation: "Patient with persistent headaches for 2 months, not responding to medication. Request CT head without contrast."
+        },
+        {
+          id: 1003,
+          order_number: "TRIAL-003",
+          status: "scheduled",
+          modality: "X-Ray",
+          created_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+          updated_at: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString(),
+          patient_first_name: "Robert",
+          patient_last_name: "Johnson",
+          patient_dob: "1990-03-10",
+          patient_mrn: "MRN24680",
+          patient_gender: "Male",
+          radiology_organization_name: "Trial Radiology Group",
+          clinical_indication: "Possible fracture after fall",
+          original_dictation: "Patient fell while playing basketball yesterday. Pain and swelling in right ankle. Request X-ray right ankle."
+        },
+        {
+          id: 1004,
+          order_number: "TRIAL-004",
+          status: "pending_admin",
+          modality: "Ultrasound",
+          created_at: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
+          updated_at: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
+          patient_first_name: "Emily",
+          patient_last_name: "Williams",
+          patient_dob: "1985-12-15",
+          patient_mrn: "MRN13579",
+          patient_gender: "Female",
+          radiology_organization_name: "Trial Radiology Group",
+          clinical_indication: "Right upper quadrant pain, rule out gallstones",
+          original_dictation: "Patient with right upper quadrant pain after meals for 2 weeks. Request abdominal ultrasound."
+        },
+        {
+          id: 1005,
+          order_number: "TRIAL-005",
+          status: "completed",
+          modality: "MRI",
+          created_at: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
+          updated_at: new Date(Date.now() - 13 * 24 * 60 * 60 * 1000).toISOString(),
+          patient_first_name: "Michael",
+          patient_last_name: "Brown",
+          patient_dob: "1970-07-25",
+          patient_mrn: "MRN97531",
+          patient_gender: "Male",
+          radiology_organization_name: "Trial Radiology Group",
+          clinical_indication: "Knee pain and swelling after sports injury",
+          original_dictation: "Patient injured right knee playing soccer 3 weeks ago. Persistent pain and swelling. Request MRI right knee."
+        }
+      ];
+      
+      // Create a response similar to what the real API would return
+      const mockResponse = {
+        orders: mockOrders,
+        pagination: {
+          total: mockOrders.length,
+          page: 1,
+          limit: 10,
+          pages: 1
+        }
+      };
+      
+      console.log('Returning mock orders data for trial user');
+      console.log('=== END ORDERS REQUEST ===\n');
+      
+      return res.status(200).json(mockResponse);
+    }
+    
+    // For regular users, forward the request to the real API
     const response = await fetch(`${apiUrl}/api/orders${req.url.includes('?') ? req.url.substring(req.url.indexOf('?')) : ''}`, {
       method: 'GET',
       headers: {
@@ -858,7 +980,62 @@ app.get('/api/analytics/dashboard', async (req, res) => {
     const authHeader = req.headers.authorization;
     console.log('Authorization header:', authHeader ? 'Present' : 'Not present');
     
-    // Forward the request to the real API
+    // Check if this is a trial user by examining the token
+    let isTrialUser = false;
+    
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      try {
+        const token = authHeader.split(' ')[1];
+        const tokenParts = token.split('.');
+        if (tokenParts.length === 3) {
+          const payload = JSON.parse(Buffer.from(tokenParts[1], 'base64').toString());
+          isTrialUser = payload.isTrial === true || payload.role === 'trial_physician' || payload.role === 'trial-user';
+          if (isTrialUser) {
+            console.log('Trial user detected, will provide mock data');
+          }
+        }
+      } catch (e) {
+        console.error("Error examining token:", e);
+      }
+    }
+    
+    // For trial users, provide mock analytics data
+    if (isTrialUser) {
+      // Generate mock analytics data
+      const mockAnalytics = {
+        activity_data: [
+          { name: "Dec 2024", orders: 12, validations: 10 },
+          { name: "Jan 2025", orders: 15, validations: 13 },
+          { name: "Feb 2025", orders: 18, validations: 16 },
+          { name: "Mar 2025", orders: 22, validations: 20 },
+          { name: "Apr 2025", orders: 25, validations: 23 },
+          { name: "May 2025", orders: 5, validations: 5 }
+        ],
+        modality_distribution: [
+          { name: "MRI", value: 35 },
+          { name: "CT", value: 25 },
+          { name: "X-Ray", value: 20 },
+          { name: "Ultrasound", value: 15 },
+          { name: "Other", value: 5 }
+        ],
+        stats: {
+          total_orders: 97,
+          completed_studies: 85,
+          active_patients: 42,
+          pending_orders: 12,
+          avg_completion_time: 2.3,
+          validation_success_rate: 92.5,
+          orders_this_quarter: 52
+        }
+      };
+      
+      console.log('Returning mock analytics data for trial user');
+      console.log('=== END ANALYTICS DASHBOARD REQUEST ===\n');
+      
+      return res.status(200).json(mockAnalytics);
+    }
+    
+    // For regular users, forward the request to the real API
     const response = await fetch(`${apiUrl}/api/analytics/dashboard`, {
       method: 'GET',
       headers: {
