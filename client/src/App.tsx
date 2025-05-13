@@ -152,6 +152,17 @@ function App() {
   // Check for token in localStorage directly
   const [hasToken, setHasToken] = useState(false);
   
+  // Sync URL with currentPage state
+  useEffect(() => {
+    // Map URL paths to AppPage enum values
+    if (location === "/profile") {
+      setCurrentPage(AppPage.Profile);
+    } else if (location === "/") {
+      setCurrentPage(AppPage.Dashboard);
+    }
+    // Add other URL mappings as needed
+  }, [location]);
+  
   // Since we removed the sidebar with role selector, we'll keep this function
   // for potential future use or for programmatic role changes
   const handleRoleChange = (role: UserRole) => {
@@ -377,6 +388,25 @@ function App() {
           </Route>
           <Route path="/trial-validation">
             <TrialValidation />
+          </Route>
+          <Route path="/profile">
+            {shouldBeAuthenticated ? (
+              <div className="h-screen flex flex-col">
+                <div className="w-full flex-1 overflow-auto">
+                  <AppHeader
+                    title={getPageTitle(AppPage.Profile)}
+                    subtitle={getPageSubtitle(AppPage.Profile)}
+                    onNavigate={handleNavigate}
+                    userRole={currentRole}
+                  />
+                  <main className="h-full">
+                    <MyProfile userRole={currentRole} />
+                  </main>
+                </div>
+              </div>
+            ) : (
+              <AuthPage />
+            )}
           </Route>
           <Route>
             {effectiveLoading ? (

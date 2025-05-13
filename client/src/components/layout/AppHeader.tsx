@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { AppPage } from "@/App";
 import { UserRole, hasAccess } from "@/lib/roles";
 import { useAuth } from "@/lib/useAuth";
+import { useLocation } from "wouter";
 
 interface AppHeaderProps {
   title?: string;
@@ -13,8 +14,8 @@ interface AppHeaderProps {
   userRole?: UserRole;
 }
 
-const AppHeader: React.FC<AppHeaderProps> = ({ 
-  title = "RadOrderPad", 
+const AppHeader: React.FC<AppHeaderProps> = ({
+  title = "RadOrderPad",
   subtitle,
   onNavigate,
   className,
@@ -22,11 +23,28 @@ const AppHeader: React.FC<AppHeaderProps> = ({
 }) => {
   const [showMenu, setShowMenu] = useState(false);
   const { logout } = useAuth(); // Call useAuth hook at the top level
+  const [, setLocation] = useLocation();
   
   const handleNavigation = (page: AppPage) => {
     if (onNavigate) {
       onNavigate(page);
     }
+    
+    // Update URL based on the page
+    switch (page) {
+      case AppPage.Profile:
+        setLocation("/profile");
+        break;
+      case AppPage.Dashboard:
+        setLocation("/");
+        break;
+      // Add other cases as needed for other pages
+      default:
+        // For other pages, you might want to derive the URL from the page enum
+        const pageUrl = `/${page.toLowerCase().replace('_', '-')}`;
+        setLocation(pageUrl);
+    }
+    
     setShowMenu(false);
   };
   
