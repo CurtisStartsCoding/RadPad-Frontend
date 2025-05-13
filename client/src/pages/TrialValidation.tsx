@@ -31,13 +31,27 @@ const TrialValidation = () => {
   // Track remaining validation credits
   const [remainingCredits, setRemainingCredits] = useState(0);
   
-  // Load validation credits from localStorage on component mount
+  // Check authentication and load validation credits from localStorage on component mount
   useEffect(() => {
+    // Check if user is authenticated with trial token
+    const trialToken = localStorage.getItem(TRIAL_ACCESS_TOKEN_KEY);
+    if (!trialToken) {
+      // User is not authenticated, redirect to auth page
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to access the trial validation",
+        variant: "destructive",
+      });
+      setLocation("/auth");
+      return;
+    }
+    
+    // Load validation credits
     const storedCredits = localStorage.getItem('rad_order_pad_trial_validations_remaining');
     if (storedCredits) {
       setRemainingCredits(parseInt(storedCredits, 10));
     }
-  }, []);
+  }, [setLocation, toast]);
   
   // For compatibility with the existing validation results structure
   const [validationComplete, setValidationComplete] = useState(false);
