@@ -245,9 +245,9 @@ function App() {
             }
           }
           
-          // If still no role but we have a trial token, use 'trial-user' as the default role
+          // If still no role but we have a trial token, use 'trial_user' as the default role
           if (!userRole && trialToken) {
-            userRole = 'trial-user';
+            userRole = 'trial_user';
             console.log('Using default trial-user role');
           }
         }

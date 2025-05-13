@@ -92,7 +92,7 @@ export default function TrialAuthPage() {
         if (tokenParts.length === 3) {
           const payload = JSON.parse(atob(tokenParts[1]));
           
-          // Create a modified payload with role set to 'trial-user'
+          // Create a modified payload with role set to 'trial_user'
           const modifiedPayload = {
             ...payload,
             role: UserRole.TrialUser
@@ -209,7 +209,7 @@ export default function TrialAuthPage() {
         if (tokenParts.length === 3) {
           const payload = JSON.parse(atob(tokenParts[1]));
           
-          // Create a modified payload with role set to 'trial-user'
+          // Create a modified payload with role set to 'trial_user'
           const modifiedPayload = {
             ...payload,
             role: UserRole.TrialUser

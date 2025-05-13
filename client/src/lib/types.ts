@@ -5,7 +5,7 @@ export interface User {
   id: number;
   email: string;
   name: string;
-  role: 'admin' | 'physician' | 'medical_assistant' | 'scheduler' | 'radiologist' | 'trial-user' | 'trial_physician' | 'admin_staff' | 'admin_referring' | 'admin_radiology' | 'super_admin';
+  role: 'admin' | 'physician' | 'medical_assistant' | 'scheduler' | 'radiologist' | 'trial_user' | 'trial_physician' | 'admin_staff' | 'admin_referring' | 'admin_radiology' | 'super_admin';
   organizationId: number | null;
   organizationType?: string;
   lastLoginAt?: Date;

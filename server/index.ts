@@ -617,7 +617,7 @@ app.get('/api/analytics/dashboard', async (req, res) => {
         const tokenParts = token.split('.');
         if (tokenParts.length === 3) {
           const payload = JSON.parse(Buffer.from(tokenParts[1], 'base64').toString());
-          isTrialUser = payload.isTrial === true || payload.role === 'trial_physician' || payload.role === 'trial-user';
+          isTrialUser = payload.isTrial === true || payload.role === 'trial_physician' || payload.role === 'trial_user';
           if (isTrialUser) {
             console.log('Trial user detected');
           }
@@ -848,7 +848,7 @@ app.get('/api/orders', async (req, res) => {
         const tokenParts = token.split('.');
         if (tokenParts.length === 3) {
           const payload = JSON.parse(Buffer.from(tokenParts[1], 'base64').toString());
-          isTrialUser = payload.isTrial === true || payload.role === 'trial_physician' || payload.role === 'trial-user';
+          isTrialUser = payload.isTrial === true || payload.role === 'trial_physician' || payload.role === 'trial_user';
           if (isTrialUser) {
             console.log('Trial user detected, will provide mock data');
           }
