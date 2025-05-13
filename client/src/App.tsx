@@ -389,6 +389,25 @@ function App() {
           <Route path="/trial-validation">
             <TrialValidation />
           </Route>
+          <Route path="/new-order">
+            {shouldBeAuthenticated ? (
+              <div className="h-screen flex flex-col">
+                <div className="w-full flex-1 overflow-auto">
+                  <AppHeader
+                    title={getPageTitle(AppPage.NewOrder)}
+                    subtitle={getPageSubtitle(AppPage.NewOrder)}
+                    onNavigate={handleNavigate}
+                    userRole={currentRole}
+                  />
+                  <main className="h-full">
+                    <NewOrder userRole={currentRole} />
+                  </main>
+                </div>
+              </div>
+            ) : (
+              <AuthPage />
+            )}
+          </Route>
           <Route path="/profile">
             {shouldBeAuthenticated ? (
               <div className="h-screen flex flex-col">

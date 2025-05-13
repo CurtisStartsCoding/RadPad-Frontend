@@ -488,7 +488,8 @@ const TrialValidation = () => {
         setLocation("/");
         break;
       case AppPage.NewOrder:
-        setLocation("/new-order");
+        // For trial users, "New Order" should redirect to trial-validation page
+        setLocation("/trial-validation");
         break;
       case AppPage.Profile:
         setLocation("/profile");

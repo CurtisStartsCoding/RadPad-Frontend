@@ -30,6 +30,33 @@ const AppHeader: React.FC<AppHeaderProps> = ({
       onNavigate(page);
     }
     
+    // Get the effective user role
+    const effectiveRole = (user?.role || userRole || UserRole.Physician) as UserRole;
+    
+    // Debug user role information
+    console.log("Navigation debug info:");
+    console.log("- User role from context:", user?.role);
+    console.log("- User role from props:", userRole);
+    console.log("- Effective role:", effectiveRole);
+    console.log("- Is trial user?", effectiveRole === UserRole.TrialUser);
+    console.log("- UserRole.TrialUser value:", UserRole.TrialUser);
+    
+    // Check for trial user data in localStorage
+    const trialUserData = localStorage.getItem('rad_order_pad_trial_user');
+    console.log("- Trial user data exists:", !!trialUserData);
+    if (trialUserData) {
+      try {
+        const trialUser = JSON.parse(trialUserData);
+        console.log("- Trial user role from localStorage:", trialUser.role);
+      } catch (e) {
+        console.error("Error parsing trial user data:", e);
+      }
+    }
+    
+    // Check for trial token
+    const trialToken = localStorage.getItem('rad_order_pad_trial_access_token');
+    console.log("- Trial token exists:", !!trialToken);
+    
     // Update URL based on the page
     switch (page) {
       case AppPage.Profile:
@@ -37,6 +64,17 @@ const AppHeader: React.FC<AppHeaderProps> = ({
         break;
       case AppPage.Dashboard:
         setLocation("/");
+        break;
+      case AppPage.NewOrder:
+        // Special handling for trial users
+        // Check both the effective role and the trial token
+        if (effectiveRole === UserRole.TrialUser || trialToken) {
+          console.log("Redirecting trial user to /trial-validation");
+          setLocation("/trial-validation");
+        } else {
+          console.log("Redirecting regular user to /new-order");
+          setLocation("/new-order");
+        }
         break;
       // Add other cases as needed for other pages
       default:
