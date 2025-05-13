@@ -4,6 +4,7 @@ import { Eye, EyeOff, FileText, CheckCircle2, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { getApiUrl } from "@/lib/config";
 import { TRIAL_ACCESS_TOKEN_KEY, TRIAL_TOKEN_EXPIRY_KEY } from "@/lib/useAuth";
+import { UserRole } from "@/lib/roles";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -76,6 +77,25 @@ export default function TrialAuthPage() {
       // Calculate expiry time (1 hour from now) and save it
       const expiryTime = Date.now() + 60 * 60 * 1000;
       localStorage.setItem(TRIAL_TOKEN_EXPIRY_KEY, expiryTime.toString());
+      
+      // Decode the token to extract user information
+      try {
+        const tokenParts = data.token.split('.');
+        if (tokenParts.length === 3) {
+          const payload = JSON.parse(atob(tokenParts[1]));
+          
+          // Create a modified payload with role set to 'trial-user'
+          const modifiedPayload = {
+            ...payload,
+            role: UserRole.TrialUser
+          };
+          
+          // Store the modified payload in localStorage for session management
+          localStorage.setItem('rad_order_pad_trial_user', JSON.stringify(modifiedPayload));
+        }
+      } catch (error) {
+        console.error("Error decoding token:", error);
+      }
       
       toast({
         title: "Login Successful",
@@ -166,6 +186,25 @@ export default function TrialAuthPage() {
       // Calculate expiry time (1 hour from now) and save it
       const expiryTime = Date.now() + 60 * 60 * 1000;
       localStorage.setItem(TRIAL_TOKEN_EXPIRY_KEY, expiryTime.toString());
+      
+      // Decode the token to extract user information
+      try {
+        const tokenParts = data.token.split('.');
+        if (tokenParts.length === 3) {
+          const payload = JSON.parse(atob(tokenParts[1]));
+          
+          // Create a modified payload with role set to 'trial-user'
+          const modifiedPayload = {
+            ...payload,
+            role: UserRole.TrialUser
+          };
+          
+          // Store the modified payload in localStorage for session management
+          localStorage.setItem('rad_order_pad_trial_user', JSON.stringify(modifiedPayload));
+        }
+      } catch (error) {
+        console.error("Error decoding token:", error);
+      }
       
       toast({
         title: "Registration Successful",

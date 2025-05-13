@@ -6,7 +6,7 @@ import ValidationView from "@/components/order/ValidationView";
 import { ArrowLeft, AlertCircle, Info, X, Beaker, InfoIcon, Mic, RefreshCcw, CheckCircle, XCircle, FileText, Sparkles, MoveDown } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { UserRole } from "@/lib/roles";
-import PageHeader from "@/components/layout/PageHeader";
+import AppHeader from "@/components/layout/AppHeader";
 import { useToast } from "@/hooks/use-toast";
 import { TRIAL_ACCESS_TOKEN_KEY } from "@/lib/useAuth";
 import { getApiUrl, logApiConfiguration, REMOTE_API_URL } from "@/lib/config";
@@ -465,18 +465,13 @@ const TrialValidation = () => {
   }, []);
 
   return (
-    <div className="p-6">
-      <PageHeader title="Trial Validation">
-        <div className="flex items-center space-x-2">
-          <div className="flex items-center">
-            <span className="h-2 w-2 bg-blue-600 rounded-full mr-1"></span>
-            <span className="h-2 w-2 bg-gray-300 rounded-full mr-1"></span>
-            <span className="h-2 w-2 bg-gray-300 rounded-full"></span>
-          </div>
-        </div>
-      </PageHeader>
-      
-      <div>
+    <div>
+      <AppHeader
+        title="Trial Validation"
+        subtitle="Step 1 of 3: Dictation"
+        userRole={UserRole.TrialUser}
+      />
+      <div className="p-6">
         {/* Trial User Banner */}
         <Card className="mb-4 border-blue-200 bg-blue-50">
           <CardHeader className="pb-2">

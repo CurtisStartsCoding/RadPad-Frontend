@@ -7,7 +7,8 @@ export enum UserRole {
   AdminRadiology = "admin_radiology",
   Radiologist = "radiologist",
   TrialPhysician = "trial_physician",
-  SuperAdmin = "super_admin"
+  SuperAdmin = "super_admin",
+  TrialUser = "trial-user"
 }
 
 // User-friendly display names for each role
@@ -19,7 +20,8 @@ export const roleDisplayNames: Record<UserRole, string> = {
   [UserRole.AdminRadiology]: "Radiology Admin",
   [UserRole.Radiologist]: "Radiologist",
   [UserRole.TrialPhysician]: "Trial User",
-  [UserRole.SuperAdmin]: "Super Admin"
+  [UserRole.SuperAdmin]: "Super Admin",
+  [UserRole.TrialUser]: "Trial User"
 };
 
 // Helper function to determine if a role has access to a specific page
@@ -28,13 +30,15 @@ export const hasAccess = (role: UserRole, page: string): boolean => {
   const accessMap: Record<string, UserRole[]> = {
     // Core Workflow
     "dashboard": [
-      UserRole.Physician, 
-      UserRole.AdminStaff, 
-      UserRole.AdminReferring
+      UserRole.Physician,
+      UserRole.AdminStaff,
+      UserRole.AdminReferring,
+      UserRole.TrialUser
     ],
     "new-order": [
       UserRole.Physician,
-      UserRole.TrialPhysician
+      UserRole.TrialPhysician,
+      UserRole.TrialUser
     ],
     "orders": [
       UserRole.Physician, 
@@ -86,46 +90,50 @@ export const hasAccess = (role: UserRole, page: string): boolean => {
     
     // User Settings (available for all authenticated users)
     "profile": [
-      UserRole.Physician, 
-      UserRole.AdminStaff, 
+      UserRole.Physician,
+      UserRole.AdminStaff,
       UserRole.AdminReferring,
-      UserRole.Scheduler, 
-      UserRole.AdminRadiology, 
+      UserRole.Scheduler,
+      UserRole.AdminRadiology,
       UserRole.Radiologist,
       UserRole.TrialPhysician,
-      UserRole.SuperAdmin
+      UserRole.SuperAdmin,
+      UserRole.TrialUser
     ],
     "security": [
-      UserRole.Physician, 
-      UserRole.AdminStaff, 
+      UserRole.Physician,
+      UserRole.AdminStaff,
       UserRole.AdminReferring,
-      UserRole.Scheduler, 
-      UserRole.AdminRadiology, 
+      UserRole.Scheduler,
+      UserRole.AdminRadiology,
       UserRole.Radiologist,
       UserRole.TrialPhysician,
-      UserRole.SuperAdmin
+      UserRole.SuperAdmin,
+      UserRole.TrialUser
     ],
     
     // Auth pages (accessible to all users)
     "login": [
-      UserRole.Physician, 
-      UserRole.AdminStaff, 
+      UserRole.Physician,
+      UserRole.AdminStaff,
       UserRole.AdminReferring,
-      UserRole.Scheduler, 
-      UserRole.AdminRadiology, 
+      UserRole.Scheduler,
+      UserRole.AdminRadiology,
       UserRole.Radiologist,
       UserRole.TrialPhysician,
-      UserRole.SuperAdmin
+      UserRole.SuperAdmin,
+      UserRole.TrialUser
     ],
     "trial-auth": [
-      UserRole.Physician, 
-      UserRole.AdminStaff, 
+      UserRole.Physician,
+      UserRole.AdminStaff,
       UserRole.AdminReferring,
-      UserRole.Scheduler, 
-      UserRole.AdminRadiology, 
+      UserRole.Scheduler,
+      UserRole.AdminRadiology,
       UserRole.Radiologist,
       UserRole.TrialPhysician,
-      UserRole.SuperAdmin
+      UserRole.SuperAdmin,
+      UserRole.TrialUser
     ],
     
     // Onboarding pages (primarily for admins)

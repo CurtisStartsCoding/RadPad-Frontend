@@ -3,6 +3,7 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { apiRequest, queryClient } from './queryClient';
 import { User } from './types';
 import { ApiUserResponse, getCurrentSession, isTokenExpired, isTrialTokenExpired } from './auth';
+import { UserRole } from './roles';
 
 // Local storage keys for regular authentication
 const ACCESS_TOKEN_KEY = 'rad_order_pad_access_token';
@@ -137,11 +138,40 @@ export function AuthProvider({ children }: AuthProviderProps) {
     if (!isSessionLoading) {
       // Check if we have a token in localStorage
       const accessToken = localStorage.getItem(ACCESS_TOKEN_KEY);
+      const trialAccessToken = localStorage.getItem(TRIAL_ACCESS_TOKEN_KEY);
+      const trialUserData = localStorage.getItem('rad_order_pad_trial_user');
       
       if (sessionError || !sessionData) {
         console.log("Session endpoint not available or error occurred");
         
-        // If we have a token in localStorage, try to use it
+        // First check for trial user data
+        if (trialAccessToken && !isTrialTokenExpired() && trialUserData) {
+          console.log("Found valid trial token and user data in localStorage");
+          
+          try {
+            const trialUser = JSON.parse(trialUserData);
+            
+            // Create a user object from the trial user data
+            const userData: User = {
+              id: trialUser.userId || trialUser.trialUserId || 0,
+              email: trialUser.email || '',
+              name: trialUser.name || trialUser.email || 'Trial User',
+              role: UserRole.TrialUser as any, // Override with trial-user role
+              organizationId: trialUser.orgId || 0,
+              organizationType: 'trial',
+              createdAt: new Date(),
+              updatedAt: new Date()
+            };
+            
+            setUser(userData);
+            setIsLoading(false);
+            return;
+          } catch (e) {
+            console.error("Error parsing trial user data:", e);
+          }
+        }
+        
+        // If no trial user, check for regular token
         if (accessToken && !isTokenExpired()) {
           console.log("Found valid token in localStorage, attempting to use it");
           
