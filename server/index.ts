@@ -636,14 +636,7 @@ app.get('/api/analytics/dashboard', async (req, res) => {
     
     if (isTrialUser) {
       // For trial users, get orders from the /api/orders endpoint which already handles trial users
-      // Get the server's own hostname from the request
-      const host = req.headers.host || 'localhost:3000';
-      const protocol = req.protocol || 'http';
-      const ordersUrl = `${protocol}://${host}/api/orders`;
-      
-      console.log(`Fetching orders for trial user from: ${ordersUrl}`);
-      
-      const ordersResponse = await fetch(ordersUrl, {
+      const ordersResponse = await fetch(`http://localhost:3000/api/orders`, {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
@@ -663,14 +656,7 @@ app.get('/api/analytics/dashboard', async (req, res) => {
       orders = ordersData.orders || [];
     } else {
       // For regular users, fetch orders from the real API
-      // Get the server's own hostname from the request
-      const host = req.headers.host || 'localhost:3000';
-      const protocol = req.protocol || 'http';
-      const ordersUrl = `${protocol}://${host}/api/orders`;
-      
-      console.log(`Fetching orders for regular user from: ${ordersUrl}`);
-      
-      const ordersResponse = await fetch(ordersUrl, {
+      const ordersResponse = await fetch(`${apiUrl}/api/orders`, {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
