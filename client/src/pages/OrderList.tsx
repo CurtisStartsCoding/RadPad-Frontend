@@ -36,6 +36,8 @@ import {
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import PageHeader from "@/components/layout/PageHeader";
+import { getNewOrderPath } from "@/lib/navigation";
+import { useLocation } from "wouter";
 
 // Define the Order type based on API response
 interface ApiOrder {
@@ -69,6 +71,14 @@ interface OrdersApiResponse {
 const OrderList = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFilter, setSelectedFilter] = useState("all");
+  const [_, setLocation] = useLocation();
+  
+  // Handle navigation to new order page
+  const handleNewOrderClick = () => {
+    // Use the navigation utility to determine the correct path
+    const newOrderPath = getNewOrderPath();
+    setLocation(newOrderPath);
+  };
   
   // Fetch orders from the API
   const { data, isLoading, error } = useQuery<OrdersApiResponse>({
@@ -190,7 +200,7 @@ const OrderList = () => {
       case 'cancelled':
         return (
           <div className="flex justify-end space-x-2">
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" onClick={handleNewOrderClick}>
               <PlusCircle className="h-4 w-4 mr-1" />
               New Order
             </Button>
@@ -207,7 +217,7 @@ const OrderList = () => {
         title="Orders"
         description="View and track all imaging orders"
       >
-        <Button>
+        <Button onClick={handleNewOrderClick}>
           <PlusCircle className="h-4 w-4 mr-2" />
           New Order
         </Button>

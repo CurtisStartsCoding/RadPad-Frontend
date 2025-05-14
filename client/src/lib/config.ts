@@ -19,14 +19,16 @@ export const APP_CONFIG = {
 
 // Export a function to get the full API URL
 export function getApiUrl(path: string): string {
-  // Always use relative paths to ensure requests go through our proxy server
-  // If path already starts with /api, use it directly
+  // Use the remote API URL directly
+  const baseUrl = REMOTE_API_URL;
+  
+  // If path already starts with /api, use it directly with the base URL
   if (path.startsWith('/api')) {
-    return path;
+    return `${baseUrl}${path}`;
   }
   
   // Otherwise, prepend /api to the path
-  return `/api${path}`;
+  return `${baseUrl}/api${path}`;
 }
 
 /**
@@ -35,9 +37,9 @@ export function getApiUrl(path: string): string {
  */
 export function logApiConfiguration(): void {
   console.group('🌐 API Configuration');
-  console.log(`🔗 Using Relative Paths: Always (to go through proxy server)`);
+  console.log(`🔗 Using Direct API Calls: Yes (to ${REMOTE_API_URL})`);
   console.log(`🔄 Using Mock Endpoints: ${APP_CONFIG.useMockEndpoints ? 'Yes' : 'No'}`);
-  console.log(`🔌 API requests are being proxied to ${REMOTE_API_URL}`);
+  console.log(`🔌 API requests are sent directly to ${REMOTE_API_URL}`);
   console.log(`🌍 Environment: ${import.meta.env.MODE}`);
   console.groupEnd();
 }

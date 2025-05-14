@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/useAuth";
 import { UserRole } from "@/lib/roles";
+import { getNewOrderPath } from "@/lib/navigation";
 import {
   Card,
   CardContent,
@@ -124,16 +125,15 @@ const Dashboard = ({ navigateTo }: DashboardProps) => {
   const [activeTab, setActiveTab] = useState('overview');
   const { user } = useAuth();
   
-  // Check if user is a trial user
-  const isTrialUser = user?.role === 'trial_user' || localStorage.getItem('rad_order_pad_trial_access_token');
-  
   // Handle navigation to new order page
   const handleNewOrderClick = () => {
-    if (isTrialUser) {
-      // For trial users, redirect to trial validation page
-      window.location.href = '/trial-validation';
+    // Use the navigation utility to determine the correct path
+    const newOrderPath = getNewOrderPath(user?.role);
+    
+    // Navigate to the appropriate page
+    if (newOrderPath === '/trial-validation') {
+      window.location.href = newOrderPath;
     } else {
-      // For regular users, navigate to new order page
       navigateTo(AppPage.NewOrder);
     }
   };

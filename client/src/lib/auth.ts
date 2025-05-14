@@ -88,6 +88,9 @@ export async function loginUser(email: string, password: string): Promise<User> 
       const expiryTime = Date.now() + 60 * 60 * 1000;
       localStorage.setItem(TOKEN_EXPIRY_KEY, expiryTime.toString());
       
+      // Store the complete user data in localStorage for profile use
+      localStorage.setItem('rad_order_pad_user_data', JSON.stringify(apiUser));
+      
       // Clear any stale queries and reset the cache
       await queryClient.clear();
       
@@ -157,43 +160,86 @@ export async function logoutUser(): Promise<void> {
  */
 export async function getCurrentSession(): Promise<SessionResponse> {
   try {
-    // Add cache busting timestamp
-    const timestamp = new Date().getTime();
-    const url = `/api/auth/session?_=${timestamp}`;
-    
     console.group('🔐 Authentication: Session Check');
     console.log('🔗 Target: Remote API (https://api.radorderpad.com)');
     console.log('🕒 Timestamp:', new Date().toISOString());
     console.groupEnd();
     
-    // Use apiRequest to make the session request to the remote API
-    const response = await apiRequest('GET', url, undefined);
+    // Check for token in localStorage
+    const token = localStorage.getItem(ACCESS_TOKEN_KEY);
+    const trialToken = localStorage.getItem(TRIAL_ACCESS_TOKEN_KEY);
     
-    if (!response.ok) {
-      console.error(`Session check failed with status: ${response.status}`);
+    // If no token, return not authenticated
+    if (!token && !trialToken) {
       return { authenticated: false };
     }
     
-    const data = await response.json() as SessionResponse;
-    
-    // Enhanced logging for session state
-    console.group('🔐 Authentication: Session Result');
-    console.log('🔑 Authenticated:', data.authenticated);
-    if (data.authenticated && data.user) {
-      console.log('👤 User:', {
-        id: data.user.id,
-        email: data.user.email,
-        role: data.user.role,
-        organizationId: data.user.organizationId
-      });
+    // If we have a token, try to decode it
+    const activeToken = token || trialToken;
+    if (activeToken) {
+      try {
+        const payload = parseJwtToken(activeToken);
+        
+        if (payload && payload.exp && payload.exp * 1000 > Date.now()) {
+          // Token is valid and not expired
+          console.log('Token is valid and not expired');
+          
+          // Create a session response with user info from token
+          const sessionResponse = {
+            authenticated: true,
+            user: {
+              id: payload.userId || payload.sub,
+              email: payload.email || '',
+              name: payload.name || payload.email || 'User',
+              role: payload.role as any,
+              organizationId: payload.orgId || payload.organizationId,
+              createdAt: new Date(),
+              updatedAt: new Date()
+            }
+          };
+          
+          // Enhanced logging for session state
+          console.group('🔐 Authentication: Session Result');
+          console.log('🔑 Authenticated:', sessionResponse.authenticated);
+          if (sessionResponse.authenticated && sessionResponse.user) {
+            console.log('👤 User:', {
+              id: sessionResponse.user.id,
+              email: sessionResponse.user.email,
+              role: sessionResponse.user.role,
+              organizationId: sessionResponse.user.organizationId
+            });
+          }
+          console.groupEnd();
+          
+          return sessionResponse;
+        }
+      } catch (e) {
+        console.error("Error decoding token:", e);
+      }
     }
-    console.groupEnd();
     
-    return data;
+    // If we get here, token is invalid or expired
+    return { authenticated: false };
   } catch (error) {
     console.error('Error checking session:', error);
     // On error, return not authenticated
     return { authenticated: false };
+  }
+}
+
+/**
+ * Parse JWT token and extract payload
+ */
+function parseJwtToken(token: string): any {
+  try {
+    const tokenParts = token.split('.');
+    if (tokenParts.length !== 3) {
+      return null;
+    }
+    return JSON.parse(atob(tokenParts[1]));
+  } catch (e) {
+    console.error("Error parsing token:", e);
+    return null;
   }
 }
 

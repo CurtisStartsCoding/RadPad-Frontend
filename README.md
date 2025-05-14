@@ -1,52 +1,81 @@
-# RadMiddle Frontend MockUp
+# RadOrderPad Frontend
 
-## Deployment to DigitalOcean
+This is the frontend application for RadOrderPad, a medical imaging order management system.
 
-This project is configured for deployment to DigitalOcean App Platform. The following files are used for deployment:
+## Recent Changes
 
-- `Procfile`: Defines build and run commands for DigitalOcean
-- `.do/app.yaml`: DigitalOcean App Platform configuration
-- `.env`: Environment variables for production
-- `.gitignore`: Ensures proper files are included in deployment
+### Direct API Communication
 
-### Deployment Steps
+The application has been updated to communicate directly with the remote API instead of using a middleware layer. This simplifies the codebase and makes it more maintainable.
 
-1. Push your code to GitHub
-2. In DigitalOcean App Platform, create a new app
-3. Select your GitHub repository
-4. DigitalOcean will automatically detect the configuration from the Procfile and .do/app.yaml
-5. Review the settings and deploy
+Key changes:
+- Removed the middleware layer that was proxying requests to the remote API
+- Updated client configuration to point directly to the remote API
+- Implemented client-side handling for trial user navigation
+- Simplified server implementation to focus on serving the frontend application
 
-### Manual Deployment
+### Benefits
 
-If you prefer to deploy manually:
+- Simplified architecture
+- Reduced points of failure
+- More maintainable codebase
+- Consistent behavior for both regular and trial users
+
+## Development
+
+### Prerequisites
+
+- Node.js (v18 or higher)
+- npm or yarn
+
+### Installation
 
 ```bash
-# Build the application
-npm run build
+npm install
+```
 
-# Start the application
+### Running the Development Server
+
+```bash
+npm run dev
+```
+
+This will start the development server at http://localhost:3000.
+
+### Building for Production
+
+```bash
+npm run build
+```
+
+### Starting the Production Server
+
+```bash
 npm start
 ```
 
-### Environment Variables
+## Environment Variables
 
-The following environment variables are used:
+Create a `.env` file in the root directory with the following variables:
 
-- `NODE_ENV`: Set to "production" for deployment
-- `PORT`: The port the application will run on (default: 8080)
-- `ALLOWED_ORIGINS`: Comma-separated list of allowed origins for CORS
-- `DEFAULT_ALLOWED_ORIGIN`: Default allowed origin if ALLOWED_ORIGINS is not set (default: "http://localhost:3000")
-- `API_URL`: The URL of the API server (default: "https://api.radorderpad.com")
-- `VITE_API_URL`: Client-side version of API_URL for the frontend (used in Vite builds)
+```
+# Port for the server to listen on
+PORT=3000
 
-A `.env.example` file is provided as a template. Copy this file to `.env` and update the values as needed for your environment.
+# Comma-separated list of allowed origins for CORS
+ALLOWED_ORIGINS=https://radpad-dd83h.ondigitalocean.app,http://localhost:3000
 
-### Troubleshooting
+# Default allowed origin if ALLOWED_ORIGINS is not set
+DEFAULT_ALLOWED_ORIGIN=http://localhost:3000
 
-If you encounter deployment issues:
+# API URL for client-side requests (used by Vite)
+VITE_API_URL=https://api.radorderpad.com
+```
 
-1. Check the DigitalOcean logs for error messages
-2. Ensure all required environment variables are set
-3. Verify that the build and start commands in the Procfile are correct
-4. Make sure the .do/app.yaml file is properly configured
+## Authentication
+
+The application supports two types of authentication:
+- Regular user authentication via `/auth` page
+- Trial user authentication via `/trial-auth` page
+
+Authentication state for regular users and trial users are distinct and saved with different keys.

@@ -5,6 +5,7 @@ import { AppPage } from "@/App";
 import { UserRole, hasAccess } from "@/lib/roles";
 import { useAuth } from "@/lib/useAuth";
 import { useLocation } from "wouter";
+import { getNewOrderPath } from "@/lib/navigation";
 
 interface AppHeaderProps {
   title?: string;
@@ -66,15 +67,10 @@ const AppHeader: React.FC<AppHeaderProps> = ({
         setLocation("/");
         break;
       case AppPage.NewOrder:
-        // Special handling for trial users
-        // Check both the effective role and the trial token
-        if (effectiveRole === UserRole.TrialUser || trialToken) {
-          console.log("Redirecting trial user to /trial-validation");
-          setLocation("/trial-validation");
-        } else {
-          console.log("Redirecting regular user to /new-order");
-          setLocation("/new-order");
-        }
+        // Use the navigation utility to determine the correct path
+        const newOrderPath = getNewOrderPath(effectiveRole);
+        console.log(`Redirecting user to ${newOrderPath}`);
+        setLocation(newOrderPath);
         break;
       // Add other cases as needed for other pages
       default:

@@ -44,6 +44,13 @@ export async function apiRequest(
   const trialUserData = localStorage.getItem('rad_order_pad_trial_user');
   const isTrialUser = !!trialToken && !!trialUserData;
   
+  // Modify URL for trial users to use trial-specific endpoints
+  // Only modify the validation endpoint which is documented in the API
+  let modifiedUrl = cacheBustUrl;
+  if (isTrialUser && url.includes('/api/orders/validate') && !url.includes('/trial')) {
+    modifiedUrl = modifiedUrl.replace('/api/orders/validate', '/api/orders/validate/trial');
+  }
+  
   // For trial users, always use the trial token
   // For regular users, only use trial token for trial-specific endpoints
   const isTrial = isTrialUser || url.includes('/trial');
@@ -66,17 +73,15 @@ export async function apiRequest(
     console.log(`API Request: Adding Authorization token to ${url}`);
   }
   
-  // Add cache prevention headers for all API requests
-  headers['Cache-Control'] = 'no-cache, no-store, must-revalidate';
-  headers['Pragma'] = 'no-cache';
-  headers['Expires'] = '0';
+  // Don't add cache prevention headers as they can cause CORS issues
+  // with direct API calls to the remote server
   
   try {
     // Enhanced logging - Request details
     console.group(`🌐 API Request: ${method} ${cacheBustUrl}`);
     
     // Use the getApiUrl function to get the full API URL
-    const fullUrl = getApiUrl(cacheBustUrl);
+    const fullUrl = getApiUrl(modifiedUrl);
     
     console.log(`🔗 Target: ${fullUrl}`);
     console.log(`📤 Headers:`, headers);
@@ -186,6 +191,13 @@ export const getQueryFn: <T>(options: {
     const trialUserData = localStorage.getItem('rad_order_pad_trial_user');
     const isTrialUser = !!trialToken && !!trialUserData;
     
+    // Modify URL for trial users to use trial-specific endpoints
+    // Only modify the validation endpoint which is documented in the API
+    let modifiedUrl = cacheBustUrl;
+    if (isTrialUser && url.includes('/api/orders/validate') && !url.includes('/trial')) {
+      modifiedUrl = modifiedUrl.replace('/api/orders/validate', '/api/orders/validate/trial');
+    }
+    
     // For trial users, always use the trial token
     // For regular users, only use trial token for trial-specific endpoints
     const isTrial = isTrialUser || url.includes('/trial');
@@ -204,13 +216,11 @@ export const getQueryFn: <T>(options: {
         console.log('Added Authorization header with Bearer token');
       }
       
-      // Add cache prevention headers for all API requests
-      headers['Cache-Control'] = 'no-cache, no-store, must-revalidate';
-      headers['Pragma'] = 'no-cache';
-      headers['Expires'] = '0';
+      // Don't add cache prevention headers as they can cause CORS issues
+      // with direct API calls to the remote server
       
       // Use the getApiUrl function to get the full API URL
-      const fullUrl = getApiUrl(cacheBustUrl);
+      const fullUrl = getApiUrl(modifiedUrl);
       
       // Enhanced logging - Query Request
       console.group(`🔍 Query Request: GET ${cacheBustUrl}`);

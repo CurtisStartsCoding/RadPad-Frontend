@@ -1,13 +1,7 @@
-import express, { type Request, Response, NextFunction } from "express";
-import { registerRoutes } from "./routes";
+import express from "express";
+import { createServer } from "http";
 import { setupVite, serveStatic, log } from "./vite";
-import {
-  corsMiddleware,
-  loggingMiddleware,
-  apiLoggingMiddleware,
-  navigationMiddleware,
-  errorHandlingMiddleware
-} from "./middleware";
+import { corsMiddleware, errorHandlingMiddleware } from "./middleware";
 
 // Create Express application
 const app = express();
@@ -16,17 +10,14 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// Apply custom middleware
+// Apply CORS middleware
 app.use(corsMiddleware);
-app.use(loggingMiddleware);
-app.use(apiLoggingMiddleware);
-app.use(navigationMiddleware);
 
 // Initialize the application
 (async () => {
   try {
-    // Register all routes and get the HTTP server
-    const server = await registerRoutes(app);
+    // Create HTTP server
+    const server = createServer(app);
 
     // Global error handler
     app.use(errorHandlingMiddleware);
@@ -45,7 +36,7 @@ app.use(navigationMiddleware);
       host: "0.0.0.0",
       reusePort: true,
     }, () => {
-      log(`Server started and listening on port ${port}`);
+      log(`Server started and listening on port ${port} (direct API mode)`);
     });
   } catch (error) {
     log(`Failed to start server: ${error}`, 'error');
