@@ -874,87 +874,87 @@ app.get('/api/orders', async (req, res) => {
     
     // For trial users, provide mock data
     if (isTrialUser) {
-      // Generate mock orders data
+      // Generate mock orders data - FICTIONAL DATA FOR TESTING ONLY
       const mockOrders = [
         {
           id: 1001,
-          order_number: "TRIAL-001",
+          order_number: "TEST-ORDER-001",
           status: "completed",
           modality: "MRI",
           created_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
           updated_at: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString(),
-          patient_first_name: "John",
-          patient_last_name: "Doe",
-          patient_dob: "1980-05-15",
-          patient_mrn: "MRN12345",
+          patient_first_name: "TEST_Patient",
+          patient_last_name: "Alpha",
+          patient_dob: "2000-01-01",
+          patient_mrn: "TEST-MRN-00001",
           patient_gender: "Male",
-          radiology_organization_name: "Trial Radiology Group",
-          clinical_indication: "Lower back pain radiating to left leg",
-          original_dictation: "Patient presents with lower back pain radiating to left leg for 3 weeks. No trauma. Request MRI lumbar spine."
+          radiology_organization_name: "MOCK Radiology Group A",
+          clinical_indication: "MOCK CLINICAL INDICATION: Lower back pain example",
+          original_dictation: "TEST DICTATION: This is a mock dictation for testing purposes. Request MRI lumbar spine."
         },
         {
           id: 1002,
-          order_number: "TRIAL-002",
+          order_number: "TEST-ORDER-002",
           status: "pending_radiology",
           modality: "CT",
           created_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
           updated_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-          patient_first_name: "Jane",
-          patient_last_name: "Smith",
-          patient_dob: "1975-10-20",
-          patient_mrn: "MRN67890",
+          patient_first_name: "TEST_Patient",
+          patient_last_name: "Beta",
+          patient_dob: "2000-02-02",
+          patient_mrn: "TEST-MRN-00002",
           patient_gender: "Female",
-          radiology_organization_name: "Trial Radiology Group",
-          clinical_indication: "Persistent headaches, rule out intracranial pathology",
-          original_dictation: "Patient with persistent headaches for 2 months, not responding to medication. Request CT head without contrast."
+          radiology_organization_name: "MOCK Radiology Group A",
+          clinical_indication: "MOCK CLINICAL INDICATION: Headache example",
+          original_dictation: "TEST DICTATION: This is a mock dictation for testing purposes. Request CT head without contrast."
         },
         {
           id: 1003,
-          order_number: "TRIAL-003",
+          order_number: "TEST-ORDER-003",
           status: "scheduled",
           modality: "X-Ray",
           created_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
           updated_at: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString(),
-          patient_first_name: "Robert",
-          patient_last_name: "Johnson",
-          patient_dob: "1990-03-10",
-          patient_mrn: "MRN24680",
+          patient_first_name: "TEST_Patient",
+          patient_last_name: "Gamma",
+          patient_dob: "2000-03-03",
+          patient_mrn: "TEST-MRN-00003",
           patient_gender: "Male",
-          radiology_organization_name: "Trial Radiology Group",
-          clinical_indication: "Possible fracture after fall",
-          original_dictation: "Patient fell while playing basketball yesterday. Pain and swelling in right ankle. Request X-ray right ankle."
+          radiology_organization_name: "MOCK Radiology Group B",
+          clinical_indication: "MOCK CLINICAL INDICATION: Ankle injury example",
+          original_dictation: "TEST DICTATION: This is a mock dictation for testing purposes. Request X-ray right ankle."
         },
         {
           id: 1004,
-          order_number: "TRIAL-004",
+          order_number: "TEST-ORDER-004",
           status: "pending_admin",
           modality: "Ultrasound",
           created_at: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
           updated_at: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
-          patient_first_name: "Emily",
-          patient_last_name: "Williams",
-          patient_dob: "1985-12-15",
-          patient_mrn: "MRN13579",
+          patient_first_name: "TEST_Patient",
+          patient_last_name: "Delta",
+          patient_dob: "2000-04-04",
+          patient_mrn: "TEST-MRN-00004",
           patient_gender: "Female",
-          radiology_organization_name: "Trial Radiology Group",
-          clinical_indication: "Right upper quadrant pain, rule out gallstones",
-          original_dictation: "Patient with right upper quadrant pain after meals for 2 weeks. Request abdominal ultrasound."
+          radiology_organization_name: "MOCK Radiology Group B",
+          clinical_indication: "MOCK CLINICAL INDICATION: Abdominal pain example",
+          original_dictation: "TEST DICTATION: This is a mock dictation for testing purposes. Request abdominal ultrasound."
         },
         {
           id: 1005,
-          order_number: "TRIAL-005",
+          order_number: "TEST-ORDER-005",
           status: "completed",
           modality: "MRI",
           created_at: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
           updated_at: new Date(Date.now() - 13 * 24 * 60 * 60 * 1000).toISOString(),
-          patient_first_name: "Michael",
-          patient_last_name: "Brown",
-          patient_dob: "1970-07-25",
-          patient_mrn: "MRN97531",
+          patient_first_name: "TEST_Patient",
+          patient_last_name: "Epsilon",
+          patient_dob: "2000-05-05",
+          patient_mrn: "TEST-MRN-00005",
           patient_gender: "Male",
-          radiology_organization_name: "Trial Radiology Group",
-          clinical_indication: "Knee pain and swelling after sports injury",
-          original_dictation: "Patient injured right knee playing soccer 3 weeks ago. Persistent pain and swelling. Request MRI right knee."
+          radiology_organization_name: "MOCK Radiology Group C",
+          clinical_indication: "MOCK CLINICAL INDICATION: Knee injury example",
+          original_dictation: "TEST DICTATION: This is a mock dictation for testing purposes. Request MRI right knee."
         }
       ];
       
@@ -1129,24 +1129,25 @@ app.get('/api/admin/orders/queue', async (req, res) => {
     const orders = ordersData.orders || [];
     
     // Transform the orders into the format expected by the admin queue
-    const adminQueueOrders = orders.map((order: any) => {
+    // Transform orders into admin queue format with obviously mock data
+    const adminQueueOrders = orders.map((order: any, index: number) => {
       return {
-        id: order.id,
-        order_number: order.order_number || `ORD-${Date.now()}`,
-        status: order.status,
-        modality: order.modality || 'MRI',
-        created_at: order.created_at,
-        updated_at: order.updated_at,
+        id: order.id || 2000 + index,
+        order_number: order.order_number || `TEST-ADMIN-ORD-${1000 + index}`,
+        status: order.status || ['pending_admin', 'pending_radiology', 'scheduled', 'completed'][index % 4],
+        modality: order.modality || ['MRI', 'CT', 'X-Ray', 'Ultrasound'][index % 4],
+        created_at: order.created_at || new Date(Date.now() - (index * 24 * 60 * 60 * 1000)).toISOString(),
+        updated_at: order.updated_at || new Date(Date.now() - (index * 12 * 60 * 60 * 1000)).toISOString(),
         patient: {
-          id: order.patient_id,
-          name: `${order.patient_first_name || 'John'} ${order.patient_last_name || 'Smith'}`,
-          mrn: order.patient_mrn || `MRN-${Math.floor(Math.random() * 10000)}`,
-          dob: order.patient_dob || '1980-01-01',
-          gender: order.patient_gender || 'Male'
+          id: order.patient_id || 3000 + index,
+          name: `TEST_Admin_Patient_${index + 1}`,
+          mrn: order.patient_mrn || `TEST-ADMIN-MRN-${10000 + index}`,
+          dob: order.patient_dob || `2000-0${(index % 9) + 1}-0${(index % 9) + 1}`,
+          gender: order.patient_gender || (index % 2 === 0 ? 'Male' : 'Female')
         },
         radiology_group: {
-          id: order.radiology_organization_id,
-          name: order.radiology_organization_name || 'City Radiology Center'
+          id: order.radiology_organization_id || 4000 + index,
+          name: order.radiology_organization_name || `MOCK Admin Radiology Group ${String.fromCharCode(65 + (index % 5))}`
         }
       };
     });
