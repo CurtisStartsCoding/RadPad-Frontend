@@ -3,6 +3,9 @@ import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/useAuth";
 import { UserRole } from "@/lib/roles";
 import { getNewOrderPath } from "@/lib/navigation";
+import { apiRequest } from "@/lib/queryClient";
+import { generateAnalyticsFromOrders } from "@/lib/analyticsUtils";
+import { ApiAnalytics } from "@/lib/types";
 import {
   Card,
   CardContent,
@@ -40,7 +43,6 @@ import {
   Cell,
   Legend
 } from "recharts";
-import { apiRequest } from "@/lib/queryClient";
 import PageHeader from "@/components/layout/PageHeader";
 import {
   Activity,
@@ -156,30 +158,28 @@ const Dashboard = ({ navigateTo }: DashboardProps) => {
   const recentOrders = ordersResponse?.orders;
   
   // Fetch analytics data from the API
+  // Generate analytics directly from orders data
   const { data: analytics, isLoading: isLoadingAnalytics, error: analyticsError } = useQuery<ApiAnalytics>({
-    queryKey: ['/api/analytics/dashboard'],
+    queryKey: ['/analytics/dashboard'],
     queryFn: async () => {
-      // Use a relative URL to ensure the request goes through our local server
-      const url = '/api/analytics/dashboard';
-      console.log('Fetching analytics from local server endpoint:', url);
+      console.log('Generating analytics directly from orders data');
       
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Authorization': localStorage.getItem('rad_order_pad_access_token')
-            ? `Bearer ${localStorage.getItem('rad_order_pad_access_token')}`
-            : ''
-        }
-      });
-      
+      // Fetch all orders (up to 100) to generate analytics
+      const response = await apiRequest('GET', '/api/orders?limit=100', undefined);
       if (!response.ok) {
-        throw new Error('Failed to fetch analytics data');
+        throw new Error('Failed to fetch orders data for analytics');
       }
       
-      const data = await response.json();
-      return data;
+      const ordersData = await response.json();
+      
+      if (!ordersData || !ordersData.orders) {
+        throw new Error('No orders data available to generate analytics');
+      }
+      
+      console.log(`Successfully fetched ${ordersData.orders.length} orders for analytics generation`);
+      
+      // Generate analytics data from orders
+      return generateAnalyticsFromOrders(ordersData.orders);
     },
     staleTime: 300000, // 5 minutes
   });

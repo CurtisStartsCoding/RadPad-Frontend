@@ -142,3 +142,25 @@ export interface Order {
   referringPhysician?: User;
   referringOrganization?: Organization;
 }
+
+// Analytics types
+export interface ApiAnalytics {
+  activity_data: {
+    name: string;
+    orders: number;
+    validations: number;
+  }[];
+  modality_distribution: {
+    name: string;
+    value: number;
+  }[];
+  stats: {
+    total_orders: number;
+    completed_studies: number;
+    active_patients: number;
+    pending_orders: number;
+    avg_completion_time: number;
+    validation_success_rate: number;
+    orders_this_quarter: number;
+  };
+}
