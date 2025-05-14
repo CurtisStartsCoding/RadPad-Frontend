@@ -886,7 +886,7 @@ app.get('/api/orders', async (req, res) => {
           const payload = JSON.parse(Buffer.from(tokenParts[1], 'base64').toString());
           isTrialUser = payload.isTrial === true || payload.role === 'trial_physician' || payload.role === 'trial_user';
           if (isTrialUser) {
-            console.log('Trial user detected, will provide mock data');
+            console.log('Trial user detected');
           }
         }
       } catch (e) {
@@ -894,110 +894,11 @@ app.get('/api/orders', async (req, res) => {
       }
     }
     
-    // For trial users, provide mock data
-    if (isTrialUser) {
-      // Generate mock orders data - FICTIONAL DATA FOR TESTING ONLY
-      const mockOrders = [
-        {
-          id: 1001,
-          order_number: "TEST-ORDER-001",
-          status: "completed",
-          modality: "MRI",
-          created_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-          updated_at: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString(),
-          patient_first_name: "TEST_Patient",
-          patient_last_name: "Alpha",
-          patient_dob: "2000-01-01",
-          patient_mrn: "TEST-MRN-00001",
-          patient_gender: "Male",
-          radiology_organization_name: "MOCK Radiology Group A",
-          clinical_indication: "MOCK CLINICAL INDICATION: Lower back pain example",
-          original_dictation: "TEST DICTATION: This is a mock dictation for testing purposes. Request MRI lumbar spine."
-        },
-        {
-          id: 1002,
-          order_number: "TEST-ORDER-002",
-          status: "pending_radiology",
-          modality: "CT",
-          created_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-          updated_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-          patient_first_name: "TEST_Patient",
-          patient_last_name: "Beta",
-          patient_dob: "2000-02-02",
-          patient_mrn: "TEST-MRN-00002",
-          patient_gender: "Female",
-          radiology_organization_name: "MOCK Radiology Group A",
-          clinical_indication: "MOCK CLINICAL INDICATION: Headache example",
-          original_dictation: "TEST DICTATION: This is a mock dictation for testing purposes. Request CT head without contrast."
-        },
-        {
-          id: 1003,
-          order_number: "TEST-ORDER-003",
-          status: "scheduled",
-          modality: "X-Ray",
-          created_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-          updated_at: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString(),
-          patient_first_name: "TEST_Patient",
-          patient_last_name: "Gamma",
-          patient_dob: "2000-03-03",
-          patient_mrn: "TEST-MRN-00003",
-          patient_gender: "Male",
-          radiology_organization_name: "MOCK Radiology Group B",
-          clinical_indication: "MOCK CLINICAL INDICATION: Ankle injury example",
-          original_dictation: "TEST DICTATION: This is a mock dictation for testing purposes. Request X-ray right ankle."
-        },
-        {
-          id: 1004,
-          order_number: "TEST-ORDER-004",
-          status: "pending_admin",
-          modality: "Ultrasound",
-          created_at: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
-          updated_at: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
-          patient_first_name: "TEST_Patient",
-          patient_last_name: "Delta",
-          patient_dob: "2000-04-04",
-          patient_mrn: "TEST-MRN-00004",
-          patient_gender: "Female",
-          radiology_organization_name: "MOCK Radiology Group B",
-          clinical_indication: "MOCK CLINICAL INDICATION: Abdominal pain example",
-          original_dictation: "TEST DICTATION: This is a mock dictation for testing purposes. Request abdominal ultrasound."
-        },
-        {
-          id: 1005,
-          order_number: "TEST-ORDER-005",
-          status: "completed",
-          modality: "MRI",
-          created_at: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
-          updated_at: new Date(Date.now() - 13 * 24 * 60 * 60 * 1000).toISOString(),
-          patient_first_name: "TEST_Patient",
-          patient_last_name: "Epsilon",
-          patient_dob: "2000-05-05",
-          patient_mrn: "TEST-MRN-00005",
-          patient_gender: "Male",
-          radiology_organization_name: "MOCK Radiology Group C",
-          clinical_indication: "MOCK CLINICAL INDICATION: Knee injury example",
-          original_dictation: "TEST DICTATION: This is a mock dictation for testing purposes. Request MRI right knee."
-        }
-      ];
-      
-      // Create a response similar to what the real API would return
-      const mockResponse = {
-        orders: mockOrders,
-        pagination: {
-          total: mockOrders.length,
-          page: 1,
-          limit: 10,
-          pages: 1
-        }
-      };
-      
-      console.log('Returning mock orders data for trial user');
-      console.log('=== END ORDERS REQUEST ===\n');
-      
-      return res.status(200).json(mockResponse);
-    }
+    // Determine if we're in production by checking the host
+    const isProduction = req.headers.host && req.headers.host.includes('ondigitalocean.app');
+    console.log(`Environment detected: ${isProduction ? 'Production' : 'Development'}`);
     
-    // For regular users, forward the request to the real API
+    // For all users (including trial users), forward the request to the real API
     const response = await fetch(`${apiUrl}/api/orders${req.url.includes('?') ? req.url.substring(req.url.indexOf('?')) : ''}`, {
       method: 'GET',
       headers: {
