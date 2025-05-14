@@ -634,12 +634,25 @@ app.get('/api/analytics/dashboard', async (req, res) => {
     // First, fetch orders from the API
     let orders = [];
     
+    // Determine if we're in production by checking the host
+    const isProduction = req.headers.host && req.headers.host.includes('ondigitalocean.app');
+    console.log(`Environment detected: ${isProduction ? 'Production' : 'Development'}`);
+    
     if (isTrialUser) {
-      // For trial users, get orders from the /api/orders endpoint which already handles trial users
-      // Get the server's own hostname from the request
-      const host = req.headers.host || 'localhost:3000';
-      const protocol = req.protocol || 'http';
-      const ordersUrl = `${protocol}://${host}/api/orders`;
+      // For trial users, get orders from the appropriate endpoint
+      let ordersUrl;
+      
+      if (isProduction) {
+        // In production, use the real API directly
+        ordersUrl = `${apiUrl}/api/orders`;
+        console.log(`Using direct API URL in production: ${ordersUrl}`);
+      } else {
+        // In development, use the local server
+        const host = req.headers.host || 'localhost:3000';
+        const protocol = req.protocol || 'http';
+        ordersUrl = `${protocol}://${host}/api/orders`;
+        console.log(`Using local server in development: ${ordersUrl}`);
+      }
       
       console.log(`Fetching orders for trial user from: ${ordersUrl}`);
       
@@ -662,11 +675,20 @@ app.get('/api/analytics/dashboard', async (req, res) => {
       const ordersData = await ordersResponse.json();
       orders = ordersData.orders || [];
     } else {
-      // For regular users, fetch orders from the real API
-      // Get the server's own hostname from the request
-      const host = req.headers.host || 'localhost:3000';
-      const protocol = req.protocol || 'http';
-      const ordersUrl = `${protocol}://${host}/api/orders`;
+      // For regular users, fetch orders from the appropriate endpoint
+      let ordersUrl;
+      
+      if (isProduction) {
+        // In production, use the real API directly
+        ordersUrl = `${apiUrl}/api/orders`;
+        console.log(`Using direct API URL in production: ${ordersUrl}`);
+      } else {
+        // In development, use the local server
+        const host = req.headers.host || 'localhost:3000';
+        const protocol = req.protocol || 'http';
+        ordersUrl = `${protocol}://${host}/api/orders`;
+        console.log(`Using local server in development: ${ordersUrl}`);
+      }
       
       console.log(`Fetching orders for regular user from: ${ordersUrl}`);
       
