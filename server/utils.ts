@@ -85,6 +85,8 @@ export async function forwardRequestToApi(
     
     // Prepare request options
     const url = `${apiBaseUrl}${endpoint}`;
+    log(`${logPrefix}: Full URL: ${url}`, 'api');
+    
     const options: RequestInit = {
       method,
       headers: {
@@ -148,8 +150,16 @@ export async function forwardRequestToApi(
     
     log(`${logPrefix}: Response sent to client with status ${response.status}`, 'api');
   } catch (error) {
-    log(`${logPrefix}: Error forwarding request: ${error}`, 'error');
-    res.status(500).json({ 
+    log(`${logPrefix}: Error forwarding request to ${apiBaseUrl}${endpoint}: ${error}`, 'error');
+    
+    // Log more details about the error
+    if (error instanceof Error) {
+      log(`${logPrefix}: Error name: ${error.name}`, 'error');
+      log(`${logPrefix}: Error message: ${error.message}`, 'error');
+      log(`${logPrefix}: Error stack: ${error.stack}`, 'error');
+    }
+    
+    res.status(500).json({
       success: false,
       error: 'Internal server error',
       status: 500
