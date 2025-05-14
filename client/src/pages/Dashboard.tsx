@@ -159,10 +159,25 @@ const Dashboard = ({ navigateTo }: DashboardProps) => {
   const { data: analytics, isLoading: isLoadingAnalytics, error: analyticsError } = useQuery<ApiAnalytics>({
     queryKey: ['/api/analytics/dashboard'],
     queryFn: async () => {
-      const response = await apiRequest('GET', '/api/analytics/dashboard', undefined);
+      // Use a relative URL to ensure the request goes through our local server
+      const url = '/api/analytics/dashboard';
+      console.log('Fetching analytics from local server endpoint:', url);
+      
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': localStorage.getItem('rad_order_pad_access_token')
+            ? `Bearer ${localStorage.getItem('rad_order_pad_access_token')}`
+            : ''
+        }
+      });
+      
       if (!response.ok) {
         throw new Error('Failed to fetch analytics data');
       }
+      
       const data = await response.json();
       return data;
     },

@@ -2,6 +2,7 @@ import express from "express";
 import { createServer } from "http";
 import { setupVite, serveStatic, log } from "./vite";
 import { corsMiddleware, errorHandlingMiddleware } from "./middleware";
+import { registerAnalyticsRoutes } from "./analytics";
 
 // Create Express application
 const app = express();
@@ -18,6 +19,9 @@ app.use(corsMiddleware);
   try {
     // Create HTTP server
     const server = createServer(app);
+
+    // Register analytics routes
+    registerAnalyticsRoutes(app);
 
     // Global error handler
     app.use(errorHandlingMiddleware);
