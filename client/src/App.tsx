@@ -191,8 +191,7 @@ function App() {
   // Determine if user should be authenticated based on token and auth state
   // Check token directly from localStorage for the most up-to-date state
   const token = localStorage.getItem('rad_order_pad_access_token');
-  const trialToken = localStorage.getItem('rad_order_pad_trial_access_token');
-  const shouldBeAuthenticated = isAuthenticated || hasToken || !!token || !!trialToken;
+  const shouldBeAuthenticated = isAuthenticated || hasToken || !!token;
   
   // Determine if we should still be in loading state
   const effectiveLoading = isLoading && !forceLoadingComplete;
@@ -202,8 +201,7 @@ function App() {
     if (!effectiveLoading) {
       // Check token directly from localStorage for the most up-to-date state
       const token = localStorage.getItem('rad_order_pad_access_token');
-      const trialToken = localStorage.getItem('rad_order_pad_trial_access_token');
-      const currentlyAuthenticated = isAuthenticated || hasToken || !!token || !!trialToken;
+      const currentlyAuthenticated = isAuthenticated || hasToken || !!token;
       
       if (currentlyAuthenticated) {
         // User is authenticated, check role to determine which page to show
@@ -245,8 +243,8 @@ function App() {
             }
           }
           
-          // If still no role but we have a trial token, use 'trial_user' as the default role
-          if (!userRole && trialToken) {
+          // If still no role but we have trial user data, use 'trial_user' as the default role
+          if (!userRole && trialUserData) {
             userRole = 'trial_user';
             console.log('Using default trial-user role');
           }

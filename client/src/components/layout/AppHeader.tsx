@@ -54,10 +54,6 @@ const AppHeader: React.FC<AppHeaderProps> = ({
       }
     }
     
-    // Check for trial token
-    const trialToken = localStorage.getItem('rad_order_pad_trial_access_token');
-    console.log("- Trial token exists:", !!trialToken);
-    
     // Update URL based on the page
     switch (page) {
       case AppPage.Profile:

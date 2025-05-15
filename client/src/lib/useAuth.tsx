@@ -5,13 +5,9 @@ import { User } from './types';
 import { ApiUserResponse, getCurrentSession, isTokenExpired, isTrialTokenExpired } from './auth';
 import { UserRole } from './roles';
 
-// Local storage keys for regular authentication
+// Local storage keys for authentication
 const ACCESS_TOKEN_KEY = 'rad_order_pad_access_token';
 const TOKEN_EXPIRY_KEY = 'rad_order_pad_token_expiry';
-
-// Local storage keys for trial authentication
-export const TRIAL_ACCESS_TOKEN_KEY = 'rad_order_pad_trial_access_token';
-export const TRIAL_TOKEN_EXPIRY_KEY = 'rad_order_pad_trial_token_expiry';
 
 interface AuthContextType {
   user: User | null;
@@ -60,52 +56,39 @@ export function AuthProvider({ children }: AuthProviderProps) {
   };
 
   // Function to clear auth token
-  const clearToken = (clearTrialTokens: boolean = true) => {
+  const clearToken = () => {
     localStorage.removeItem(ACCESS_TOKEN_KEY);
     localStorage.removeItem(TOKEN_EXPIRY_KEY);
     
-    if (clearTrialTokens) {
-      localStorage.removeItem(TRIAL_ACCESS_TOKEN_KEY);
-      localStorage.removeItem(TRIAL_TOKEN_EXPIRY_KEY);
-    }
+    // For backward compatibility, also remove old trial tokens if they exist
+    localStorage.removeItem('rad_order_pad_trial_access_token');
+    localStorage.removeItem('rad_order_pad_trial_token_expiry');
     
     console.log("Authentication tokens cleared from localStorage");
   };
 
   // Check for existing token on initial load
   useEffect(() => {
-    // Check regular token
+    // Check token expiration
     if (isTokenExpired()) {
-      clearToken(false); // Only clear regular tokens
+      clearToken();
     }
     
-    // Check trial token
-    if (isTrialTokenExpired()) {
-      // Only clear trial tokens
-      localStorage.removeItem(TRIAL_ACCESS_TOKEN_KEY);
-      localStorage.removeItem(TRIAL_TOKEN_EXPIRY_KEY);
+    // For backward compatibility, migrate any existing trial token to the main token
+    const trialToken = localStorage.getItem('rad_order_pad_trial_access_token');
+    if (trialToken) {
+      localStorage.setItem(ACCESS_TOKEN_KEY, trialToken);
+      localStorage.removeItem('rad_order_pad_trial_access_token');
+      localStorage.removeItem('rad_order_pad_trial_token_expiry');
     }
   }, []);
 
   // Check for token expiry
   useEffect(() => {
     const checkTokenExpiry = () => {
-      let shouldInvalidateQueries = false;
-      
-      // Check regular token
+      // Check token expiration
       if (isTokenExpired()) {
-        clearToken(false); // Only clear regular tokens
-        shouldInvalidateQueries = true;
-      }
-      
-      // Check trial token
-      if (isTrialTokenExpired()) {
-        // Only clear trial tokens
-        localStorage.removeItem(TRIAL_ACCESS_TOKEN_KEY);
-        localStorage.removeItem(TRIAL_TOKEN_EXPIRY_KEY);
-      }
-      
-      if (shouldInvalidateQueries) {
+        clearToken();
         setUser(null);
         queryClient.invalidateQueries({ queryKey: ['/api/auth/session'] });
       }
@@ -138,40 +121,20 @@ export function AuthProvider({ children }: AuthProviderProps) {
     if (!isSessionLoading) {
       // Check if we have a token in localStorage
       const accessToken = localStorage.getItem(ACCESS_TOKEN_KEY);
-      const trialAccessToken = localStorage.getItem(TRIAL_ACCESS_TOKEN_KEY);
       const trialUserData = localStorage.getItem('rad_order_pad_trial_user');
+      
+      // For backward compatibility, migrate any existing trial token to the main token
+      const trialToken = localStorage.getItem('rad_order_pad_trial_access_token');
+      if (trialToken && !accessToken) {
+        localStorage.setItem(ACCESS_TOKEN_KEY, trialToken);
+        localStorage.removeItem('rad_order_pad_trial_access_token');
+        localStorage.removeItem('rad_order_pad_trial_token_expiry');
+      }
       
       if (sessionError || !sessionData) {
         console.log("Session endpoint not available or error occurred");
         
-        // First check for trial user data
-        if (trialAccessToken && !isTrialTokenExpired() && trialUserData) {
-          console.log("Found valid trial token and user data in localStorage");
-          
-          try {
-            const trialUser = JSON.parse(trialUserData);
-            
-            // Create a user object from the trial user data
-            const userData: User = {
-              id: trialUser.userId || trialUser.trialUserId || 0,
-              email: trialUser.email || '',
-              name: trialUser.name || trialUser.email || 'Trial User',
-              role: UserRole.TrialUser as any, // Override with trial-user role
-              organizationId: trialUser.orgId || 0,
-              organizationType: 'trial',
-              createdAt: new Date(),
-              updatedAt: new Date()
-            };
-            
-            setUser(userData);
-            setIsLoading(false);
-            return;
-          } catch (e) {
-            console.error("Error parsing trial user data:", e);
-          }
-        }
-        
-        // If no trial user, check for regular token
+        // Check for token
         if (accessToken && !isTokenExpired()) {
           console.log("Found valid token in localStorage, attempting to use it");
           
@@ -195,6 +158,19 @@ export function AuthProvider({ children }: AuthProviderProps) {
                   createdAt: new Date(),
                   updatedAt: new Date()
                 };
+                
+                // If this is a trial user (based on trial user data), override the role
+                if (trialUserData) {
+                  try {
+                    const trialUser = JSON.parse(trialUserData);
+                    if (trialUser.isTrial) {
+                      userData.role = UserRole.TrialUser as any;
+                      userData.organizationType = 'trial';
+                    }
+                  } catch (e) {
+                    console.error("Error parsing trial user data:", e);
+                  }
+                }
                 
                 setUser(userData);
                 setIsLoading(false);

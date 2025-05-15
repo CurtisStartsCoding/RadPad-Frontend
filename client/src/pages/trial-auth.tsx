@@ -3,7 +3,6 @@ import { useLocation } from "wouter";
 import { Eye, EyeOff, FileText, CheckCircle2, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { getApiUrl } from "@/lib/config";
-import { TRIAL_ACCESS_TOKEN_KEY, TRIAL_TOKEN_EXPIRY_KEY } from "@/lib/useAuth";
 import { UserRole } from "@/lib/roles";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -67,7 +66,7 @@ export default function TrialAuthPage() {
       }
       
       // Store the token in localStorage using trial-specific keys
-      localStorage.setItem(TRIAL_ACCESS_TOKEN_KEY, data.token);
+      localStorage.setItem('rad_order_pad_access_token', data.token);
       
       // Store user data if available
       if (data.user) {
@@ -84,7 +83,7 @@ export default function TrialAuthPage() {
       
       // Calculate expiry time (1 hour from now) and save it
       const expiryTime = Date.now() + 60 * 60 * 1000;
-      localStorage.setItem(TRIAL_TOKEN_EXPIRY_KEY, expiryTime.toString());
+      localStorage.setItem('rad_order_pad_token_expiry', expiryTime.toString());
       
       // Decode the token to extract user information
       try {
@@ -185,7 +184,7 @@ export default function TrialAuthPage() {
       }
       
       // Store the token in localStorage using trial-specific keys
-      localStorage.setItem(TRIAL_ACCESS_TOKEN_KEY, data.token);
+      localStorage.setItem('rad_order_pad_access_token', data.token);
       
       // Store user data if available
       if (data.user) {
@@ -202,7 +201,7 @@ export default function TrialAuthPage() {
       
       // Calculate expiry time (1 hour from now) and save it
       const expiryTime = Date.now() + 60 * 60 * 1000;
-      localStorage.setItem(TRIAL_TOKEN_EXPIRY_KEY, expiryTime.toString());
+      localStorage.setItem('rad_order_pad_token_expiry', expiryTime.toString());
       
       // Decode the token to extract user information
       try {

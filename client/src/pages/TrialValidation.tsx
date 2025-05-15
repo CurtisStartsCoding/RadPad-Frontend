@@ -10,7 +10,6 @@ import { UserRole } from "@/lib/roles";
 import AppHeader from "@/components/layout/AppHeader";
 import { AppPage } from "@/App";
 import { useToast } from "@/hooks/use-toast";
-import { TRIAL_ACCESS_TOKEN_KEY } from "@/lib/useAuth";
 import { getApiUrl, logApiConfiguration, REMOTE_API_URL } from "@/lib/config";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -33,9 +32,9 @@ const TrialValidation = () => {
   
   // Check authentication and load validation credits from localStorage on component mount
   useEffect(() => {
-    // Check if user is authenticated with trial token
-    const trialToken = localStorage.getItem(TRIAL_ACCESS_TOKEN_KEY);
-    if (!trialToken) {
+    // Check if user is authenticated
+    const token = localStorage.getItem('rad_order_pad_access_token');
+    if (!token) {
       // User is not authenticated, redirect to auth page
       toast({
         title: "Authentication Required",
@@ -99,8 +98,8 @@ const TrialValidation = () => {
     setIsProcessing(true);
     
     try {
-      // Get the trial auth token from localStorage
-      const token = localStorage.getItem(TRIAL_ACCESS_TOKEN_KEY);
+      // Get the auth token from localStorage
+      const token = localStorage.getItem('rad_order_pad_access_token');
 
       if (!token) {
         console.error("No authentication token found in localStorage");

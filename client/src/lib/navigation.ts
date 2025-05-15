@@ -14,9 +14,8 @@ import { UserRole } from "./roles";
  */
 export function getNewOrderPath(userRole?: string): string {
   // Check if this is a trial user
-  const trialToken = localStorage.getItem('rad_order_pad_trial_access_token');
   const trialUserData = localStorage.getItem('rad_order_pad_trial_user');
-  const isTrialUser = !!trialToken && !!trialUserData;
+  const isTrialUser = !!trialUserData;
   
   // If the user is a trial user or has a trial user role, navigate to trial-validation
   if (isTrialUser || userRole === UserRole.TrialUser || userRole === 'trial_user') {
@@ -33,9 +32,8 @@ export function getNewOrderPath(userRole?: string): string {
  * @returns True if the user is a trial user, false otherwise
  */
 export function isTrialUser(): boolean {
-  const trialToken = localStorage.getItem('rad_order_pad_trial_access_token');
   const trialUserData = localStorage.getItem('rad_order_pad_trial_user');
-  return !!trialToken && !!trialUserData;
+  return !!trialUserData;
 }
 
 /**

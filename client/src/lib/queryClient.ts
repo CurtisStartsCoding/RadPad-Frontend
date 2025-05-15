@@ -39,10 +39,9 @@ export async function apiRequest(
   // For authentication-related endpoints, add extra cache prevention
   const isAuthEndpoint = url.includes('/api/auth/');
   
-  // Check if this is a trial user by looking for trial token and trial user data
-  const trialToken = localStorage.getItem('rad_order_pad_trial_access_token');
+  // Check if this is a trial user by looking for trial user data
   const trialUserData = localStorage.getItem('rad_order_pad_trial_user');
-  const isTrialUser = !!trialToken && !!trialUserData;
+  const isTrialUser = !!trialUserData;
   
   // Modify URL for trial users to use trial-specific endpoints
   // Only modify the validation endpoint which is documented in the API
@@ -55,10 +54,8 @@ export async function apiRequest(
     // Note: Trial users should have access to real orders, so no special handling needed for /api/orders
   }
   
-  // For trial users, always use the trial token
-  // For regular users, only use trial token for trial-specific endpoints
-  const isTrial = isTrialUser || url.includes('/trial');
-  const accessToken = isTrialUser ? trialToken : getAuthToken(isTrial);
+  // Get the authentication token
+  const accessToken = getAuthToken();
   
   // Prepare headers
   const headers: Record<string, string> = {
@@ -138,19 +135,12 @@ export async function apiRequest(
       if (refreshToken) {
         console.log('Received X-Refresh-Token header, updating token');
         // Store the refreshed token in the appropriate storage location
-        if (isTrial) {
-          localStorage.setItem('rad_order_pad_trial_access_token', refreshToken);
-          
-          // Update token expiry (add 15 minutes)
-          const expiryTime = Date.now() + 15 * 60 * 1000;
-          localStorage.setItem('rad_order_pad_trial_token_expiry', expiryTime.toString());
-        } else {
-          localStorage.setItem('rad_order_pad_access_token', refreshToken);
-          
-          // Update token expiry (add 15 minutes)
-          const expiryTime = Date.now() + 15 * 60 * 1000;
-          localStorage.setItem('rad_order_pad_token_expiry', expiryTime.toString());
-        }
+        // Store the refreshed token
+        localStorage.setItem('rad_order_pad_access_token', refreshToken);
+        
+        // Update token expiry (add 15 minutes)
+        const expiryTime = Date.now() + 15 * 60 * 1000;
+        localStorage.setItem('rad_order_pad_token_expiry', expiryTime.toString());
       }
       
       await throwIfResNotOk(res);
@@ -190,10 +180,9 @@ export const getQueryFn: <T>(options: {
       `${url}${url.includes('?') ? '&' : '?'}_=${Date.now()}` :
       url;
     
-    // Check if this is a trial user by looking for trial token and trial user data
-    const trialToken = localStorage.getItem('rad_order_pad_trial_access_token');
+    // Check if this is a trial user by looking for trial user data
     const trialUserData = localStorage.getItem('rad_order_pad_trial_user');
-    const isTrialUser = !!trialToken && !!trialUserData;
+    const isTrialUser = !!trialUserData;
     
     // Modify URL for trial users to use trial-specific endpoints
     // Only modify the validation endpoint which is documented in the API
@@ -206,10 +195,8 @@ export const getQueryFn: <T>(options: {
       // Note: Trial users should have access to real orders, so no special handling needed for /api/orders
     }
     
-    // For trial users, always use the trial token
-    // For regular users, only use trial token for trial-specific endpoints
-    const isTrial = isTrialUser || url.includes('/trial');
-    const accessToken = isTrialUser ? trialToken : getAuthToken(isTrial);
+    // Get the authentication token
+    const accessToken = getAuthToken();
     
     try {
       // Prepare headers with auth token
@@ -262,19 +249,12 @@ export const getQueryFn: <T>(options: {
         if (refreshToken) {
           console.log('Received X-Refresh-Token header in query, updating token');
           // Store the refreshed token in the appropriate storage location
-          if (isTrial) {
-            localStorage.setItem('rad_order_pad_trial_access_token', refreshToken);
-            
-            // Update token expiry (add 15 minutes)
-            const expiryTime = Date.now() + 15 * 60 * 1000;
-            localStorage.setItem('rad_order_pad_trial_token_expiry', expiryTime.toString());
-          } else {
-            localStorage.setItem('rad_order_pad_access_token', refreshToken);
-            
-            // Update token expiry (add 15 minutes)
-            const expiryTime = Date.now() + 15 * 60 * 1000;
-            localStorage.setItem('rad_order_pad_token_expiry', expiryTime.toString());
-          }
+          // Store the refreshed token
+          localStorage.setItem('rad_order_pad_access_token', refreshToken);
+          
+          // Update token expiry (add 15 minutes)
+          const expiryTime = Date.now() + 15 * 60 * 1000;
+          localStorage.setItem('rad_order_pad_token_expiry', expiryTime.toString());
         }
 
         // Handle specific status codes more explicitly
