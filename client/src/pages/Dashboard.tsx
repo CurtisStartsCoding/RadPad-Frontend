@@ -143,12 +143,31 @@ const Dashboard = ({ navigateTo }: DashboardProps) => {
   const { data: ordersResponse, isLoading: isLoadingOrders, error: ordersError } = useQuery<OrdersApiResponse>({
     queryKey: ['/api/orders', { limit: 5 }],
     queryFn: async () => {
-      const response = await apiRequest('GET', '/api/orders?limit=5', undefined);
-      if (!response.ok) {
-        throw new Error('Failed to fetch recent orders');
+      // Determine if this is a trial user
+      const isTrialUser = user?.role === 'trial_user' || user?.role === 'trial_physician';
+      const endpoint = '/api/orders?limit=5';
+      
+      console.log(`Using standard orders endpoint: ${endpoint}`);
+      
+      try {
+        const response = await apiRequest('GET', endpoint, undefined);
+        if (!response.ok) {
+          // If we get a 401 error for a trial user, throw a specific error
+          if (response.status === 401 && isTrialUser) {
+            throw new Error('Trial user authentication required for orders');
+          }
+          throw new Error('Failed to fetch recent orders');
+        }
+        const data = await response.json();
+        return data;
+      } catch (error) {
+        console.error('Error fetching orders:', error);
+        // For trial users, throw a specific error that will be handled in the UI
+        if (isTrialUser && error instanceof Error && error.message.includes('Trial user')) {
+          throw new Error('Trial user authentication required for orders');
+        }
+        throw error;
       }
-      const data = await response.json();
-      return data;
     },
     staleTime: 60000, // 1 minute
   });
@@ -167,59 +186,79 @@ const Dashboard = ({ navigateTo }: DashboardProps) => {
   } else if (user?.role === 'admin_staff' || user?.role === 'admin_referring' || user?.role === 'admin_radiology') {
     // Admin roles might have access to more orders
     ordersEndpoint = '/api/orders?limit=100';
+  } else if (user?.role === 'trial_user' || user?.role === 'trial_physician') {
+    // Trial users should use the trial-specific endpoint
+    console.log('Trial user accessing trial-specific orders endpoint');
+    ordersEndpoint = '/api/trial/orders?limit=100';
   }
   
   const { data: analytics, isLoading: isLoadingAnalytics, error: analyticsError } = useQuery<ApiAnalytics>({
     queryKey: ['/analytics/dashboard', user?.role],
     queryFn: async () => {
-      console.log('Generating analytics directly from orders data');
+      console.log('Generating analytics data');
       
+      // Determine if this is a trial user
+      const isTrialUser = user?.role === 'trial_user' || user?.role === 'trial_physician';
       const endpoint = ordersEndpoint;
       
       console.log(`Using endpoint ${endpoint} based on user role: ${user?.role || 'unknown'}`);
       
-      // Fetch orders based on role-appropriate endpoint
-      const response = await apiRequest('GET', endpoint, undefined);
-      if (!response.ok) {
-        // If we get an access denied error, try to use a fallback approach
-        if (response.status === 403) {
-          console.log('Access denied for orders endpoint, using fallback data');
-          // Return default analytics with empty data
-          return {
-            activity_data: Array(6).fill(0).map((_, i) => {
-              const date = new Date();
-              date.setMonth(date.getMonth() - 5 + i);
-              return {
-                name: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][date.getMonth()],
-                orders: 0,
-                validations: 0
-              };
-            }),
-            modality_distribution: [],
-            stats: {
-              total_orders: 0,
-              completed_studies: 0,
-              active_patients: 0,
-              pending_orders: 0,
-              avg_completion_time: 0,
-              validation_success_rate: 0,
-              orders_this_quarter: 0
-            }
-          };
+      try {
+        // Fetch orders based on role-appropriate endpoint
+        const response = await apiRequest('GET', endpoint, undefined);
+        if (!response.ok) {
+          // If we get a 401 error for a trial user, throw a specific error
+          if (response.status === 401 && isTrialUser) {
+            throw new Error('Trial user authentication required for analytics');
+          }
+          
+          // If we get an access denied error, try to use a fallback approach
+          if (response.status === 403) {
+            console.log('Access denied for orders endpoint, using fallback data');
+            // Return default analytics with empty data
+            return {
+              activity_data: Array(6).fill(0).map((_, i) => {
+                const date = new Date();
+                date.setMonth(date.getMonth() - 5 + i);
+                return {
+                  name: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][date.getMonth()],
+                  orders: 0,
+                  validations: 0
+                };
+              }),
+              modality_distribution: [],
+              stats: {
+                total_orders: 0,
+                completed_studies: 0,
+                active_patients: 0,
+                pending_orders: 0,
+                avg_completion_time: 0,
+                validation_success_rate: 0,
+                orders_this_quarter: 0
+              }
+            };
+          }
+          throw new Error('Failed to fetch orders data for analytics');
         }
-        throw new Error('Failed to fetch orders data for analytics');
+        
+        const ordersData = await response.json();
+        
+        if (!ordersData || !ordersData.orders) {
+          throw new Error('No orders data available to generate analytics');
+        }
+        
+        console.log(`Successfully fetched ${ordersData.orders.length} orders for analytics generation`);
+        
+        // Generate analytics data from orders
+        return generateAnalyticsFromOrders(ordersData.orders);
+      } catch (error) {
+        console.error('Error fetching analytics:', error);
+        // For trial users, throw a specific error that will be handled in the UI
+        if (isTrialUser && error instanceof Error && error.message.includes('Trial user')) {
+          throw new Error('Trial user authentication required for analytics');
+        }
+        throw error;
       }
-      
-      const ordersData = await response.json();
-      
-      if (!ordersData || !ordersData.orders) {
-        throw new Error('No orders data available to generate analytics');
-      }
-      
-      console.log(`Successfully fetched ${ordersData.orders.length} orders for analytics generation`);
-      
-      // Generate analytics data from orders
-      return generateAnalyticsFromOrders(ordersData.orders);
     },
     staleTime: 300000, // 5 minutes
   });
@@ -286,11 +325,28 @@ const Dashboard = ({ navigateTo }: DashboardProps) => {
               <span className="ml-2 text-lg">Loading analytics...</span>
             </div>
           ) : analyticsError ? (
-            <div className="text-center py-12 text-red-500">
-              <p>Error loading analytics data. Please try again later.</p>
-              <Button variant="outline" className="mt-4" onClick={() => window.location.reload()}>
-                Retry
-              </Button>
+            <div className="text-center py-12">
+              {(user?.role === 'trial_user' || user?.role === 'trial_physician' ||
+                (analyticsError instanceof Error && analyticsError.message.includes('Trial user'))) ? (
+                <div>
+                  <p className="text-amber-600">
+                    Trial users currently don't have access to analytics data.
+                  </p>
+                  <p className="text-sm text-slate-500 mt-2">
+                    The API server is returning a 401 error for trial users accessing the analytics endpoint.
+                  </p>
+                  <p className="text-sm text-slate-500 mt-1">
+                    This is a known limitation of the trial mode.
+                  </p>
+                </div>
+              ) : (
+                <div className="text-red-500">
+                  <p>Error loading analytics data. Please try again later.</p>
+                  <Button variant="outline" className="mt-4" onClick={() => window.location.reload()}>
+                    Retry
+                  </Button>
+                </div>
+              )}
             </div>
           ) : (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -358,11 +414,28 @@ const Dashboard = ({ navigateTo }: DashboardProps) => {
                   <span className="ml-2 text-lg">Loading orders...</span>
                 </div>
               ) : ordersError ? (
-                <div className="text-center py-12 text-red-500">
-                  <p>Error loading orders. Please try again later.</p>
-                  <Button variant="outline" className="mt-4" onClick={() => window.location.reload()}>
-                    Retry
-                  </Button>
+                <div className="text-center py-12">
+                  {(user?.role === 'trial_user' || user?.role === 'trial_physician' ||
+                    (ordersError instanceof Error && ordersError.message.includes('Trial user'))) ? (
+                    <div>
+                      <p className="text-amber-600">
+                        Trial users currently don't have access to real orders data.
+                      </p>
+                      <p className="text-sm text-slate-500 mt-2">
+                        The API server is returning a 401 error for trial users accessing the orders endpoint.
+                      </p>
+                      <p className="text-sm text-slate-500 mt-1">
+                        This is a known limitation of the trial mode.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="text-red-500">
+                      <p>Error loading orders. Please try again later.</p>
+                      <Button variant="outline" className="mt-4" onClick={() => window.location.reload()}>
+                        Retry
+                      </Button>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <Table>

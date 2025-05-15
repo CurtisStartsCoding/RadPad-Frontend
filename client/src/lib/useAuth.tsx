@@ -140,6 +140,19 @@ export function AuthProvider({ children }: AuthProviderProps) {
               if (payload) {
                 console.log("Successfully decoded token payload");
                 
+                // Check if this is a trial user
+                const isTrial = payload.isTrial === true ||
+                                payload.role === 'trial_user' ||
+                                payload.role === 'trial_physician';
+                
+                if (isTrial) {
+                  console.group('🔑 Trial User Authentication');
+                  console.log('👤 User role:', payload.role);
+                  console.log('📧 Email:', payload.email);
+                  console.log('🔑 Token payload:', payload);
+                  console.groupEnd();
+                }
+                
                 // Create a user object from the token payload
                 const userData: User = {
                   id: payload.userId || payload.sub,

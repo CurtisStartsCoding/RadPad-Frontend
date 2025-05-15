@@ -45,14 +45,27 @@ export async function apiRequest(
   const isTrial = isTrialUser(userRole);
   
   // Modify URL for trial users to use trial-specific endpoints
-  // Only modify the validation endpoint which is documented in the API
   let modifiedUrl = cacheBustUrl;
   if (isTrial) {
     // For validation endpoint
     if (url.includes('/api/orders/validate') && !url.includes('/trial')) {
       modifiedUrl = modifiedUrl.replace('/api/orders/validate', '/api/orders/validate/trial');
     }
-    // Note: Trial users should have access to real orders, so no special handling needed for /api/orders
+    
+    // For authentication endpoints
+    if (url.includes('/api/auth/login') && !url.includes('/trial')) {
+      modifiedUrl = modifiedUrl.replace('/api/auth/login', '/api/auth/trial/login');
+    }
+    
+    if (url.includes('/api/auth/register') && !url.includes('/trial')) {
+      modifiedUrl = modifiedUrl.replace('/api/auth/register', '/api/auth/trial/register');
+    }
+    
+    // Trial users should have access to real orders
+    // No URL modification needed, but ensure we're logging the request for debugging
+    if (url.includes('/api/orders') && !url.includes('/validate')) {
+      console.log(`Trial user accessing orders endpoint: ${url}`);
+    }
   }
   
   // Get the authentication token
@@ -72,7 +85,37 @@ export async function apiRequest(
   // Add Authorization header if we have a token (except for login)
   if (accessToken && !url.includes('/api/auth/login')) {
     headers['Authorization'] = `Bearer ${accessToken}`;
-    console.log(`API Request: Adding Authorization token to ${url}`);
+    
+    // Check if this is a trial token by decoding it
+    let isTrialToken = false;
+    try {
+      const tokenParts = accessToken.split('.');
+      if (tokenParts.length === 3) {
+        const payload = JSON.parse(atob(tokenParts[1]));
+        if (payload && payload.isTrial === true) {
+          isTrialToken = true;
+          console.log('🔑 Token identified as trial token in API request');
+        }
+      }
+    } catch (e) {
+      console.error("Error decoding token:", e);
+    }
+    
+    // Enhanced logging for trial users
+    if (isTrial || isTrialToken) {
+      console.group(`🔑 Trial User API Request: ${method} ${url}`);
+      console.log(`🔗 Using token: ${accessToken.substring(0, 15)}...`);
+      console.log(`👤 User role: ${userRole}`);
+      console.log(`📤 Headers:`, headers);
+      console.groupEnd();
+      
+      // Ensure we're logging orders requests for trial users
+      if (url.includes('/api/orders')) {
+        console.log(`🔍 Trial user accessing orders endpoint with token: ${accessToken.substring(0, 15)}...`);
+      }
+    } else {
+      console.log(`API Request: Adding Authorization token to ${url}`);
+    }
   }
   
   // Don't add cache prevention headers as they can cause CORS issues
@@ -186,14 +229,27 @@ export const getQueryFn: <T>(options: {
     const isTrial = isTrialUser(userRole);
     
     // Modify URL for trial users to use trial-specific endpoints
-    // Only modify the validation endpoint which is documented in the API
     let modifiedUrl = cacheBustUrl;
     if (isTrial) {
       // For validation endpoint
       if (url.includes('/api/orders/validate') && !url.includes('/trial')) {
         modifiedUrl = modifiedUrl.replace('/api/orders/validate', '/api/orders/validate/trial');
       }
-      // Note: Trial users should have access to real orders, so no special handling needed for /api/orders
+      
+      // For authentication endpoints
+      if (url.includes('/api/auth/login') && !url.includes('/trial')) {
+        modifiedUrl = modifiedUrl.replace('/api/auth/login', '/api/auth/trial/login');
+      }
+      
+      if (url.includes('/api/auth/register') && !url.includes('/trial')) {
+        modifiedUrl = modifiedUrl.replace('/api/auth/register', '/api/auth/trial/register');
+      }
+      
+      // Trial users should have access to real orders
+      // No URL modification needed, but ensure we're logging the request for debugging
+      if (url.includes('/api/orders') && !url.includes('/validate')) {
+        console.log(`Trial user accessing orders endpoint: ${url}`);
+      }
     }
     
     // Get the authentication token
@@ -209,7 +265,37 @@ export const getQueryFn: <T>(options: {
       // Add Authorization header if we have a token
       if (accessToken) {
         headers['Authorization'] = `Bearer ${accessToken}`;
-        console.log('Added Authorization header with Bearer token');
+        
+        // Check if this is a trial token by decoding it
+        let isTrialToken = false;
+        try {
+          const tokenParts = accessToken.split('.');
+          if (tokenParts.length === 3) {
+            const payload = JSON.parse(atob(tokenParts[1]));
+            if (payload && payload.isTrial === true) {
+              isTrialToken = true;
+              console.log('🔑 Token identified as trial token in query request');
+            }
+          }
+        } catch (e) {
+          console.error("Error decoding token:", e);
+        }
+        
+        // Enhanced logging for trial users
+        if (isTrial || isTrialToken) {
+          console.group(`🔑 Trial User Query Request: GET ${url}`);
+          console.log(`🔗 Using token: ${accessToken.substring(0, 15)}...`);
+          console.log(`👤 User role: ${userRole}`);
+          console.log(`📤 Headers:`, headers);
+          console.groupEnd();
+          
+          // Ensure we're logging orders requests for trial users
+          if (url.includes('/api/orders')) {
+            console.log(`🔍 Trial user accessing orders endpoint with token: ${accessToken.substring(0, 15)}...`);
+          }
+        } else {
+          console.log('Added Authorization header with Bearer token');
+        }
       }
       
       // Don't add cache prevention headers as they can cause CORS issues

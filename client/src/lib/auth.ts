@@ -292,16 +292,36 @@ export function getAuthToken(trialOnly: boolean = false): string | null {
   // First check the main token
   const token = localStorage.getItem(ACCESS_TOKEN_KEY);
   if (token) {
+    console.log(`🔑 Using main token: ${token.substring(0, 15)}...`);
+    
+    // Check if this is a trial token by decoding it
+    try {
+      const tokenParts = token.split('.');
+      if (tokenParts.length === 3) {
+        const payload = JSON.parse(atob(tokenParts[1]));
+        if (payload && payload.isTrial === true) {
+          console.log('🔑 Token identified as trial token');
+          console.log('👤 User role:', payload.role);
+          console.log('📧 Email:', payload.email);
+        }
+      }
+    } catch (e) {
+      console.error("Error decoding token:", e);
+    }
+    
     return token;
   }
   
   // For backward compatibility, check for trial token
   const trialToken = localStorage.getItem('rad_order_pad_trial_access_token');
   if (trialToken) {
+    console.log(`🔑 Found trial token: ${trialToken.substring(0, 15)}...`);
     // Migrate the trial token to the main token key for future use
     localStorage.setItem(ACCESS_TOKEN_KEY, trialToken);
+    console.log('🔄 Migrated trial token to main token key');
     return trialToken;
   }
   
+  console.log('⚠️ No authentication token found');
   return null;
 }
