@@ -1,6 +1,7 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
 import { getApiUrl } from "./config";
 import { getAuthToken } from "./auth";
+import { getUserRoleFromStorage, isTrialUser } from "./navigation";
 
 /**
  * Custom error handling for API responses
@@ -39,14 +40,14 @@ export async function apiRequest(
   // For authentication-related endpoints, add extra cache prevention
   const isAuthEndpoint = url.includes('/api/auth/');
   
-  // Check if this is a trial user by looking for trial user data
-  const trialUserData = localStorage.getItem('rad_order_pad_trial_user');
-  const isTrialUser = !!trialUserData;
+  // Check if this is a trial user by looking at the user role
+  const userRole = getUserRoleFromStorage();
+  const isTrial = isTrialUser(userRole);
   
   // Modify URL for trial users to use trial-specific endpoints
   // Only modify the validation endpoint which is documented in the API
   let modifiedUrl = cacheBustUrl;
-  if (isTrialUser) {
+  if (isTrial) {
     // For validation endpoint
     if (url.includes('/api/orders/validate') && !url.includes('/trial')) {
       modifiedUrl = modifiedUrl.replace('/api/orders/validate', '/api/orders/validate/trial');
@@ -180,14 +181,14 @@ export const getQueryFn: <T>(options: {
       `${url}${url.includes('?') ? '&' : '?'}_=${Date.now()}` :
       url;
     
-    // Check if this is a trial user by looking for trial user data
-    const trialUserData = localStorage.getItem('rad_order_pad_trial_user');
-    const isTrialUser = !!trialUserData;
+    // Check if this is a trial user by looking at the user role
+    const userRole = getUserRoleFromStorage();
+    const isTrial = isTrialUser(userRole);
     
     // Modify URL for trial users to use trial-specific endpoints
     // Only modify the validation endpoint which is documented in the API
     let modifiedUrl = cacheBustUrl;
-    if (isTrialUser) {
+    if (isTrial) {
       // For validation endpoint
       if (url.includes('/api/orders/validate') && !url.includes('/trial')) {
         modifiedUrl = modifiedUrl.replace('/api/orders/validate', '/api/orders/validate/trial');

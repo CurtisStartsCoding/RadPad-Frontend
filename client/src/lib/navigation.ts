@@ -12,13 +12,9 @@ import { UserRole } from "./roles";
  * @param userRole The user's role
  * @returns The path to navigate to
  */
-export function getNewOrderPath(userRole?: string): string {
-  // Check if this is a trial user
-  const trialUserData = localStorage.getItem('rad_order_pad_trial_user');
-  const isTrialUser = !!trialUserData;
-  
-  // If the user is a trial user or has a trial user role, navigate to trial-validation
-  if (isTrialUser || userRole === UserRole.TrialUser || userRole === 'trial_user') {
+export function getNewOrderPath(userRole?: string | null): string {
+  // If the user has a trial user role, navigate to trial-validation
+  if (userRole === UserRole.TrialUser || userRole === 'trial_user' || userRole === UserRole.TrialPhysician) {
     return '/trial-validation';
   }
   
@@ -31,9 +27,9 @@ export function getNewOrderPath(userRole?: string): string {
  * 
  * @returns True if the user is a trial user, false otherwise
  */
-export function isTrialUser(): boolean {
-  const trialUserData = localStorage.getItem('rad_order_pad_trial_user');
-  return !!trialUserData;
+export function isTrialUser(userRole?: string | null): boolean {
+  // Check if the user role is a trial role
+  return userRole === UserRole.TrialUser || userRole === 'trial_user' || userRole === UserRole.TrialPhysician;
 }
 
 /**
@@ -42,20 +38,7 @@ export function isTrialUser(): boolean {
  * @returns The user's role or null if not found
  */
 export function getUserRoleFromStorage(): string | null {
-  // First check for trial user data
-  const trialUserData = localStorage.getItem('rad_order_pad_trial_user');
-  if (trialUserData) {
-    try {
-      const trialUser = JSON.parse(trialUserData);
-      if (trialUser.role) {
-        return trialUser.role;
-      }
-    } catch (e) {
-      console.error("Error parsing trial user data:", e);
-    }
-  }
-  
-  // If no trial user data, try to extract role from regular token
+  // Try to extract role from token
   try {
     const token = localStorage.getItem('rad_order_pad_access_token');
     if (token) {
@@ -69,6 +52,21 @@ export function getUserRoleFromStorage(): string | null {
     }
   } catch (e) {
     console.error("Error extracting role from token:", e);
+  }
+  
+  // For backward compatibility, check for trial user data
+  try {
+    const trialUserData = localStorage.getItem('rad_order_pad_trial_user');
+    if (trialUserData) {
+      const trialUser = JSON.parse(trialUserData);
+      if (trialUser.role) {
+        return trialUser.role;
+      } else if (trialUser.isTrial) {
+        return UserRole.TrialUser;
+      }
+    }
+  } catch (e) {
+    console.error("Error parsing trial user data:", e);
   }
   
   return null;

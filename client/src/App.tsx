@@ -7,6 +7,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { UserRole } from "@/lib/roles";
 import { AuthProvider, useAuth } from "@/lib/useAuth";
 import { logApiConfiguration, REMOTE_API_URL } from "@/lib/config";
+import { getUserRoleFromStorage } from "@/lib/navigation";
 
 import AppHeader from "@/components/layout/AppHeader";
 import Dashboard from "@/pages/Dashboard";
@@ -212,39 +213,14 @@ function App() {
         if (user) {
           userRole = user.role;
         } else {
-          // First check for trial user data
-          const trialUserData = localStorage.getItem('rad_order_pad_trial_user');
-          if (trialUserData) {
-            try {
-              const trialUser = JSON.parse(trialUserData);
-              userRole = trialUser.role;
-              console.log(`Using role from trial user data: ${userRole}`);
-            } catch (e) {
-              console.error("Error parsing trial user data:", e);
-            }
+          // Use the getUserRoleFromStorage function to get the role
+          userRole = getUserRoleFromStorage();
+          if (userRole) {
+            console.log(`Using role from storage: ${userRole}`);
           }
           
-          // If no trial user data, try to extract role from regular token
-          if (!userRole) {
-            try {
-              const token = localStorage.getItem('rad_order_pad_access_token');
-              if (token) {
-                const tokenParts = token.split('.');
-                if (tokenParts.length === 3) {
-                  const payload = JSON.parse(atob(tokenParts[1]));
-                  if (payload && payload.role) {
-                    userRole = payload.role;
-                    console.log(`Extracted role from token: ${userRole}`);
-                  }
-                }
-              }
-            } catch (e) {
-              console.error("Error extracting role from token:", e);
-            }
-          }
-          
-          // If still no role but we have trial user data, use 'trial_user' as the default role
-          if (!userRole && trialUserData) {
+          // If still no role, check if there's trial user data in localStorage
+          if (!userRole && localStorage.getItem('rad_order_pad_trial_user')) {
             userRole = 'trial_user';
             console.log('Using default trial-user role');
           }

@@ -42,17 +42,9 @@ const AppHeader: React.FC<AppHeaderProps> = ({
     console.log("- Is trial user?", effectiveRole === UserRole.TrialUser);
     console.log("- UserRole.TrialUser value:", UserRole.TrialUser);
     
-    // Check for trial user data in localStorage
-    const trialUserData = localStorage.getItem('rad_order_pad_trial_user');
-    console.log("- Trial user data exists:", !!trialUserData);
-    if (trialUserData) {
-      try {
-        const trialUser = JSON.parse(trialUserData);
-        console.log("- Trial user role from localStorage:", trialUser.role);
-      } catch (e) {
-        console.error("Error parsing trial user data:", e);
-      }
-    }
+    // Check if user is a trial user based on role
+    const isTrialUser = effectiveRole === UserRole.TrialUser || effectiveRole === UserRole.TrialPhysician;
+    console.log("- Is trial user based on role:", isTrialUser);
     
     // Update URL based on the page
     switch (page) {

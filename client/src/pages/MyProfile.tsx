@@ -86,11 +86,8 @@ const MyProfile = ({ userRole }: MyProfileProps) => {
         return JSON.parse(trialUserDataStr);
       }
       
-      // Fallback to JWT data if direct user data not available
-      const trialUserJWT = localStorage.getItem('rad_order_pad_trial_user');
-      if (trialUserJWT) {
-        return JSON.parse(trialUserJWT);
-      }
+      // We no longer need to check localStorage for trial user data
+      // as we're already using the user role to determine if the user is a trial user
       
       return null;
     } catch (e) {

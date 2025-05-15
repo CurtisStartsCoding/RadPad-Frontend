@@ -121,7 +121,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
     if (!isSessionLoading) {
       // Check if we have a token in localStorage
       const accessToken = localStorage.getItem(ACCESS_TOKEN_KEY);
-      const trialUserData = localStorage.getItem('rad_order_pad_trial_user');
       
       // For backward compatibility, migrate any existing trial token to the main token
       const trialToken = localStorage.getItem('rad_order_pad_trial_access_token');
@@ -159,18 +158,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
                   updatedAt: new Date()
                 };
                 
-                // If this is a trial user (based on trial user data), override the role
-                if (trialUserData) {
-                  try {
-                    const trialUser = JSON.parse(trialUserData);
-                    if (trialUser.isTrial) {
-                      userData.role = UserRole.TrialUser as any;
-                      userData.organizationType = 'trial';
-                    }
-                  } catch (e) {
-                    console.error("Error parsing trial user data:", e);
-                  }
-                }
+                // We no longer need to check localStorage for trial user data
+                // as we're using the role from the token
                 
                 setUser(userData);
                 setIsLoading(false);
