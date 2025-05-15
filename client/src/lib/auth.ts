@@ -126,10 +126,6 @@ export async function logoutUser(): Promise<void> {
     localStorage.removeItem(ACCESS_TOKEN_KEY);
     localStorage.removeItem(TOKEN_EXPIRY_KEY);
     
-    // For backward compatibility, also remove old trial tokens if they exist
-    localStorage.removeItem('rad_order_pad_trial_access_token');
-    localStorage.removeItem('rad_order_pad_trial_token_expiry');
-    
     // Clear all queries from the cache to force a fresh state
     await queryClient.clear();
     
@@ -146,11 +142,7 @@ export async function logoutUser(): Promise<void> {
     // Remove tokens from localStorage even if the server request failed
     localStorage.removeItem(ACCESS_TOKEN_KEY);
     localStorage.removeItem(TOKEN_EXPIRY_KEY);
-    
-    // For backward compatibility, also remove old trial tokens if they exist
-    localStorage.removeItem('rad_order_pad_trial_access_token');
-    localStorage.removeItem('rad_order_pad_trial_token_expiry');
-    
+        
     // Rethrow to allow proper error handling
     throw error;
   }

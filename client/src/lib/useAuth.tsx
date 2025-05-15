@@ -59,12 +59,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const clearToken = () => {
     localStorage.removeItem(ACCESS_TOKEN_KEY);
     localStorage.removeItem(TOKEN_EXPIRY_KEY);
-    
-    // For backward compatibility, also remove old trial tokens if they exist
-    localStorage.removeItem('rad_order_pad_trial_access_token');
-    localStorage.removeItem('rad_order_pad_trial_token_expiry');
-    
-    console.log("Authentication tokens cleared from localStorage");
   };
 
   // Check for existing token on initial load
@@ -331,6 +325,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
       // Don't throw the error, just clear tokens and user state
       clearToken();
       localStorage.removeItem('rad_order_pad_user_data');
+      
+      // Remove all trial-related items
+      localStorage.removeItem('rad_order_pad_trial_user');
+      localStorage.removeItem('rad_order_pad_trial_user_data');
+      localStorage.removeItem('rad_order_pad_trial_info');
+      localStorage.removeItem('rad_order_pad_trial_validations_remaining');
       setUser(null);
       await queryClient.clear();
     }

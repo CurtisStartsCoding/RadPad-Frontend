@@ -68,10 +68,8 @@ export default function TrialAuthPage() {
       // Store the token in localStorage using trial-specific keys
       localStorage.setItem('rad_order_pad_access_token', data.token);
       
-      // Store user data if available
-      if (data.user) {
-        localStorage.setItem('rad_order_pad_trial_user_data', JSON.stringify(data.user));
-      }
+      // We no longer need to store trial user data separately
+      // as we're using the user role from the token
       
       // Store trial validation credits information if available
       if (data.trialInfo) {
@@ -85,25 +83,8 @@ export default function TrialAuthPage() {
       const expiryTime = Date.now() + 60 * 60 * 1000;
       localStorage.setItem('rad_order_pad_token_expiry', expiryTime.toString());
       
-      // Decode the token to extract user information
-      try {
-        const tokenParts = data.token.split('.');
-        if (tokenParts.length === 3) {
-          const payload = JSON.parse(atob(tokenParts[1]));
-          
-          // Create a modified payload with role set to 'trial_user'
-          const modifiedPayload = {
-            ...payload,
-            role: UserRole.TrialUser,
-            isTrial: true  // Make sure isTrial flag is set to true
-          };
-          
-          // Store the modified payload in localStorage for session management
-          localStorage.setItem('rad_order_pad_trial_user', JSON.stringify(modifiedPayload));
-        }
-      } catch (error) {
-        console.error("Error decoding token:", error);
-      }
+      // We no longer need to store a modified payload in localStorage
+      // as we're using the role from the token directly
       
       toast({
         title: "Login Successful",
@@ -186,10 +167,8 @@ export default function TrialAuthPage() {
       // Store the token in localStorage using trial-specific keys
       localStorage.setItem('rad_order_pad_access_token', data.token);
       
-      // Store user data if available
-      if (data.user) {
-        localStorage.setItem('rad_order_pad_trial_user_data', JSON.stringify(data.user));
-      }
+      // We no longer need to store trial user data separately
+      // as we're using the user role from the token
       
       // Store trial validation credits information if available
       if (data.trialInfo) {
@@ -203,25 +182,8 @@ export default function TrialAuthPage() {
       const expiryTime = Date.now() + 60 * 60 * 1000;
       localStorage.setItem('rad_order_pad_token_expiry', expiryTime.toString());
       
-      // Decode the token to extract user information
-      try {
-        const tokenParts = data.token.split('.');
-        if (tokenParts.length === 3) {
-          const payload = JSON.parse(atob(tokenParts[1]));
-          
-          // Create a modified payload with role set to 'trial_user'
-          const modifiedPayload = {
-            ...payload,
-            role: UserRole.TrialUser,
-            isTrial: true  // Make sure isTrial flag is set to true
-          };
-          
-          // Store the modified payload in localStorage for session management
-          localStorage.setItem('rad_order_pad_trial_user', JSON.stringify(modifiedPayload));
-        }
-      } catch (error) {
-        console.error("Error decoding token:", error);
-      }
+      // We no longer need to store a modified payload in localStorage
+      // as we're using the role from the token directly
       
       toast({
         title: "Registration Successful",

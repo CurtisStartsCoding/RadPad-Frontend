@@ -80,12 +80,6 @@ const MyProfile = ({ userRole }: MyProfileProps) => {
         }
       }
       
-      // If trial user or regular user data not found, try trial user data
-      const trialUserDataStr = localStorage.getItem('rad_order_pad_trial_user_data');
-      if (trialUserDataStr) {
-        return JSON.parse(trialUserDataStr);
-      }
-      
       // We no longer need to check localStorage for trial user data
       // as we're already using the user role to determine if the user is a trial user
       

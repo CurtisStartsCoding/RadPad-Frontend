@@ -219,11 +219,7 @@ function App() {
             console.log(`Using role from storage: ${userRole}`);
           }
           
-          // If still no role, check if there's trial user data in localStorage
-          if (!userRole && localStorage.getItem('rad_order_pad_trial_user')) {
-            userRole = 'trial_user';
-            console.log('Using default trial-user role');
-          }
+          // If no role was found, we'll just continue with null
         }
         
         if (userRole && radiologyRoles.includes(userRole)) {

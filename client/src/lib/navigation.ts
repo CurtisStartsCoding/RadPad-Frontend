@@ -54,20 +54,7 @@ export function getUserRoleFromStorage(): string | null {
     console.error("Error extracting role from token:", e);
   }
   
-  // For backward compatibility, check for trial user data
-  try {
-    const trialUserData = localStorage.getItem('rad_order_pad_trial_user');
-    if (trialUserData) {
-      const trialUser = JSON.parse(trialUserData);
-      if (trialUser.role) {
-        return trialUser.role;
-      } else if (trialUser.isTrial) {
-        return UserRole.TrialUser;
-      }
-    }
-  } catch (e) {
-    console.error("Error parsing trial user data:", e);
-  }
+  // We no longer need to check for trial user data in localStorage
   
   return null;
 }
