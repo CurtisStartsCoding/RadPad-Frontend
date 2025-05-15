@@ -136,12 +136,10 @@ function registerOrderRoutes(app: Express) {
       // Check if this is a trial user
       const trialUser = isTrialUser(req);
       
-      // Determine the appropriate endpoint based on user type
+      // All users (including trial users) should access the same orders endpoint
       let endpoint = '/api/orders';
-      if (trialUser) {
-        log('Trial user detected, using trial-specific endpoint', 'orders');
-        endpoint = '/api/orders/trial';
-      }
+      
+      // Note: Trial users should have access to real orders, so no special handling needed
       
       // Add query parameters if present
       const queryString = req.url.includes('?') ? req.url.substring(req.url.indexOf('?')) : '';
@@ -379,12 +377,10 @@ function registerAdminRoutes(app: Express) {
       // Check if this is a trial user
       const trialUser = isTrialUser(req);
       
-      // Determine the appropriate endpoint based on user type
+      // All users (including trial users) should access the same admin orders queue endpoint
       let endpoint = '/api/admin/orders/queue';
-      if (trialUser) {
-        log('Trial user detected, using trial-specific endpoint', 'admin');
-        endpoint = '/api/admin/orders/queue/trial';
-      }
+      
+      // Note: Trial users should have access to real orders, so no special handling needed
       
       // Add query parameters if present
       const queryString = req.url.includes('?') ? req.url.substring(req.url.indexOf('?')) : '';

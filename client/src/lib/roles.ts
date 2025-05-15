@@ -8,7 +8,7 @@ export enum UserRole {
   Radiologist = "radiologist",
   TrialPhysician = "trial_physician",
   SuperAdmin = "super_admin",
-  TrialUser = "trial-user"
+  TrialUser = "trial_user"
 }
 
 // User-friendly display names for each role

@@ -47,8 +47,12 @@ export async function apiRequest(
   // Modify URL for trial users to use trial-specific endpoints
   // Only modify the validation endpoint which is documented in the API
   let modifiedUrl = cacheBustUrl;
-  if (isTrialUser && url.includes('/api/orders/validate') && !url.includes('/trial')) {
-    modifiedUrl = modifiedUrl.replace('/api/orders/validate', '/api/orders/validate/trial');
+  if (isTrialUser) {
+    // For validation endpoint
+    if (url.includes('/api/orders/validate') && !url.includes('/trial')) {
+      modifiedUrl = modifiedUrl.replace('/api/orders/validate', '/api/orders/validate/trial');
+    }
+    // Note: Trial users should have access to real orders, so no special handling needed for /api/orders
   }
   
   // For trial users, always use the trial token
@@ -194,8 +198,12 @@ export const getQueryFn: <T>(options: {
     // Modify URL for trial users to use trial-specific endpoints
     // Only modify the validation endpoint which is documented in the API
     let modifiedUrl = cacheBustUrl;
-    if (isTrialUser && url.includes('/api/orders/validate') && !url.includes('/trial')) {
-      modifiedUrl = modifiedUrl.replace('/api/orders/validate', '/api/orders/validate/trial');
+    if (isTrialUser) {
+      // For validation endpoint
+      if (url.includes('/api/orders/validate') && !url.includes('/trial')) {
+        modifiedUrl = modifiedUrl.replace('/api/orders/validate', '/api/orders/validate/trial');
+      }
+      // Note: Trial users should have access to real orders, so no special handling needed for /api/orders
     }
     
     // For trial users, always use the trial token

@@ -95,7 +95,8 @@ export default function TrialAuthPage() {
           // Create a modified payload with role set to 'trial_user'
           const modifiedPayload = {
             ...payload,
-            role: UserRole.TrialUser
+            role: UserRole.TrialUser,
+            isTrial: true  // Make sure isTrial flag is set to true
           };
           
           // Store the modified payload in localStorage for session management
@@ -212,7 +213,8 @@ export default function TrialAuthPage() {
           // Create a modified payload with role set to 'trial_user'
           const modifiedPayload = {
             ...payload,
-            role: UserRole.TrialUser
+            role: UserRole.TrialUser,
+            isTrial: true  // Make sure isTrial flag is set to true
           };
           
           // Store the modified payload in localStorage for session management

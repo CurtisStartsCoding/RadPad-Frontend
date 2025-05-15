@@ -28,8 +28,8 @@ export function isTrialUser(req: Request): boolean {
     const payload = parseJwtToken(token);
     
     if (payload) {
-      return payload.isTrial === true || 
-             payload.role === 'trial_physician' || 
+      return payload.isTrial === true ||
+             payload.role === 'trial_physician' ||
              payload.role === 'trial_user';
     }
   }
@@ -184,12 +184,10 @@ export function registerAnalyticsRoutes(app: any) {
       // Fetch orders data from the real API to generate analytics
       log('Fetching orders data to generate analytics', 'analytics');
       
-      // Determine the appropriate endpoint based on user type
+      // All users (including trial users) should access the same orders endpoint
       let ordersEndpoint = '/api/orders';
-      if (trialUser) {
-        log('Trial user detected, using trial-specific endpoint', 'analytics');
-        ordersEndpoint = '/api/orders/trial';
-      }
+      
+      // Note: Trial users should have access to real orders, so no special handling needed
       
       // Add query parameters to get all orders
       ordersEndpoint = `${ordersEndpoint}?limit=100`;

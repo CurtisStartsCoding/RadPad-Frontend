@@ -5,7 +5,6 @@ import { UserRole } from "@/lib/roles";
 import { getNewOrderPath } from "@/lib/navigation";
 import { apiRequest } from "@/lib/queryClient";
 import { generateAnalyticsFromOrders } from "@/lib/analyticsUtils";
-import { ApiAnalytics } from "@/lib/types";
 import {
   Card,
   CardContent,
@@ -159,14 +158,55 @@ const Dashboard = ({ navigateTo }: DashboardProps) => {
   
   // Fetch analytics data from the API
   // Generate analytics directly from orders data
+  
+  // Determine the appropriate endpoint based on user role
+  let ordersEndpoint = '/api/orders?limit=100';
+  
+  if (user?.role === 'radiologist' || user?.role === 'scheduler') {
+    ordersEndpoint = '/api/radiology/orders?limit=100';
+  } else if (user?.role === 'admin_staff' || user?.role === 'admin_referring' || user?.role === 'admin_radiology') {
+    // Admin roles might have access to more orders
+    ordersEndpoint = '/api/orders?limit=100';
+  }
+  
   const { data: analytics, isLoading: isLoadingAnalytics, error: analyticsError } = useQuery<ApiAnalytics>({
-    queryKey: ['/analytics/dashboard'],
+    queryKey: ['/analytics/dashboard', user?.role],
     queryFn: async () => {
       console.log('Generating analytics directly from orders data');
       
-      // Fetch all orders (up to 100) to generate analytics
-      const response = await apiRequest('GET', '/api/orders?limit=100', undefined);
+      const endpoint = ordersEndpoint;
+      
+      console.log(`Using endpoint ${endpoint} based on user role: ${user?.role || 'unknown'}`);
+      
+      // Fetch orders based on role-appropriate endpoint
+      const response = await apiRequest('GET', endpoint, undefined);
       if (!response.ok) {
+        // If we get an access denied error, try to use a fallback approach
+        if (response.status === 403) {
+          console.log('Access denied for orders endpoint, using fallback data');
+          // Return default analytics with empty data
+          return {
+            activity_data: Array(6).fill(0).map((_, i) => {
+              const date = new Date();
+              date.setMonth(date.getMonth() - 5 + i);
+              return {
+                name: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][date.getMonth()],
+                orders: 0,
+                validations: 0
+              };
+            }),
+            modality_distribution: [],
+            stats: {
+              total_orders: 0,
+              completed_studies: 0,
+              active_patients: 0,
+              pending_orders: 0,
+              avg_completion_time: 0,
+              validation_success_rate: 0,
+              orders_this_quarter: 0
+            }
+          };
+        }
         throw new Error('Failed to fetch orders data for analytics');
       }
       
