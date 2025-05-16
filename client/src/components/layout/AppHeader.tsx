@@ -35,49 +35,45 @@ const AppHeader: React.FC<AppHeaderProps> = ({
     // Close the menu immediately to avoid UI issues
     setShowMenu(false);
     
-    // Use setTimeout to ensure the page state update happens before URL update
-    // This helps avoid race conditions
-    setTimeout(() => {
-      // Get the effective user role
-      const effectiveRole = (user?.role || userRole || UserRole.Physician) as UserRole;
-      
-      // Debug user role information
-      console.log("Navigation debug info:");
-      console.log("- User role from context:", user?.role);
-      console.log("- User role from props:", userRole);
-      console.log("- Effective role:", effectiveRole);
-      console.log("- Is trial user?", effectiveRole === UserRole.TrialUser);
-      console.log("- UserRole.TrialUser value:", UserRole.TrialUser);
-      
-      // Check if user is a trial user based on role
-      const isTrialUser = effectiveRole === UserRole.TrialUser || effectiveRole === UserRole.TrialPhysician;
-      console.log("- Is trial user based on role:", isTrialUser);
-      
-      // Update URL based on the page
-      switch (page) {
-        case AppPage.Profile:
-          setLocation("/profile");
-          break;
-        case AppPage.Dashboard:
-          setLocation("/");
-          break;
-        case AppPage.NewOrder:
-          // Use the navigation utility to determine the correct path
-          const newOrderPath = getNewOrderPath(effectiveRole);
-          console.log(`Redirecting user to ${newOrderPath}`);
-          setLocation(newOrderPath);
-          break;
-        case AppPage.Security:
-          console.log("Navigating to Security page");
-          setLocation("/security");
-          break;
-        // Add other cases as needed for other pages
-        default:
-          // For other pages, you might want to derive the URL from the page enum
-          const pageUrl = `/${page.toLowerCase().replace('_', '-')}`;
-          setLocation(pageUrl);
-      }
-    }, 0);
+    // Get the effective user role
+    const effectiveRole = (user?.role || userRole || UserRole.Physician) as UserRole;
+    
+    // Debug user role information
+    console.log("Navigation debug info:");
+    console.log("- User role from context:", user?.role);
+    console.log("- User role from props:", userRole);
+    console.log("- Effective role:", effectiveRole);
+    console.log("- Is trial user?", effectiveRole === UserRole.TrialUser);
+    console.log("- UserRole.TrialUser value:", UserRole.TrialUser);
+    
+    // Check if user is a trial user based on role
+    const isTrialUser = effectiveRole === UserRole.TrialUser || effectiveRole === UserRole.TrialPhysician;
+    console.log("- Is trial user based on role:", isTrialUser);
+    
+    // Update URL based on the page
+    switch (page) {
+      case AppPage.Profile:
+        setLocation("/profile");
+        break;
+      case AppPage.Dashboard:
+        setLocation("/");
+        break;
+      case AppPage.NewOrder:
+        // Use the navigation utility to determine the correct path
+        const newOrderPath = getNewOrderPath(effectiveRole);
+        console.log(`Redirecting user to ${newOrderPath}`);
+        setLocation(newOrderPath);
+        break;
+      case AppPage.Security:
+        console.log("Navigating to Security page");
+        setLocation("/security");
+        break;
+      // Add other cases as needed for other pages
+      default:
+        // For other pages, you might want to derive the URL from the page enum
+        const pageUrl = `/${page.toLowerCase().replace('_', '-')}`;
+        setLocation(pageUrl);
+    }
   };
   
   // Handle logout action
