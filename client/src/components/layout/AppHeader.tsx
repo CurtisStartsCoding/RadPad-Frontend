@@ -158,7 +158,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
     console.log('Menu items being generated for role:', currentEffectiveRole);
     console.log('Is trial user?', isTrialUserToUse);
     
-    // For trial users, ONLY show New Order, My Profile, Security, and Log out
+    // For trial users, ONLY show New Order, My Profile, and Security
     // Return early to prevent adding any other menu items
     if (isTrialUserToUse) {
       return [
@@ -190,16 +190,6 @@ const AppHeader: React.FC<AppHeaderProps> = ({
         >
           <Settings className="h-4 w-4 mr-3 text-gray-500" />
           <span>Security</span>
-        </button>,
-
-        // Log out
-        <button
-          key="logout"
-          className="flex items-center w-full px-3 py-2.5 text-red-600 hover:bg-red-50 rounded-md"
-          onClick={handleLogout}
-        >
-          <LogOut className="h-4 w-4 mr-3" />
-          <span>Log out</span>
         </button>
       ];
     }
@@ -436,18 +426,16 @@ const AppHeader: React.FC<AppHeaderProps> = ({
               </nav>
             </div>
             
-            {/* Logout - only show for non-trial users since trial users have it in their menu */}
-            {!isTrialUser && (
-              <div className="p-2 mt-auto border-t border-gray-100">
-                <button
-                  className="flex items-center w-full px-3 py-2.5 text-red-600 hover:bg-red-50 rounded-md"
-                  onClick={handleLogout}
-                >
-                  <LogOut className="h-4 w-4 mr-3" />
-                  <span>Log out</span>
-                </button>
-              </div>
-            )}
+            {/* Logout - show for all users at the bottom of the screen */}
+            <div className="p-2 mt-auto border-t border-gray-100">
+              <button
+                className="flex items-center w-full px-3 py-2.5 text-red-600 hover:bg-red-50 rounded-md"
+                onClick={handleLogout}
+              >
+                <LogOut className="h-4 w-4 mr-3" />
+                <span>Log out</span>
+              </button>
+            </div>
           </div>
         </div>
       )}
