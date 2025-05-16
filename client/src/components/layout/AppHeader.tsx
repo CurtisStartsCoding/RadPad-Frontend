@@ -27,47 +27,57 @@ const AppHeader: React.FC<AppHeaderProps> = ({
   const [, setLocation] = useLocation();
   
   const handleNavigation = (page: AppPage) => {
+    // First, update the current page state
     if (onNavigate) {
       onNavigate(page);
     }
     
-    // Get the effective user role
-    const effectiveRole = (user?.role || userRole || UserRole.Physician) as UserRole;
-    
-    // Debug user role information
-    console.log("Navigation debug info:");
-    console.log("- User role from context:", user?.role);
-    console.log("- User role from props:", userRole);
-    console.log("- Effective role:", effectiveRole);
-    console.log("- Is trial user?", effectiveRole === UserRole.TrialUser);
-    console.log("- UserRole.TrialUser value:", UserRole.TrialUser);
-    
-    // Check if user is a trial user based on role
-    const isTrialUser = effectiveRole === UserRole.TrialUser || effectiveRole === UserRole.TrialPhysician;
-    console.log("- Is trial user based on role:", isTrialUser);
-    
-    // Update URL based on the page
-    switch (page) {
-      case AppPage.Profile:
-        setLocation("/profile");
-        break;
-      case AppPage.Dashboard:
-        setLocation("/");
-        break;
-      case AppPage.NewOrder:
-        // Use the navigation utility to determine the correct path
-        const newOrderPath = getNewOrderPath(effectiveRole);
-        console.log(`Redirecting user to ${newOrderPath}`);
-        setLocation(newOrderPath);
-        break;
-      // Add other cases as needed for other pages
-      default:
-        // For other pages, you might want to derive the URL from the page enum
-        const pageUrl = `/${page.toLowerCase().replace('_', '-')}`;
-        setLocation(pageUrl);
-    }
-    
+    // Close the menu immediately to avoid UI issues
     setShowMenu(false);
+    
+    // Use setTimeout to ensure the page state update happens before URL update
+    // This helps avoid race conditions
+    setTimeout(() => {
+      // Get the effective user role
+      const effectiveRole = (user?.role || userRole || UserRole.Physician) as UserRole;
+      
+      // Debug user role information
+      console.log("Navigation debug info:");
+      console.log("- User role from context:", user?.role);
+      console.log("- User role from props:", userRole);
+      console.log("- Effective role:", effectiveRole);
+      console.log("- Is trial user?", effectiveRole === UserRole.TrialUser);
+      console.log("- UserRole.TrialUser value:", UserRole.TrialUser);
+      
+      // Check if user is a trial user based on role
+      const isTrialUser = effectiveRole === UserRole.TrialUser || effectiveRole === UserRole.TrialPhysician;
+      console.log("- Is trial user based on role:", isTrialUser);
+      
+      // Update URL based on the page
+      switch (page) {
+        case AppPage.Profile:
+          setLocation("/profile");
+          break;
+        case AppPage.Dashboard:
+          setLocation("/");
+          break;
+        case AppPage.NewOrder:
+          // Use the navigation utility to determine the correct path
+          const newOrderPath = getNewOrderPath(effectiveRole);
+          console.log(`Redirecting user to ${newOrderPath}`);
+          setLocation(newOrderPath);
+          break;
+        case AppPage.Security:
+          console.log("Navigating to Security page");
+          setLocation("/security");
+          break;
+        // Add other cases as needed for other pages
+        default:
+          // For other pages, you might want to derive the URL from the page enum
+          const pageUrl = `/${page.toLowerCase().replace('_', '-')}`;
+          setLocation(pageUrl);
+      }
+    }, 0);
   };
   
   // Handle logout action
@@ -268,10 +278,16 @@ const AppHeader: React.FC<AppHeaderProps> = ({
     );
     
     menuItems.push(
-      <button 
+      <button
         key="security"
         className="flex items-center w-full px-3 py-2.5 text-gray-800 hover:bg-gray-100 rounded-md"
-        onClick={() => handleNavigation(AppPage.Security)}
+        onClick={(e) => {
+          e.preventDefault();
+          setShowMenu(false);
+          console.log("Security button clicked, navigating directly to /security");
+          // Directly navigate to the security route
+          setLocation("/security");
+        }}
       >
         <Settings className="h-4 w-4 mr-3 text-gray-500" />
         <span>Security</span>

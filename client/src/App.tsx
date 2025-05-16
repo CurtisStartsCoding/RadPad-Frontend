@@ -160,6 +160,8 @@ function App() {
       setCurrentPage(AppPage.Profile);
     } else if (location === "/") {
       setCurrentPage(AppPage.Dashboard);
+    } else if (location === "/security") {
+      setCurrentPage(AppPage.Security);
     }
     // Add other URL mappings as needed
   }, [location]);
@@ -263,9 +265,6 @@ function App() {
     console.log('📝 All API requests and responses will be logged in the console');
     console.groupEnd();
   }, []);
-
-  // Check if the current location is an auth page
-  const isAuthPage = location === "/auth" || location === "/trial-auth" || location === "/trial" || location === "/trial-validation";
 
   // Function to handle navigation from sidebar - simply update the current page
   const handleNavigate = (page: AppPage) => {
@@ -390,6 +389,25 @@ function App() {
                   />
                   <main className="h-full">
                     <MyProfile userRole={currentRole} />
+                  </main>
+                </div>
+              </div>
+            ) : (
+              <AuthPage />
+            )}
+          </Route>
+          <Route path="/security">
+            {shouldBeAuthenticated ? (
+              <div className="h-screen flex flex-col">
+                <div className="w-full flex-1 overflow-auto">
+                  <AppHeader
+                    title={getPageTitle(AppPage.Security)}
+                    subtitle={getPageSubtitle(AppPage.Security)}
+                    onNavigate={handleNavigate}
+                    userRole={currentRole}
+                  />
+                  <main className="h-full">
+                    <Security />
                   </main>
                 </div>
               </div>
