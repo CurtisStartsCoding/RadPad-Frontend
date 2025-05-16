@@ -510,7 +510,7 @@ const TrialValidation = () => {
       <AppHeader
         title="Trial Validation"
         subtitle="Step 1 of 3: Dictation"
-        userRole={UserRole.TrialUser}
+        userRole={UserRole.TrialPhysician}
         onNavigate={handleNavigate}
       />
       <div className="p-6">

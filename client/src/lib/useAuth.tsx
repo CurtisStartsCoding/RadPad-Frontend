@@ -149,7 +149,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
                 
                 // Check if this is a trial user
                 const isTrial = payload.isTrial === true ||
-                                payload.role === 'trial_user' ||
                                 payload.role === 'trial_physician';
                 
                 // Always log user role for debugging
@@ -164,7 +163,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
                   id: payload.userId || payload.sub,
                   email: payload.email || '',
                   name: payload.name || payload.email || 'User',
-                  role: payload.role as any,
+                  role: payload.role === 'trial_physician'
+                    ? UserRole.TrialPhysician
+                    : payload.role as UserRole,
                   organizationId: payload.orgId || payload.organizationId,
                   organizationType: payload.organizationType || 'referring_practice',
                   createdAt: new Date(),
@@ -235,11 +236,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
       if (data.token && data.user) {
         // Convert snake_case to camelCase for user fields
         const apiUser = data.user;
+        const firstName = apiUser.first_name || '';
+        const lastName = apiUser.last_name || '';
         const userData: User = {
           id: apiUser.id,
           email: apiUser.email,
-          name: `${apiUser.first_name} ${apiUser.last_name}`,
-          role: apiUser.role as any,
+          name: `${firstName} ${lastName}`.trim(),
+          role: apiUser.role === 'trial_physician'
+            ? UserRole.TrialPhysician
+            : apiUser.role as UserRole,
           organizationId: apiUser.organization_id,
           organizationType: 'referring_practice', // Default to referring_practice
           // Convert string dates to Date objects
@@ -305,11 +310,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
       } else if (result.user) {
         // Convert ApiUserResponse to User
         const apiUser = result.user;
+        const firstName = apiUser.first_name || '';
+        const lastName = apiUser.last_name || '';
         const userData: User = {
           id: apiUser.id,
           email: apiUser.email,
-          name: `${apiUser.first_name} ${apiUser.last_name}`,
-          role: apiUser.role as any,
+          name: `${firstName} ${lastName}`.trim(),
+          role: apiUser.role === 'trial_physician'
+            ? UserRole.TrialPhysician
+            : apiUser.role as UserRole,
           organizationId: apiUser.organization_id,
           organizationType: 'referring_practice', // Default to referring_practice
           createdAt: new Date(apiUser.created_at),
@@ -407,7 +416,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     if (user) {
       console.group('👤 Auth User Updated');
       console.log('User role:', user.role);
-      console.log('Is trial user:', user.role === UserRole.TrialUser || user.role === UserRole.TrialPhysician);
+      console.log('Is trial user:', user.role === UserRole.TrialPhysician);
       console.groupEnd();
     }
   }, [user]);

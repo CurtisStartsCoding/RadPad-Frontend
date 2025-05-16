@@ -7,8 +7,7 @@ export enum UserRole {
   AdminRadiology = "admin_radiology",
   Radiologist = "radiologist",
   TrialPhysician = "trial_physician",
-  SuperAdmin = "super_admin",
-  TrialUser = "trial_user"
+  SuperAdmin = "super_admin"
 }
 
 // User-friendly display names for each role
@@ -20,15 +19,14 @@ export const roleDisplayNames: Record<UserRole, string> = {
   [UserRole.AdminRadiology]: "Radiology Admin",
   [UserRole.Radiologist]: "Radiologist",
   [UserRole.TrialPhysician]: "Trial User",
-  [UserRole.SuperAdmin]: "Super Admin",
-  [UserRole.TrialUser]: "Trial User"
+  [UserRole.SuperAdmin]: "Super Admin"
 };
 
 // Helper function to determine if a role has access to a specific page
 export const hasAccess = (role: UserRole, page: string): boolean => {
   // SPECIAL CASE: Trial users can ONLY access new-order, profile, and security
   // This ensures the hamburger menu only shows these options for trial users
-  if (role === UserRole.TrialUser || role === UserRole.TrialPhysician) {
+  if (role === UserRole.TrialPhysician) {
     // Only allow trial users to access these specific pages
     return ['new-order', 'profile', 'security', 'trial-auth', 'trial', 'trial-validation'].includes(page);
   }
@@ -44,8 +42,7 @@ export const hasAccess = (role: UserRole, page: string): boolean => {
     ],
     "new-order": [
       UserRole.Physician,
-      UserRole.TrialPhysician,
-      UserRole.TrialUser
+      UserRole.TrialPhysician
     ],
     "orders": [
       UserRole.Physician, 
@@ -104,8 +101,7 @@ export const hasAccess = (role: UserRole, page: string): boolean => {
       UserRole.AdminRadiology,
       UserRole.Radiologist,
       UserRole.TrialPhysician,
-      UserRole.SuperAdmin,
-      UserRole.TrialUser
+      UserRole.SuperAdmin
     ],
     "security": [
       UserRole.Physician,
@@ -115,8 +111,7 @@ export const hasAccess = (role: UserRole, page: string): boolean => {
       UserRole.AdminRadiology,
       UserRole.Radiologist,
       UserRole.TrialPhysician,
-      UserRole.SuperAdmin,
-      UserRole.TrialUser
+      UserRole.SuperAdmin
     ],
     
     // Auth pages (accessible to all users)
@@ -128,8 +123,7 @@ export const hasAccess = (role: UserRole, page: string): boolean => {
       UserRole.AdminRadiology,
       UserRole.Radiologist,
       UserRole.TrialPhysician,
-      UserRole.SuperAdmin,
-      UserRole.TrialUser
+      UserRole.SuperAdmin
     ],
     "trial-auth": [
       UserRole.Physician,
@@ -139,8 +133,7 @@ export const hasAccess = (role: UserRole, page: string): boolean => {
       UserRole.AdminRadiology,
       UserRole.Radiologist,
       UserRole.TrialPhysician,
-      UserRole.SuperAdmin,
-      UserRole.TrialUser
+      UserRole.SuperAdmin
     ],
     
     // Onboarding pages (primarily for admins)

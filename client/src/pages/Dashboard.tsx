@@ -144,7 +144,7 @@ const Dashboard = ({ navigateTo }: DashboardProps) => {
     queryKey: ['/api/orders', { limit: 5 }],
     queryFn: async () => {
       // Determine if this is a trial user
-      const isTrialUser = user?.role === 'trial_user' || user?.role === 'trial_physician';
+      const isTrialUser = user?.role === 'trial_physician';
       const endpoint = '/api/orders?limit=5';
       
       console.log(`Using standard orders endpoint: ${endpoint}`);
@@ -186,7 +186,7 @@ const Dashboard = ({ navigateTo }: DashboardProps) => {
   } else if (user?.role === 'admin_staff' || user?.role === 'admin_referring' || user?.role === 'admin_radiology') {
     // Admin roles might have access to more orders
     ordersEndpoint = '/api/orders?limit=100';
-  } else if (user?.role === 'trial_user' || user?.role === 'trial_physician') {
+  } else if (user?.role === 'trial_physician') {
     // Trial users should use the trial-specific endpoint
     console.log('Trial user accessing trial-specific orders endpoint');
     ordersEndpoint = '/api/trial/orders?limit=100';
@@ -198,7 +198,7 @@ const Dashboard = ({ navigateTo }: DashboardProps) => {
       console.log('Generating analytics data');
       
       // Determine if this is a trial user
-      const isTrialUser = user?.role === 'trial_user' || user?.role === 'trial_physician';
+      const isTrialUser = user?.role === 'trial_physician';
       const endpoint = ordersEndpoint;
       
       console.log(`Using endpoint ${endpoint} based on user role: ${user?.role || 'unknown'}`);
@@ -326,7 +326,7 @@ const Dashboard = ({ navigateTo }: DashboardProps) => {
             </div>
           ) : analyticsError ? (
             <div className="text-center py-12">
-              {(user?.role === 'trial_user' || user?.role === 'trial_physician' ||
+              {(user?.role === 'trial_physician' ||
                 (analyticsError instanceof Error && analyticsError.message.includes('Trial user'))) ? (
                 <div>
                   <p className="text-amber-600">
@@ -415,7 +415,7 @@ const Dashboard = ({ navigateTo }: DashboardProps) => {
                 </div>
               ) : ordersError ? (
                 <div className="text-center py-12">
-                  {(user?.role === 'trial_user' || user?.role === 'trial_physician' ||
+                  {(user?.role === 'trial_physician' ||
                     (ordersError instanceof Error && ordersError.message.includes('Trial user'))) ? (
                     <div>
                       <p className="text-amber-600">

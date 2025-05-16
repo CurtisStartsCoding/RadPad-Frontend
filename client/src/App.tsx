@@ -218,7 +218,7 @@ function App() {
         }
 
         // Handle trial users differently
-        if (userRole === UserRole.TrialUser || userRole === UserRole.TrialPhysician) {
+        if (userRole === UserRole.TrialPhysician) {
           console.log("Trial user detected, showing trial validation page");
           setCurrentPage(AppPage.NewOrder);
           if (location === "/auth" || location === "/") {
@@ -376,10 +376,10 @@ function App() {
                     title={getPageTitle(AppPage.NewOrder)}
                     subtitle={getPageSubtitle(AppPage.NewOrder)}
                     onNavigate={handleNavigate}
-                    userRole={currentRole}
+                    userRole={(user?.role as UserRole) || currentRole}
                   />
                   <main className="h-full">
-                    <NewOrder userRole={currentRole} />
+                    <NewOrder userRole={(user?.role as UserRole) || currentRole} />
                   </main>
                 </div>
               </div>
@@ -395,10 +395,10 @@ function App() {
                     title={getPageTitle(AppPage.Profile)}
                     subtitle={getPageSubtitle(AppPage.Profile)}
                     onNavigate={handleNavigate}
-                    userRole={currentRole}
+                    userRole={(user?.role as UserRole) || currentRole}
                   />
                   <main className="h-full">
-                    <MyProfile userRole={currentRole} />
+                    <MyProfile userRole={(user?.role as UserRole) || currentRole} />
                   </main>
                 </div>
               </div>
@@ -414,7 +414,7 @@ function App() {
                     title={getPageTitle(AppPage.Security)}
                     subtitle={getPageSubtitle(AppPage.Security)}
                     onNavigate={handleNavigate}
-                    userRole={currentRole}
+                    userRole={(user?.role as UserRole) || currentRole}
                   />
                   <main className="h-full">
                     <Security />
@@ -426,10 +426,44 @@ function App() {
             )}
           </Route>
           <Route path="/">
-            {shouldBeAuthenticated && (currentRole === UserRole.TrialUser || currentRole === UserRole.TrialPhysician) ? (
-              // Redirect trial users to trial validation page
-              <TrialValidation />
-            ) : null}
+            {shouldBeAuthenticated ? (
+              currentRole === UserRole.TrialPhysician ? (
+                // Redirect trial users to trial validation page
+                <TrialValidation />
+              ) : currentRole === UserRole.Radiologist || currentRole === UserRole.AdminRadiology || currentRole === UserRole.Scheduler ? (
+                // Show Radiology Queue for radiology staff
+                <div className="h-screen flex flex-col">
+                  <div className="w-full flex-1 overflow-auto">
+                    <AppHeader
+                      title={getPageTitle(AppPage.RadiologyQueue)}
+                      subtitle={getPageSubtitle(AppPage.RadiologyQueue)}
+                      onNavigate={handleNavigate}
+                      userRole={currentRole}
+                    />
+                    <main className="h-full">
+                      <RadiologyQueue />
+                    </main>
+                  </div>
+                </div>
+              ) : (
+                // Show Dashboard for all other authenticated users
+                <div className="h-screen flex flex-col">
+                  <div className="w-full flex-1 overflow-auto">
+                    <AppHeader
+                      title={getPageTitle(AppPage.Dashboard)}
+                      subtitle={getPageSubtitle(AppPage.Dashboard)}
+                      onNavigate={handleNavigate}
+                      userRole={currentRole}
+                    />
+                    <main className="h-full">
+                      <Dashboard navigateTo={(page) => setCurrentPage(page)} />
+                    </main>
+                  </div>
+                </div>
+              )
+            ) : (
+              <AuthPage />
+            )}
           </Route>
           <Route>
             {effectiveLoading ? (
@@ -445,7 +479,7 @@ function App() {
                     title={getPageTitle(currentPage)}
                     subtitle={getPageSubtitle(currentPage)}
                     onNavigate={handleNavigate}
-                    userRole={currentRole}
+                    userRole={(user?.role as UserRole) || currentRole}
                   />
                   <main className="h-full">
                     {renderCurrentPage()}

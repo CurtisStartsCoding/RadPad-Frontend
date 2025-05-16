@@ -1,3 +1,5 @@
+import { UserRole } from './roles';
+
 // Custom types for the application
 
 // User types
@@ -5,7 +7,7 @@ export interface User {
   id: number;
   email: string;
   name: string;
-  role: 'admin' | 'physician' | 'medical_assistant' | 'scheduler' | 'radiologist' | 'trial_user' | 'trial_physician' | 'admin_staff' | 'admin_referring' | 'admin_radiology' | 'super_admin';
+  role: UserRole;
   organizationId: number | null;
   organizationType?: string;
   lastLoginAt?: Date;
@@ -13,6 +15,20 @@ export interface User {
   updatedAt: Date;
   photoUrl?: string;
   isDeveloperMode?: boolean;
+}
+
+// API response types
+export interface ApiUserResponse {
+  id: number;
+  email: string;
+  firstName: string;
+  lastName: string;
+  role: string;
+  organizationId: number | null;
+  specialty?: string;
+  isTrial?: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 // Patient types

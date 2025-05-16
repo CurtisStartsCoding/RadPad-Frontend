@@ -14,7 +14,7 @@ import { UserRole } from "./roles";
  */
 export function getNewOrderPath(userRole?: string | null): string {
   // If the user has a trial user role, navigate to trial-validation
-  if (userRole === UserRole.TrialUser || userRole === 'trial_user' || userRole === UserRole.TrialPhysician) {
+  if (userRole === UserRole.TrialPhysician || userRole === 'trial_physician') {
     return '/trial-validation';
   }
   
@@ -29,7 +29,7 @@ export function getNewOrderPath(userRole?: string | null): string {
  */
 export function isTrialUser(userRole?: string | null): boolean {
   // Check if the user role is a trial role
-  return userRole === UserRole.TrialUser || userRole === 'trial_user' || userRole === UserRole.TrialPhysician;
+  return userRole === UserRole.TrialPhysician || userRole === 'trial_physician';
 }
 
 /**

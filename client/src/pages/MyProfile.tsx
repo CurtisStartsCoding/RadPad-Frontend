@@ -65,7 +65,7 @@ const MyProfile = ({ userRole }: MyProfileProps) => {
   const effectiveRole = userRole || (user?.role as UserRole);
   
   // Check if user is a trial user
-  const isTrialUser = effectiveRole === UserRole.TrialPhysician || effectiveRole === UserRole.TrialUser;
+  const isTrialUser = effectiveRole === UserRole.TrialPhysician;
   
   const [isEditing, setIsEditing] = useState(false);
   

@@ -32,8 +32,8 @@ const AppHeader: React.FC<AppHeaderProps> = ({
   
   // Force trial user check directly from auth context when available
   const isTrialUser = user?.role
-    ? (user.role === UserRole.TrialUser || user.role === UserRole.TrialPhysician)
-    : (effectiveRole === UserRole.TrialUser || effectiveRole === UserRole.TrialPhysician);
+    ? user.role === UserRole.TrialPhysician
+    : effectiveRole === UserRole.TrialPhysician;
   
   // Add component-level logging to track role changes
   console.group('🔍 AppHeader Role Debug');
@@ -59,7 +59,6 @@ const AppHeader: React.FC<AppHeaderProps> = ({
     console.log("- User role from props:", userRole);
     console.log("- Effective role:", effectiveRole);
     console.log("- Is trial user?", isTrialUser);
-    console.log("- UserRole.TrialUser value:", UserRole.TrialUser);
     
     // Update URL based on the page
     switch (page) {
@@ -160,8 +159,8 @@ const AppHeader: React.FC<AppHeaderProps> = ({
       : (userRole || UserRole.Physician) as UserRole;
     
     const isTrialUserToUse = user?.role
-      ? (user.role === UserRole.TrialUser || user.role === UserRole.TrialPhysician)
-      : (currentEffectiveRole === UserRole.TrialUser || currentEffectiveRole === UserRole.TrialPhysician);
+      ? user.role === UserRole.TrialPhysician
+      : currentEffectiveRole === UserRole.TrialPhysician;
     
     console.log('Menu items being generated for role:', currentEffectiveRole);
     console.log('Is trial user?', isTrialUserToUse);
