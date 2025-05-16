@@ -16,7 +16,11 @@ interface ApiUser {
   first_name: string;
   last_name: string;
   role: string;
-  status: 'active' | 'inactive' | 'invited';
+  is_active: boolean;
+  email_verified: boolean;
+  organization_id: number;
+  created_at: string;
+  updated_at: string;
   locations?: {
     id: number;
     name: string;
@@ -38,7 +42,11 @@ const Users = () => {
         throw new Error('Failed to fetch users');
       }
       const data = await response.json();
-      return data;
+      // Extract users array from the nested response structure
+      if (data.success && data.data && Array.isArray(data.data.users)) {
+        return data.data.users;
+      }
+      return [];
     },
     staleTime: 60000, // 1 minute
   });
@@ -117,9 +125,10 @@ const Users = () => {
     },
   });
   
-  // Filter users based on status
-  const activeUsers = users?.filter(user => user.status === 'active') || [];
-  const invitedUsers = users?.filter(user => user.status === 'invited') || [];
+  // Filter users based on active status
+  const activeUsers = users?.filter(user => user.is_active === true) || [];
+  // For now, consider all non-active users as invited (this may need refinement)
+  const invitedUsers = users?.filter(user => user.is_active === false) || [];
   
   // Filter users based on search query
   const filteredActiveUsers = searchQuery
@@ -330,7 +339,8 @@ const Users = () => {
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
-                            {user.invited_at ? new Date(user.invited_at).toLocaleDateString() : 'N/A'}
+                            {user.invited_at ? new Date(user.invited_at).toLocaleDateString() :
+                             user.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/A'}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm">
                             <div className="flex space-x-2">

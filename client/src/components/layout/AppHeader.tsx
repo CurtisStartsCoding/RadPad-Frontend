@@ -151,17 +151,22 @@ const AppHeader: React.FC<AppHeaderProps> = ({
     // Make sure we have a valid UserRole by providing a default if both are undefined
     const effectiveRole = (user?.role || userRole || UserRole.Physician) as UserRole;
     
-    // Home/Dashboard is available to everyone
-    menuItems.push(
-      <button
-        key="home"
-        className="flex items-center w-full px-3 py-2.5 text-gray-800 hover:bg-gray-100 rounded-md"
-        onClick={() => handleNavigation(AppPage.Dashboard)}
-      >
-        <Home className="h-4 w-4 mr-3 text-gray-500" />
-        <span>Dashboard</span>
-      </button>
-    );
+    // Determine if user is a trial user
+    const isTrialUser = effectiveRole === UserRole.TrialUser || effectiveRole === UserRole.TrialPhysician;
+    
+    // Home/Dashboard is available to everyone except trial users
+    if (!isTrialUser) {
+      menuItems.push(
+        <button
+          key="home"
+          className="flex items-center w-full px-3 py-2.5 text-gray-800 hover:bg-gray-100 rounded-md"
+          onClick={() => handleNavigation(AppPage.Dashboard)}
+        >
+          <Home className="h-4 w-4 mr-3 text-gray-500" />
+          <span>Dashboard</span>
+        </button>
+      );
+    }
     
     // New Order (for physicians only)
     if (hasAccess(effectiveRole, AppPage.NewOrder)) {
