@@ -19,27 +19,27 @@ export const APP_CONFIG = {
 
 // Export a function to get the full API URL
 export function getApiUrl(path: string): string {
-  // Use the remote API URL directly
-  const baseUrl = REMOTE_API_URL;
+  // Use relative paths to go through our proxy server
+  // This ensures requests go through our middle layer
   
-  // If path already starts with /api, use it directly with the base URL
+  // If path already starts with /api, use it directly
   if (path.startsWith('/api')) {
-    return `${baseUrl}${path}`;
+    return path;
   }
   
   // Otherwise, prepend /api to the path
-  return `${baseUrl}/api${path}`;
+  return `/api${path}`;
 }
 
 /**
  * Utility function to log API configuration
- * This helps verify that the app is using the remote API
+ * This helps verify that the app is using the middle layer
  */
 export function logApiConfiguration(): void {
   console.group('🌐 API Configuration');
-  console.log(`🔗 Using Direct API Calls: Yes (to ${REMOTE_API_URL})`);
+  console.log(`🔗 Using Middle Layer: Yes (proxying to ${REMOTE_API_URL})`);
   console.log(`🔄 Using Mock Endpoints: ${APP_CONFIG.useMockEndpoints ? 'Yes' : 'No'}`);
-  console.log(`🔌 API requests are sent directly to ${REMOTE_API_URL}`);
+  console.log(`🔌 API requests are sent to the middle layer, which forwards to ${REMOTE_API_URL}`);
   console.log(`🌍 Environment: ${import.meta.env.MODE}`);
   console.groupEnd();
 }

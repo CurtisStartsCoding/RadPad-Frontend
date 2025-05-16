@@ -2,6 +2,7 @@ import express from "express";
 import { createServer } from "http";
 import { setupVite, serveStatic, log } from "./vite";
 import { corsMiddleware, errorHandlingMiddleware } from "./middleware";
+import { registerRoutes } from "./routes";
 
 // Create Express application
 const app = express();
@@ -18,6 +19,9 @@ app.use(corsMiddleware);
   try {
     // Create HTTP server
     const server = createServer(app);
+
+    // Register API routes
+    await registerRoutes(app);
 
     // Global error handler
     app.use(errorHandlingMiddleware);
@@ -36,7 +40,7 @@ app.use(corsMiddleware);
       host: "0.0.0.0",
       reusePort: true,
     }, () => {
-      log(`Server started and listening on port ${port} (direct API mode)`);
+      log(`Server started and listening on port ${port} (API proxy mode)`);
     });
   } catch (error) {
     log(`Failed to start server: ${error}`, 'error');
