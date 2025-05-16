@@ -38,23 +38,6 @@ export function isTrialUser(userRole?: string | null): boolean {
  * @returns The user's role or null if not found
  */
 export function getUserRoleFromStorage(): string | null {
-  // Try to extract role from token
-  try {
-    const token = localStorage.getItem('rad_order_pad_access_token');
-    if (token) {
-      const tokenParts = token.split('.');
-      if (tokenParts.length === 3) {
-        const payload = JSON.parse(atob(tokenParts[1]));
-        if (payload && payload.role) {
-          return payload.role;
-        }
-      }
-    }
-  } catch (e) {
-    console.error("Error extracting role from token:", e);
-  }
-  
-  // We no longer need to check for trial user data in localStorage
-  
-  return null;
+  // Get role directly from localStorage
+  return localStorage.getItem('rad_order_pad_user_role');
 }

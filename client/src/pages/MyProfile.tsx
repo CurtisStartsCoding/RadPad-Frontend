@@ -3,15 +3,15 @@ import {
   Card, 
   CardContent, 
   CardDescription, 
-  CardFooter, 
-  CardHeader, 
-  CardTitle 
+  CardFooter,
+  CardHeader,
+  CardTitle
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { 
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -19,13 +19,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { 
-  Tabs, 
-  TabsContent, 
-  TabsList, 
-  TabsTrigger 
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger
 } from "@/components/ui/tabs";
-import { 
+import {
   User,
   Mail,
   Building,
@@ -41,12 +41,8 @@ import {
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { UserRole } from "@/lib/roles";
-
+import { getUserRoleFromStorage } from "@/lib/navigation";
 import { roleDisplayNames } from "@/lib/roles";
-
-interface MyProfileProps {
-  userRole?: UserRole;
-}
 
 interface StoredUser {
   id: string;
@@ -74,7 +70,7 @@ const formatDate = (dateString: string): string => {
   });
 };
 
-const MyProfile = ({ userRole }: MyProfileProps) => {
+const MyProfile = () => {
   // Load user data directly from localStorage
   const loadUser = (): StoredUser | null => {
     try {
@@ -95,9 +91,8 @@ const MyProfile = ({ userRole }: MyProfileProps) => {
   const user = loadUser();
   console.log("PROFILE - user:", {user});
   
-  // Use the user role from props or from stored user data
-  // const effectiveRole = userRole || (user?.role as UserRole);
-  const effectiveRole = (user?.role ?? UserRole.TrialPhysician) as UserRole;
+  // Get user role directly from storage
+  const effectiveRole = getUserRoleFromStorage() || UserRole.TrialPhysician;
   console.log("PROFILE - effectiveRole:", {effectiveRole});
   
   // Check if user is a trial user
@@ -113,7 +108,7 @@ const MyProfile = ({ userRole }: MyProfileProps) => {
       if (userDataStr) {
         const userData = JSON.parse(userDataStr);
         console.log("PROFILE - userData:", {userData});
-        console.log("PROFILE - userRole:", {userRole});
+        console.log("PROFILE - role:", {role: getUserRoleFromStorage()});
         return userData;
       }
       return null;

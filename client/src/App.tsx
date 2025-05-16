@@ -309,7 +309,7 @@ function App() {
       case AppPage.BillingTest:
         return <BillingTest />;
       case AppPage.Profile:
-        return <MyProfile userRole={currentRole} />;
+        return <MyProfile />;
       case AppPage.Security:
         return <Security />;
       // Auth pages
@@ -376,7 +376,6 @@ function App() {
                     title={getPageTitle(AppPage.NewOrder)}
                     subtitle={getPageSubtitle(AppPage.NewOrder)}
                     onNavigate={handleNavigate}
-                    userRole={(user?.role as UserRole) || currentRole}
                   />
                   <main className="h-full">
                     <NewOrder userRole={(user?.role as UserRole) || currentRole} />
@@ -395,10 +394,9 @@ function App() {
                     title={getPageTitle(AppPage.Profile)}
                     subtitle={getPageSubtitle(AppPage.Profile)}
                     onNavigate={handleNavigate}
-                    userRole={(user?.role as UserRole) || currentRole}
                   />
                   <main className="h-full">
-                    <MyProfile userRole={(user?.role as UserRole) || currentRole} />
+                    <MyProfile />
                   </main>
                 </div>
               </div>
@@ -414,7 +412,6 @@ function App() {
                     title={getPageTitle(AppPage.Security)}
                     subtitle={getPageSubtitle(AppPage.Security)}
                     onNavigate={handleNavigate}
-                    userRole={(user?.role as UserRole) || currentRole}
                   />
                   <main className="h-full">
                     <Security />
@@ -438,7 +435,6 @@ function App() {
                       title={getPageTitle(AppPage.RadiologyQueue)}
                       subtitle={getPageSubtitle(AppPage.RadiologyQueue)}
                       onNavigate={handleNavigate}
-                      userRole={currentRole}
                     />
                     <main className="h-full">
                       <RadiologyQueue />
@@ -453,7 +449,6 @@ function App() {
                       title={getPageTitle(AppPage.Dashboard)}
                       subtitle={getPageSubtitle(AppPage.Dashboard)}
                       onNavigate={handleNavigate}
-                      userRole={currentRole}
                     />
                     <main className="h-full">
                       <Dashboard navigateTo={(page) => setCurrentPage(page)} />
@@ -479,7 +474,6 @@ function App() {
                     title={getPageTitle(currentPage)}
                     subtitle={getPageSubtitle(currentPage)}
                     onNavigate={handleNavigate}
-                    userRole={(user?.role as UserRole) || currentRole}
                   />
                   <main className="h-full">
                     {renderCurrentPage()}

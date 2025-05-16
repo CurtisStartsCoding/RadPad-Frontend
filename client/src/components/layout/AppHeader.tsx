@@ -5,30 +5,27 @@ import { AppPage } from "@/App";
 import { UserRole, hasAccess } from "@/lib/roles";
 import { useAuth } from "@/lib/useAuth";
 import { useLocation } from "wouter";
-import { getNewOrderPath } from "@/lib/navigation";
+import { getNewOrderPath, getUserRoleFromStorage } from "@/lib/navigation";
 
 interface AppHeaderProps {
   title?: string;
   subtitle?: string;
   onNavigate?: (page: AppPage) => void;
   className?: string;
-  userRole?: UserRole;
 }
 
 const AppHeader: React.FC<AppHeaderProps> = ({
   title = "RadOrderPad",
   subtitle,
   onNavigate,
-  className,
-  userRole
+  className
 }) => {
   const [showMenu, setShowMenu] = useState(false);
   const { logout, user } = useAuth(); // Get all auth data in one call
   const [, setLocation] = useLocation();
   
-  // ALWAYS prioritize the user role from auth context over the prop
-  // This ensures we're always using the most up-to-date role information
-  const effectiveRole = (user?.role || userRole || UserRole.TrialPhysician) as UserRole;
+  // Get user role from storage
+  const effectiveRole = (getUserRoleFromStorage() as UserRole) || UserRole.TrialPhysician;
   
   // Force trial user check directly from auth context when available
   const isTrialUser = user?.role
@@ -39,7 +36,6 @@ const AppHeader: React.FC<AppHeaderProps> = ({
   console.group('🔍 AppHeader Role Debug');
   console.log('Component mounted/updated');
   console.log('- User role from context:', user?.role);
-  console.log('- User role from props:', userRole);
   console.log('- Effective role used:', effectiveRole);
   console.log('- Is trial user:', isTrialUser);
   console.groupEnd();
@@ -56,7 +52,6 @@ const AppHeader: React.FC<AppHeaderProps> = ({
     // Debug user role information
     console.log("Navigation debug info:");
     console.log("- User role from context:", user?.role);
-    console.log("- User role from props:", userRole);
     console.log("- Effective role:", effectiveRole);
     console.log("- Is trial user?", isTrialUser);
     
@@ -106,7 +101,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
     }
     
     // Fallback based on role if user name is not available
-    switch(userRole) {
+    switch(effectiveRole) {
       case UserRole.Physician:
         return "Dr. Jane Smith";
       case UserRole.Radiologist:
@@ -131,7 +126,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
     }
     
     // Fallback based on role if user email is not available
-    switch(userRole) {
+    switch(effectiveRole) {
       case UserRole.Physician:
         return "drjane@example.com";
       case UserRole.Radiologist:
@@ -153,10 +148,8 @@ const AppHeader: React.FC<AppHeaderProps> = ({
   const getMenuItems = () => {
     const menuItems = [];
     
-    // ALWAYS get the most up-to-date role information directly from auth context
-    const currentEffectiveRole = user?.role
-      ? (user.role as UserRole)
-      : (userRole || UserRole.Physician) as UserRole;
+    // Get role from storage
+    const currentEffectiveRole = (getUserRoleFromStorage() as UserRole) || UserRole.Physician;
     
     const isTrialUserToUse = user?.role
       ? user.role === UserRole.TrialPhysician

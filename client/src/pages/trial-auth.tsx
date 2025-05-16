@@ -68,9 +68,10 @@ export default function TrialAuthPage() {
         throw new Error(data.message || 'Login failed');
       }
       
-      // Store the token and user data in localStorage
+      // Store the token, user data, and role in localStorage
       localStorage.setItem('rad_order_pad_access_token', data.token);
       localStorage.setItem('rad_order_pad_user_data', JSON.stringify(data.user));
+      localStorage.setItem('rad_order_pad_user_role', UserRole.TrialPhysician);
       
       // Store trial validation credits information if available
       console.log("AUTH - data:", {data})
@@ -166,9 +167,10 @@ export default function TrialAuthPage() {
         throw new Error(data.message || 'Registration failed');
       }
       
-      // Store the token and user data in localStorage
+      // Store the token, user data, and role in localStorage
       localStorage.setItem('rad_order_pad_access_token', data.token);
       localStorage.setItem('rad_order_pad_user_data', JSON.stringify(data.user));
+      localStorage.setItem('rad_order_pad_user_role', UserRole.TrialPhysician);
       
       // Store trial validation credits information if available
       if (data.trialInfo) {

@@ -45,20 +45,24 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }
 
   // Function to save auth token
-  const saveToken = (accessToken: string, expiresIn: number) => {
+  const saveToken = (accessToken: string, expiresIn: number, userRole: string) => {
     localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
     
     // Calculate expiry time and save it
     const expiryTime = Date.now() + expiresIn * 1000;
     localStorage.setItem(TOKEN_EXPIRY_KEY, expiryTime.toString());
     
-    console.log("Authentication token saved to localStorage");
+    // Save user role
+    localStorage.setItem('rad_order_pad_user_role', userRole);
+    
+    console.log("Authentication token and user role saved to localStorage");
   };
 
   // Function to clear auth token
   const clearToken = () => {
     localStorage.removeItem(ACCESS_TOKEN_KEY);
     localStorage.removeItem(TOKEN_EXPIRY_KEY);
+    localStorage.removeItem('rad_order_pad_user_role');
   };
 
   // Check for existing token on initial load
@@ -293,9 +297,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
         console.log("** useAuth loginMutation - userData: ", {userData})
         setUser(userData);
         
-        // Save token
+        // Save token and user role
         const expiresIn = 3600; // Default to 1 hour
-        saveToken(data.token, expiresIn);
+        const userRole = data._isTrial ? UserRole.TrialPhysician : (
+          apiUser.role === 'trial_physician' ? UserRole.TrialPhysician : apiUser.role
+        );
+        saveToken(data.token, expiresIn, userRole);
         
         // Store the complete user data in localStorage for profile use
         localStorage.setItem('rad_order_pad_user_data', JSON.stringify({
