@@ -216,20 +216,31 @@ export function AuthProvider({ children }: AuthProviderProps) {
     // New API response format fields
     token?: string;
     user?: ApiUserResponse;
+    // Trial user specific fields
+    trialInfo?: {
+      validationsUsed: number;
+      maxValidations: number;
+      validationsRemaining: number;
+    };
   }
 
   // Login mutation
   const loginMutation = useMutation({
-    mutationFn: async ({ email, password }: { email: string; password: string }): Promise<LoginResponse> => {
-      // Use the API endpoint for authentication
-      const response = await apiRequest('POST', '/api/auth/login', { email, password });
+    mutationFn: async ({ email, password }: { email: string; password: string }): Promise<LoginResponse & { _isTrial?: boolean }> => {
+      // Determine if this is a trial login based on the current URL
+      const isTrial = window.location.pathname.includes('/trial-auth');
+      
+      // Use the appropriate API endpoint based on whether this is a trial login
+      const endpoint = isTrial ? '/auth/trial/login' : '/api/auth/login';
+      const response = await apiRequest('POST', endpoint, { email, password });
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.message || 'Login failed');
       }
-      return response.json();
+      const data = await response.json();
+      return { ...data, _isTrial: isTrial };
     },
-    onSuccess: (data: LoginResponse) => {
+    onSuccess: (data: LoginResponse & { _isTrial?: boolean }) => {
       console.log('Login response:', data);
       
       // Handle the API response format
@@ -242,9 +253,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
           id: apiUser.id,
           email: apiUser.email,
           name: `${firstName} ${lastName}`.trim(),
-          role: apiUser.role === 'trial_physician'
-            ? UserRole.TrialPhysician
-            : apiUser.role as UserRole,
+          // Force trial_physician role for trial auth, otherwise use the role from API
+          // Force trial_physician role for trial auth users
+          role: data._isTrial ? UserRole.TrialPhysician : (
+            apiUser.role === 'trial_physician' ? UserRole.TrialPhysician : apiUser.role as UserRole
+          ),
           organizationId: apiUser.organization_id,
           organizationType: 'referring_practice', // Default to referring_practice
           // Convert string dates to Date objects
@@ -259,7 +272,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
         saveToken(data.token, expiresIn);
         
         // Store the complete user data in localStorage for profile use
-        localStorage.setItem('rad_order_pad_user_data', JSON.stringify(apiUser));
+        localStorage.setItem('rad_order_pad_user_data', JSON.stringify({
+          ...apiUser,
+          // Add any trial-specific data if present
+          ...(data.trialInfo && { trialInfo: data.trialInfo })
+        }));
+        
+        // If trial info exists, store it separately
+        if (data.trialInfo) {
+          localStorage.setItem('rad_order_pad_trial_info', JSON.stringify(data.trialInfo));
+        }
         
         return;
       }
@@ -316,9 +338,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
           id: apiUser.id,
           email: apiUser.email,
           name: `${firstName} ${lastName}`.trim(),
-          role: apiUser.role === 'trial_physician'
-            ? UserRole.TrialPhysician
-            : apiUser.role as UserRole,
+          // Force trial_physician role for trial auth users
+          role: result._isTrial ? UserRole.TrialPhysician : (
+            apiUser.role === 'trial_physician' ? UserRole.TrialPhysician : apiUser.role as UserRole
+          ),
           organizationId: apiUser.organization_id,
           organizationType: 'referring_practice', // Default to referring_practice
           createdAt: new Date(apiUser.created_at),

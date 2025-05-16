@@ -65,13 +65,12 @@ export default function TrialAuthPage() {
         throw new Error(data.message || 'Login failed');
       }
       
-      // Store the token in localStorage using trial-specific keys
+      // Store the token and user data in localStorage
       localStorage.setItem('rad_order_pad_access_token', data.token);
-      
-      // We no longer need to store trial user data separately
-      // as we're using the user role from the token
+      localStorage.setItem('rad_order_pad_user_data', JSON.stringify(data.user));
       
       // Store trial validation credits information if available
+      console.log("AUTH - data:", {data})
       if (data.trialInfo) {
         localStorage.setItem('rad_order_pad_trial_info', JSON.stringify(data.trialInfo));
         if (data.trialInfo.validationsRemaining !== undefined) {
@@ -164,11 +163,9 @@ export default function TrialAuthPage() {
         throw new Error(data.message || 'Registration failed');
       }
       
-      // Store the token in localStorage using trial-specific keys
+      // Store the token and user data in localStorage
       localStorage.setItem('rad_order_pad_access_token', data.token);
-      
-      // We no longer need to store trial user data separately
-      // as we're using the user role from the token
+      localStorage.setItem('rad_order_pad_user_data', JSON.stringify(data.user));
       
       // Store trial validation credits information if available
       if (data.trialInfo) {

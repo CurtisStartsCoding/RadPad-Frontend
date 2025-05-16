@@ -60,6 +60,7 @@ const formatDate = (dateString: string): string => {
 
 const MyProfile = ({ userRole }: MyProfileProps) => {
   const { user } = useAuth();
+  console.log("PROFILE - user:", {user})
   
   // Use the user role from props or from the auth context
   const effectiveRole = userRole || (user?.role as UserRole);
@@ -72,17 +73,14 @@ const MyProfile = ({ userRole }: MyProfileProps) => {
   // Get user data from localStorage if available
   const getUserData = () => {
     try {
-      // First try to get regular user data
-      if (!isTrialUser) {
-        const userDataStr = localStorage.getItem('rad_order_pad_user_data');
-        if (userDataStr) {
-          return JSON.parse(userDataStr);
-        }
+      // Try to get user data from either location
+      const userDataStr = localStorage.getItem('rad_order_pad_user') || localStorage.getItem('rad_order_pad_user_data');
+      if (userDataStr) {
+        const userData = JSON.parse(userDataStr);
+        console.log("PROFILE - userData:", {userData});
+        console.log("PROFILE - userRole:", {userRole});
+        return userData;
       }
-      
-      // We no longer need to check localStorage for trial user data
-      // as we're already using the user role to determine if the user is a trial user
-      
       return null;
     } catch (e) {
       console.error("Error parsing user data:", e);
