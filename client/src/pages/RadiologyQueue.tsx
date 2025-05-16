@@ -25,27 +25,25 @@ import { apiRequest } from "@/lib/queryClient";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import PageHeader from "@/components/layout/PageHeader";
 
-// Define the Order type based on API response
+// Define the Order type based on actual API response
 interface ApiRadiologyOrder {
   id: number;
   order_number?: string;
   status: 'pending_admin' | 'pending_radiology' | 'scheduled' | 'completed' | 'cancelled';
-  modality: string;
+  priority?: string;
+  modality: string | null;
+  body_part?: string | null;
+  final_cpt_code?: string;
+  final_cpt_code_description?: string | null;
+  final_validation_status?: string;
   created_at: string;
   updated_at: string;
-  patient: {
-    id: number;
-    name: string;
-    mrn: string;
-    dob: string;
-    gender?: string;
-  };
-  referring_physician: {
-    id: number;
-    name: string;
-    npi?: string;
-    specialty?: string;
-  };
+  patient_name: string | null;
+  patient_dob: string | null;
+  patient_gender: string | null;
+  patient_mrn?: string | null;
+  referring_physician_name: string | null;
+  referring_organization_id?: number;
 }
 
 const RadiologyQueue = () => {
@@ -53,7 +51,7 @@ const RadiologyQueue = () => {
   const [selectedFilter, setSelectedFilter] = useState("all");
   
   // Fetch orders from the API
-  const { data: orders, isLoading, error } = useQuery<ApiRadiologyOrder[]>({
+  const { data, isLoading, error } = useQuery<{orders: ApiRadiologyOrder[]} | ApiRadiologyOrder[]>({
     queryKey: ['/api/radiology/orders'],
     queryFn: async () => {
       const response = await apiRequest('GET', '/api/radiology/orders', undefined);
@@ -66,16 +64,19 @@ const RadiologyQueue = () => {
     staleTime: 60000, // 1 minute
   });
   
+  // Handle both response formats - either direct array or object with orders property
+  const orders = Array.isArray(data) ? data : data?.orders || [];
+  
   // Filter orders by status for radiology queue
-  const filteredOrders = orders?.filter(order => {
+  const filteredOrders = orders.filter(order => {
     if (selectedFilter === "all") {
       return order.status === 'pending_radiology';
     } else if (selectedFilter === "mri") {
-      return order.status === 'pending_radiology' && order.modality.toLowerCase().includes('mri');
+      return order.status === 'pending_radiology' && order.modality && order.modality.toLowerCase().includes('mri');
     } else if (selectedFilter === "ct") {
-      return order.status === 'pending_radiology' && order.modality.toLowerCase().includes('ct');
+      return order.status === 'pending_radiology' && order.modality && order.modality.toLowerCase().includes('ct');
     } else if (selectedFilter === "xray") {
-      return order.status === 'pending_radiology' && order.modality.toLowerCase().includes('x-ray');
+      return order.status === 'pending_radiology' && order.modality && order.modality.toLowerCase().includes('x-ray');
     }
     return false;
   }) || [];
@@ -84,9 +85,10 @@ const RadiologyQueue = () => {
   const searchFilteredOrders = filteredOrders.filter(order => {
     const searchLower = searchQuery.toLowerCase();
     return (
-      order.patient.name.toLowerCase().includes(searchLower) ||
-      order.patient.mrn.toLowerCase().includes(searchLower) ||
-      order.modality.toLowerCase().includes(searchLower)
+      (order.patient_name && order.patient_name.toLowerCase().includes(searchLower)) ||
+      (order.patient_mrn && order.patient_mrn.toLowerCase().includes(searchLower)) ||
+      (order.modality && order.modality.toLowerCase().includes(searchLower)) ||
+      searchLower === ''  // Always include all orders when search is empty
     );
   });
   
@@ -103,7 +105,9 @@ const RadiologyQueue = () => {
   };
   
   // Generating some referring physician initials
-  const getReferringPhysicianInitials = (name: string) => {
+  const getReferringPhysicianInitials = (name: string | null) => {
+    if (!name) return "DR";
+    
     const names = name.split(' ');
     if (names.length >= 2) {
       return `${names[0][0]}${names[1][0]}`;
@@ -132,9 +136,9 @@ const RadiologyQueue = () => {
           <Tabs defaultValue="all" className="space-y-4">
             <TabsList>
               <TabsTrigger value="all">All Orders ({filteredOrders.length})</TabsTrigger>
-              <TabsTrigger value="mri">MRI ({filteredOrders.filter(o => o.modality.toLowerCase().includes('mri')).length})</TabsTrigger>
-              <TabsTrigger value="ct">CT ({filteredOrders.filter(o => o.modality.toLowerCase().includes('ct')).length})</TabsTrigger>
-              <TabsTrigger value="xray">X-Ray ({filteredOrders.filter(o => o.modality.toLowerCase().includes('x-ray')).length})</TabsTrigger>
+              <TabsTrigger value="mri">MRI ({filteredOrders.filter(o => o.modality && o.modality.toLowerCase().includes('mri')).length})</TabsTrigger>
+              <TabsTrigger value="ct">CT ({filteredOrders.filter(o => o.modality && o.modality.toLowerCase().includes('ct')).length})</TabsTrigger>
+              <TabsTrigger value="xray">X-Ray ({filteredOrders.filter(o => o.modality && o.modality.toLowerCase().includes('x-ray')).length})</TabsTrigger>
             </TabsList>
             
             <div className="flex justify-between items-center">
@@ -212,8 +216,8 @@ const RadiologyQueue = () => {
                   ) : (
                     searchFilteredOrders.map((order) => (
                       <TableRow key={order.id}>
-                        <TableCell className="font-medium">{order.patient.name}</TableCell>
-                        <TableCell className="font-mono text-xs">{order.patient.mrn}</TableCell>
+                        <TableCell className="font-medium">{order.patient_name || 'Unknown Patient'}</TableCell>
+                        <TableCell className="font-mono text-xs">{order.patient_mrn || 'No MRN'}</TableCell>
                         <TableCell>
                           <div className="flex items-center">
                             <Calendar className="h-3.5 w-3.5 mr-1.5 text-slate-500" />
@@ -228,17 +232,17 @@ const RadiologyQueue = () => {
                         </TableCell>
                         <TableCell>
                           <Badge variant="outline" className="bg-blue-50 border-blue-200 text-blue-700">
-                            {order.modality}
+                            {order.modality || 'Not Specified'}
                           </Badge>
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center">
                             <Avatar className="h-6 w-6 mr-2">
                               <AvatarFallback className="bg-primary/10 text-primary text-xs">
-                                {getReferringPhysicianInitials(order.referring_physician.name)}
+                                {getReferringPhysicianInitials(order.referring_physician_name)}
                               </AvatarFallback>
                             </Avatar>
-                            <span className="text-sm">{order.referring_physician.name}</span>
+                            <span className="text-sm">{order.referring_physician_name || 'Unknown'}</span>
                           </div>
                         </TableCell>
                         <TableCell className="text-right">
