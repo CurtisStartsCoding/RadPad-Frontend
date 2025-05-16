@@ -124,6 +124,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
         localStorage.removeItem('rad_order_pad_trial_token_expiry');
       }
       
+      // Log auth state for debugging
+      console.group('🔐 Auth Context Update');
+      console.log('Session loading:', isSessionLoading);
+      console.log('Has token:', !!accessToken);
+      console.log('Has trial token:', !!trialToken);
+      console.groupEnd();
+      
       if (sessionError || !sessionData) {
         console.log("Session endpoint not available or error occurred");
         
@@ -145,13 +152,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
                                 payload.role === 'trial_user' ||
                                 payload.role === 'trial_physician';
                 
-                if (isTrial) {
-                  console.group('🔑 Trial User Authentication');
-                  console.log('👤 User role:', payload.role);
-                  console.log('📧 Email:', payload.email);
-                  console.log('🔑 Token payload:', payload);
-                  console.groupEnd();
-                }
+                // Always log user role for debugging
+                console.group('🔑 User Authentication');
+                console.log('👤 User role:', payload.role);
+                console.log('📧 Email:', payload.email);
+                console.log('🔑 Is trial user:', isTrial);
+                console.groupEnd();
                 
                 // Create a user object from the token payload
                 const userData: User = {
@@ -395,6 +401,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
       throw error;
     }
   };
+
+  // Add an effect to log when the user changes
+  useEffect(() => {
+    if (user) {
+      console.group('👤 Auth User Updated');
+      console.log('User role:', user.role);
+      console.log('Is trial user:', user.role === UserRole.TrialUser || user.role === UserRole.TrialPhysician);
+      console.groupEnd();
+    }
+  }, [user]);
 
   const contextValue: AuthContextType = {
     user,

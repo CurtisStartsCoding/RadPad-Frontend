@@ -143,9 +143,12 @@ const getPageSubtitle = (page: AppPage): string | undefined => {
 function App() {
   // Start with Login page instead of Dashboard
   const [currentPage, setCurrentPage] = useState<AppPage>(AppPage.Login);
-  const [currentRole, setCurrentRole] = useState<UserRole>(UserRole.Physician);
   const [location, setLocation] = useLocation();
   const { isAuthenticated, user, isLoading } = useAuth();
+  
+  // Use the user's role from auth context instead of a separate state
+  // Cast to UserRole to ensure type compatibility
+  const currentRole = (user?.role as UserRole) || UserRole.Physician;
   
   // Add a forced loading timeout to prevent getting stuck in loading state
   const [forceLoadingComplete, setForceLoadingComplete] = useState(false);
@@ -166,11 +169,7 @@ function App() {
     // Add other URL mappings as needed
   }, [location]);
   
-  // Since we removed the sidebar with role selector, we'll keep this function
-  // for potential future use or for programmatic role changes
-  const handleRoleChange = (role: UserRole) => {
-    setCurrentRole(role);
-  };
+  // This function is no longer needed as we're using the user's role directly
 
   // Force loading to complete after a timeout
   useEffect(() => {
@@ -207,24 +206,25 @@ function App() {
       const currentlyAuthenticated = isAuthenticated || hasToken || !!token;
       
       if (currentlyAuthenticated) {
-        // User is authenticated, check role to determine which page to show
-        const radiologyRoles = ['radiologist', 'admin_radiology', 'scheduler'];
-        
         // Try to get role from token if user object is not available
         let userRole = null;
         if (user) {
           userRole = user.role;
         } else {
-          // Use the getUserRoleFromStorage function to get the role
           userRole = getUserRoleFromStorage();
           if (userRole) {
             console.log(`Using role from storage: ${userRole}`);
           }
-          
-          // If no role was found, we'll just continue with null
         }
-        
-        if (userRole && radiologyRoles.includes(userRole)) {
+
+        // Handle trial users differently
+        if (userRole === UserRole.TrialUser || userRole === UserRole.TrialPhysician) {
+          console.log("Trial user detected, showing trial validation page");
+          setCurrentPage(AppPage.NewOrder);
+          if (location === "/auth" || location === "/") {
+            setLocation("/trial-validation");
+          }
+        } else if (userRole && ['radiologist', 'admin_radiology', 'scheduler'].includes(userRole)) {
           // User has a radiology role, show Radiology Queue
           console.log(`User has role ${userRole}, showing Radiology Queue`);
           setCurrentPage(AppPage.RadiologyQueue);
@@ -250,7 +250,17 @@ function App() {
         setLocation("/auth");
       }
     }
-  }, [shouldBeAuthenticated, effectiveLoading, location, setLocation, isAuthenticated, hasToken]);
+  }, [shouldBeAuthenticated, effectiveLoading, location, setLocation, isAuthenticated, hasToken, user]);
+  
+  // Add an effect to log when the user or currentRole changes
+  useEffect(() => {
+    if (user) {
+      console.group('🔄 App User Role Sync');
+      console.log('User role updated:', user.role);
+      console.log('Current role being used:', currentRole);
+      console.groupEnd();
+    }
+  }, [user, currentRole]);
 
   // Log API configuration on app startup
   useEffect(() => {
@@ -414,6 +424,12 @@ function App() {
             ) : (
               <AuthPage />
             )}
+          </Route>
+          <Route path="/">
+            {shouldBeAuthenticated && (currentRole === UserRole.TrialUser || currentRole === UserRole.TrialPhysician) ? (
+              // Redirect trial users to trial validation page
+              <TrialValidation />
+            ) : null}
           </Route>
           <Route>
             {effectiveLoading ? (

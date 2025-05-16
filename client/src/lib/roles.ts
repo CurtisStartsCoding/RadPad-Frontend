@@ -26,14 +26,21 @@ export const roleDisplayNames: Record<UserRole, string> = {
 
 // Helper function to determine if a role has access to a specific page
 export const hasAccess = (role: UserRole, page: string): boolean => {
+  // SPECIAL CASE: Trial users can ONLY access new-order, profile, and security
+  // This ensures the hamburger menu only shows these options for trial users
+  if (role === UserRole.TrialUser || role === UserRole.TrialPhysician) {
+    // Only allow trial users to access these specific pages
+    return ['new-order', 'profile', 'security', 'trial-auth', 'trial', 'trial-validation'].includes(page);
+  }
+  
+  // For all other roles, use the access map
   // Map from page to roles that can access that page
   const accessMap: Record<string, UserRole[]> = {
     // Core Workflow
     "dashboard": [
       UserRole.Physician,
       UserRole.AdminStaff,
-      UserRole.AdminReferring,
-      UserRole.TrialUser
+      UserRole.AdminReferring
     ],
     "new-order": [
       UserRole.Physician,

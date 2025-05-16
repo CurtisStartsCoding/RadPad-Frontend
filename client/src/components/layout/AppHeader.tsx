@@ -23,8 +23,26 @@ const AppHeader: React.FC<AppHeaderProps> = ({
   userRole
 }) => {
   const [showMenu, setShowMenu] = useState(false);
-  const { logout } = useAuth(); // Call useAuth hook at the top level
+  const { logout, user } = useAuth(); // Get all auth data in one call
   const [, setLocation] = useLocation();
+  
+  // ALWAYS prioritize the user role from auth context over the prop
+  // This ensures we're always using the most up-to-date role information
+  const effectiveRole = (user?.role || userRole || UserRole.Physician) as UserRole;
+  
+  // Force trial user check directly from auth context when available
+  const isTrialUser = user?.role
+    ? (user.role === UserRole.TrialUser || user.role === UserRole.TrialPhysician)
+    : (effectiveRole === UserRole.TrialUser || effectiveRole === UserRole.TrialPhysician);
+  
+  // Add component-level logging to track role changes
+  console.group('🔍 AppHeader Role Debug');
+  console.log('Component mounted/updated');
+  console.log('- User role from context:', user?.role);
+  console.log('- User role from props:', userRole);
+  console.log('- Effective role used:', effectiveRole);
+  console.log('- Is trial user:', isTrialUser);
+  console.groupEnd();
   
   const handleNavigation = (page: AppPage) => {
     // First, update the current page state
@@ -35,20 +53,13 @@ const AppHeader: React.FC<AppHeaderProps> = ({
     // Close the menu immediately to avoid UI issues
     setShowMenu(false);
     
-    // Get the effective user role
-    const effectiveRole = (user?.role || userRole || UserRole.Physician) as UserRole;
-    
     // Debug user role information
     console.log("Navigation debug info:");
     console.log("- User role from context:", user?.role);
     console.log("- User role from props:", userRole);
     console.log("- Effective role:", effectiveRole);
-    console.log("- Is trial user?", effectiveRole === UserRole.TrialUser);
+    console.log("- Is trial user?", isTrialUser);
     console.log("- UserRole.TrialUser value:", UserRole.TrialUser);
-    
-    // Check if user is a trial user based on role
-    const isTrialUser = effectiveRole === UserRole.TrialUser || effectiveRole === UserRole.TrialPhysician;
-    console.log("- Is trial user based on role:", isTrialUser);
     
     // Update URL based on the page
     switch (page) {
@@ -89,9 +100,6 @@ const AppHeader: React.FC<AppHeaderProps> = ({
     }
   };
 
-  // Get user information from auth context
-  const { user } = useAuth();
-  
   // Get user display name
   const getUserDisplayName = () => {
     if (user && user.name) {
@@ -146,16 +154,66 @@ const AppHeader: React.FC<AppHeaderProps> = ({
   const getMenuItems = () => {
     const menuItems = [];
     
-    // Determine the actual role to use
-    // Use the user's role from auth context if available, otherwise fall back to the prop
-    // Make sure we have a valid UserRole by providing a default if both are undefined
-    const effectiveRole = (user?.role || userRole || UserRole.Physician) as UserRole;
+    // ALWAYS get the most up-to-date role information directly from auth context
+    const currentEffectiveRole = user?.role
+      ? (user.role as UserRole)
+      : (userRole || UserRole.Physician) as UserRole;
     
-    // Determine if user is a trial user
-    const isTrialUser = effectiveRole === UserRole.TrialUser || effectiveRole === UserRole.TrialPhysician;
+    const isTrialUserToUse = user?.role
+      ? (user.role === UserRole.TrialUser || user.role === UserRole.TrialPhysician)
+      : (currentEffectiveRole === UserRole.TrialUser || currentEffectiveRole === UserRole.TrialPhysician);
     
-    // Home/Dashboard is available to everyone except trial users
-    if (!isTrialUser) {
+    console.log('Menu items being generated for role:', currentEffectiveRole);
+    console.log('Is trial user?', isTrialUserToUse);
+    
+    // For trial users, ONLY show New Order, My Profile, Security, and Log out
+    // Return early to prevent adding any other menu items
+    if (isTrialUserToUse) {
+      return [
+        // New Order
+        <button
+          key="new-order"
+          className="flex items-center w-full px-3 py-2.5 text-gray-800 hover:bg-gray-100 rounded-md"
+          onClick={() => handleNavigation(AppPage.NewOrder)}
+        >
+          <Stethoscope className="h-4 w-4 mr-3 text-gray-500" />
+          <span>New Order</span>
+        </button>,
+
+        // My Profile
+        <button
+          key="profile"
+          className="flex items-center w-full px-3 py-2.5 text-gray-800 hover:bg-gray-100 rounded-md"
+          onClick={() => handleNavigation(AppPage.Profile)}
+        >
+          <User className="h-4 w-4 mr-3 text-gray-500" />
+          <span>My Profile</span>
+        </button>,
+
+        // Security
+        <button
+          key="security"
+          className="flex items-center w-full px-3 py-2.5 text-gray-800 hover:bg-gray-100 rounded-md"
+          onClick={() => handleNavigation(AppPage.Security)}
+        >
+          <Settings className="h-4 w-4 mr-3 text-gray-500" />
+          <span>Security</span>
+        </button>,
+
+        // Log out
+        <button
+          key="logout"
+          className="flex items-center w-full px-3 py-2.5 text-red-600 hover:bg-red-50 rounded-md"
+          onClick={handleLogout}
+        >
+          <LogOut className="h-4 w-4 mr-3" />
+          <span>Log out</span>
+        </button>
+      ];
+    }
+
+    // For non-trial users, show all authorized menu items
+    if (hasAccess(currentEffectiveRole, AppPage.Dashboard)) {
       menuItems.push(
         <button
           key="home"
@@ -169,7 +227,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
     }
     
     // New Order (for physicians only)
-    if (hasAccess(effectiveRole, AppPage.NewOrder)) {
+    if (hasAccess(currentEffectiveRole, AppPage.NewOrder)) {
       menuItems.push(
         <button
           key="new-order"
@@ -182,8 +240,8 @@ const AppHeader: React.FC<AppHeaderProps> = ({
       );
     }
     
-    // Orders List
-    if (hasAccess(effectiveRole, AppPage.OrderList)) {
+    // Orders List - double check access
+    if (!isTrialUserToUse && hasAccess(currentEffectiveRole, AppPage.OrderList)) {
       menuItems.push(
         <button
           key="orders"
@@ -196,8 +254,8 @@ const AppHeader: React.FC<AppHeaderProps> = ({
       );
     }
     
-    // Admin Queue (for admin staff)
-    if (hasAccess(effectiveRole, AppPage.AdminQueue)) {
+    // Admin Queue (for admin staff) - double check access
+    if (!isTrialUserToUse && hasAccess(currentEffectiveRole, AppPage.AdminQueue)) {
       menuItems.push(
         <button
           key="admin-queue"
@@ -210,8 +268,8 @@ const AppHeader: React.FC<AppHeaderProps> = ({
       );
     }
     
-    // Radiology Queue (for radiology staff)
-    if (hasAccess(effectiveRole, AppPage.RadiologyQueue)) {
+    // Radiology Queue (for radiology staff) - double check access
+    if (!isTrialUserToUse && hasAccess(currentEffectiveRole, AppPage.RadiologyQueue)) {
       menuItems.push(
         <button 
           key="radiology-queue"
@@ -224,8 +282,8 @@ const AppHeader: React.FC<AppHeaderProps> = ({
       );
     }
     
-    // Organization Profile
-    if (hasAccess(effectiveRole, AppPage.OrgProfile)) {
+    // Organization Profile - double check access
+    if (!isTrialUserToUse && hasAccess(currentEffectiveRole, AppPage.OrgProfile)) {
       menuItems.push(
         <button 
           key="org-profile"
@@ -238,8 +296,8 @@ const AppHeader: React.FC<AppHeaderProps> = ({
       );
     }
     
-    // Users management
-    if (hasAccess(effectiveRole, AppPage.Users)) {
+    // Users management - double check access
+    if (!isTrialUserToUse && hasAccess(currentEffectiveRole, AppPage.Users)) {
       menuItems.push(
         <button 
           key="users"
@@ -252,8 +310,8 @@ const AppHeader: React.FC<AppHeaderProps> = ({
       );
     }
     
-    // Billing
-    if (hasAccess(effectiveRole, AppPage.Billing)) {
+    // Billing - double check access
+    if (!isTrialUserToUse && hasAccess(currentEffectiveRole, AppPage.Billing)) {
       menuItems.push(
         <button 
           key="billing"
@@ -266,37 +324,28 @@ const AppHeader: React.FC<AppHeaderProps> = ({
       );
     }
     
-    // Settings and profile are available to everyone
+    // Add profile and security for non-trial users (these are always available)
     menuItems.push(
-      <button 
+      <button
         key="profile"
         className="flex items-center w-full px-3 py-2.5 text-gray-800 hover:bg-gray-100 rounded-md"
         onClick={() => handleNavigation(AppPage.Profile)}
       >
         <User className="h-4 w-4 mr-3 text-gray-500" />
         <span>My Profile</span>
-      </button>
-    );
-    
-    menuItems.push(
+      </button>,
       <button
         key="security"
         className="flex items-center w-full px-3 py-2.5 text-gray-800 hover:bg-gray-100 rounded-md"
-        onClick={(e) => {
-          e.preventDefault();
-          setShowMenu(false);
-          console.log("Security button clicked, navigating directly to /security");
-          // Directly navigate to the security route
-          setLocation("/security");
-        }}
+        onClick={() => handleNavigation(AppPage.Security)}
       >
         <Settings className="h-4 w-4 mr-3 text-gray-500" />
         <span>Security</span>
       </button>
     );
     
-    // Super Admin sections
-    if (effectiveRole === UserRole.SuperAdmin) {
+    // Super Admin sections - double check access
+    if (!isTrialUserToUse && currentEffectiveRole === UserRole.SuperAdmin) {
       menuItems.push(
         <button 
           key="superadmin-dashboard"
@@ -395,16 +444,18 @@ const AppHeader: React.FC<AppHeaderProps> = ({
               </nav>
             </div>
             
-            {/* Logout */}
-            <div className="p-2 mt-auto border-t border-gray-100">
-              <button
-                className="flex items-center w-full px-3 py-2.5 text-red-600 hover:bg-red-50 rounded-md"
-                onClick={handleLogout}
-              >
-                <LogOut className="h-4 w-4 mr-3" />
-                <span>Log out</span>
-              </button>
-            </div>
+            {/* Logout - only show for non-trial users since trial users have it in their menu */}
+            {!isTrialUser && (
+              <div className="p-2 mt-auto border-t border-gray-100">
+                <button
+                  className="flex items-center w-full px-3 py-2.5 text-red-600 hover:bg-red-50 rounded-md"
+                  onClick={handleLogout}
+                >
+                  <LogOut className="h-4 w-4 mr-3" />
+                  <span>Log out</span>
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
