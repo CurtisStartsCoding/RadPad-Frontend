@@ -42,11 +42,27 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { UserRole } from "@/lib/roles";
 
-import { useAuth } from "@/lib/useAuth";
 import { roleDisplayNames } from "@/lib/roles";
 
 interface MyProfileProps {
   userRole?: UserRole;
+}
+
+interface StoredUser {
+  id: string;
+  email: string;
+  first_name?: string;
+  last_name?: string;
+  name?: string;
+  role: UserRole;
+  organization_id?: string;
+  organization_name?: string;
+  created_at: string;
+  updated_at: string;
+  lastLoginAt?: string;
+  specialty?: string;
+  phone?: string;
+  npi?: string;
 }
 
 // Function to format date
@@ -59,11 +75,30 @@ const formatDate = (dateString: string): string => {
 };
 
 const MyProfile = ({ userRole }: MyProfileProps) => {
-  const { user } = useAuth();
-  console.log("PROFILE - user:", {user})
+  // Load user data directly from localStorage
+  const loadUser = (): StoredUser | null => {
+    try {
+      const userDataStr = localStorage.getItem('rad_order_pad_user_data');
+      console.log("PROFILE - userDataStr:", {userDataStr});
+      if (userDataStr) {
+        const userData = JSON.parse(userDataStr);
+        console.log("PROFILE - userData:", {userData});
+        return userData;
+      }
+      return null;
+    } catch (e) {
+      console.error("Error loading user data:", e);
+      return null;
+    }
+  };
+
+  const user = loadUser();
+  console.log("PROFILE - user:", {user});
   
-  // Use the user role from props or from the auth context
-  const effectiveRole = userRole || (user?.role as UserRole);
+  // Use the user role from props or from stored user data
+  // const effectiveRole = userRole || (user?.role as UserRole);
+  const effectiveRole = (user?.role ?? UserRole.TrialPhysician) as UserRole;
+  console.log("PROFILE - effectiveRole:", {effectiveRole});
   
   // Check if user is a trial user
   const isTrialUser = effectiveRole === UserRole.TrialPhysician;
@@ -73,8 +108,8 @@ const MyProfile = ({ userRole }: MyProfileProps) => {
   // Get user data from localStorage if available
   const getUserData = () => {
     try {
-      // Try to get user data from either location
-      const userDataStr = localStorage.getItem('rad_order_pad_user') || localStorage.getItem('rad_order_pad_user_data');
+      // Get user data from localStorage
+      const userDataStr = localStorage.getItem('rad_order_pad_user_data');
       if (userDataStr) {
         const userData = JSON.parse(userDataStr);
         console.log("PROFILE - userData:", {userData});
@@ -125,10 +160,10 @@ const MyProfile = ({ userRole }: MyProfileProps) => {
   
   // Initialize form state with user data or defaults
   const [firstName, setFirstName] = useState(
-    userData?.firstName || userData?.first_name || user?.name?.split(' ')[0] || ""
+    userData?.first_name || user?.first_name || user?.name?.split(' ')[0] || ""
   );
   const [lastName, setLastName] = useState(
-    userData?.lastName || userData?.last_name || user?.name?.split(' ')[1] || ""
+    userData?.last_name || user?.last_name || user?.name?.split(' ')[1] || ""
   );
   const [phoneNumber, setPhoneNumber] = useState(userData?.phone || "(555) 123-4567"); // Default as not in JWT
   
@@ -156,10 +191,10 @@ const MyProfile = ({ userRole }: MyProfileProps) => {
     email: userData?.email || user?.email || "",
     role: user?.role ? roleDisplayNames[user.role as UserRole] || user.role : "",
     organization: isTrialUser ? "Trial Account" : (userData?.organization_name || "Medical Practice"),
-    joinedDate: userData?.createdAt || userData?.created_at
-      ? formatDate(userData.createdAt || userData.created_at)
-      : (user?.createdAt ? formatDate(user.createdAt.toString()) : "Today"),
-    lastLogin: user?.lastLoginAt ? formatDate(user.lastLoginAt.toString()) : "Today",
+    joinedDate: userData?.created_at || user?.created_at
+      ? formatDate(userData?.created_at || user?.created_at)
+      : "Today",
+    lastLogin: user?.lastLoginAt ? formatDate(user.lastLoginAt) : "Today",
   };
   
   // Function to handle profile edit

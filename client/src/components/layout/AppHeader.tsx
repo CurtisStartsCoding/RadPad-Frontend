@@ -28,7 +28,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
   
   // ALWAYS prioritize the user role from auth context over the prop
   // This ensures we're always using the most up-to-date role information
-  const effectiveRole = (user?.role || userRole || UserRole.Physician) as UserRole;
+  const effectiveRole = (user?.role || userRole || UserRole.TrialPhysician) as UserRole;
   
   // Force trial user check directly from auth context when available
   const isTrialUser = user?.role

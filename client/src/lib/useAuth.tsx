@@ -134,7 +134,36 @@ export function AuthProvider({ children }: AuthProviderProps) {
       if (sessionError || !sessionData) {
         console.log("Session endpoint not available or error occurred");
         
-        // Check for token
+        // First try to get user data from localStorage
+        const storedUserData = localStorage.getItem('rad_order_pad_user_data');
+        if (storedUserData) {
+          try {
+            const parsedUserData = JSON.parse(storedUserData);
+            console.log("Found user data in localStorage:", parsedUserData);
+            
+            // Create a user object from the stored data
+            const userData: User = {
+              id: parsedUserData.id,
+              email: parsedUserData.email,
+              name: `${parsedUserData.first_name || ''} ${parsedUserData.last_name || ''}`.trim() || parsedUserData.email,
+              role: parsedUserData.role === 'trial_physician'
+                ? UserRole.TrialPhysician
+                : parsedUserData.role as UserRole,
+              organizationId: parsedUserData.organization_id,
+              organizationType: parsedUserData.organizationType || 'referring_practice',
+              createdAt: new Date(parsedUserData.created_at),
+              updatedAt: new Date(parsedUserData.updated_at)
+            };
+            
+            setUser(userData);
+            setIsLoading(false);
+            return;
+          } catch (e) {
+            console.error("Error parsing stored user data:", e);
+          }
+        }
+        
+        // If no stored data, try to get info from token
         if (accessToken && !isTokenExpired()) {
           console.log("Found valid token in localStorage, attempting to use it");
           
@@ -172,9 +201,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
                   updatedAt: new Date()
                 };
                 
-                // We no longer need to check localStorage for trial user data
-                // as we're using the role from the token
-                
                 setUser(userData);
                 setIsLoading(false);
                 return;
@@ -185,7 +211,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           }
         }
         
-        // If we couldn't get user info from the token, clear auth state
+        // If we couldn't get user info from localStorage or token, clear auth state
         setUser(null);
         setIsLoading(false);
         return;
@@ -264,7 +290,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           createdAt: new Date(apiUser.created_at),
           updatedAt: new Date(apiUser.updated_at)
         };
-        
+        console.log("** useAuth loginMutation - userData: ", {userData})
         setUser(userData);
         
         // Save token
@@ -328,6 +354,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       const result = await loginMutation.mutateAsync({ email, password });
       
       if (user) {
+        console.log("** useAuth login - user case: ", {user})
         return user;
       } else if (result.user) {
         // Convert ApiUserResponse to User
@@ -347,6 +374,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           createdAt: new Date(apiUser.created_at),
           updatedAt: new Date(apiUser.updated_at)
         };
+        console.log("** useAuth login - userData: ", {userData})
         
         // Store the complete user data in localStorage for profile use
         localStorage.setItem('rad_order_pad_user_data', JSON.stringify(apiUser));
@@ -377,9 +405,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
       clearToken();
       localStorage.removeItem('rad_order_pad_user_data');
       
-      // Remove all trial-related items
-      localStorage.removeItem('rad_order_pad_trial_user');
-      localStorage.removeItem('rad_order_pad_trial_user_data');
+      // Remove user data and trial-related items
+      localStorage.removeItem('rad_order_pad_user_data');
       localStorage.removeItem('rad_order_pad_trial_info');
       localStorage.removeItem('rad_order_pad_trial_validations_remaining');
       setUser(null);

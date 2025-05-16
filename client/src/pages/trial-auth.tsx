@@ -60,7 +60,10 @@ export default function TrialAuthPage() {
       });
       
       const data = await response.json();
-      
+      console.log("** trial-auth data: " , {data});
+      // data.role = UserRole.TrialPhysician;
+      // data.user.role = UserRole.TrialPhysician;
+
       if (!response.ok) {
         throw new Error(data.message || 'Login failed');
       }
