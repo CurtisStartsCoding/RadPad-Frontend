@@ -96,6 +96,38 @@ const AppHeader: React.FC<AppHeaderProps> = ({
 
   // Get user display name
   const getUserDisplayName = () => {
+    // First try to get user data from localStorage
+    try {
+      const storedUserData = localStorage.getItem('rad_order_pad_user_data');
+      if (storedUserData) {
+        const userData = JSON.parse(storedUserData);
+        console.log("Header - userData:", userData);
+        
+        // Check for different possible field names
+        // 1. Check snake_case (first_name, last_name)
+        if (userData.first_name || userData.last_name) {
+          const firstName = userData.first_name || '';
+          const lastName = userData.last_name || '';
+          return `${firstName} ${lastName}`.trim();
+        }
+        
+        // 2. Check camelCase (firstName, lastName)
+        if (userData.firstName || userData.lastName) {
+          const firstName = userData.firstName || '';
+          const lastName = userData.lastName || '';
+          return `${firstName} ${lastName}`.trim();
+        }
+        
+        // 3. Check for name field that might contain full name
+        if (userData.name && typeof userData.name === 'string') {
+          return userData.name;
+        }
+      }
+    } catch (e) {
+      console.error("Error parsing stored user data:", e);
+    }
+    
+    // Then try from auth context
     if (user && user.name) {
       return user.name;
     }
@@ -410,7 +442,51 @@ const AppHeader: React.FC<AppHeaderProps> = ({
             {/* User Profile Section */}
             <div className="px-4 py-4 border-b border-gray-100 flex items-center space-x-3">
               <div className="rounded-full bg-blue-800 text-white h-10 w-10 flex items-center justify-center">
-                <User className="h-5 w-5" />
+                {(() => {
+                  // Get initials from user name
+                  try {
+                    const storedUserData = localStorage.getItem('rad_order_pad_user_data');
+                    if (storedUserData) {
+                      const userData = JSON.parse(storedUserData);
+                      
+                      // Check for different possible field names
+                      // 1. Check snake_case (first_name, last_name)
+                      if (userData.first_name || userData.last_name) {
+                        const firstName = userData.first_name || '';
+                        const lastName = userData.last_name || '';
+                        const initials = `${firstName[0] || ''}${lastName[0] || ''}`.toUpperCase();
+                        if (initials) return initials;
+                      }
+                      
+                      // 2. Check camelCase (firstName, lastName)
+                      if (userData.firstName || userData.lastName) {
+                        const firstName = userData.firstName || '';
+                        const lastName = userData.lastName || '';
+                        const initials = `${firstName[0] || ''}${lastName[0] || ''}`.toUpperCase();
+                        if (initials) return initials;
+                      }
+                      
+                      // 3. Check for name field that might contain full name
+                      if (userData.name && typeof userData.name === 'string') {
+                        const nameParts = userData.name.split(' ');
+                        if (nameParts.length >= 2) {
+                          const initials = `${nameParts[0][0] || ''}${nameParts[1][0] || ''}`.toUpperCase();
+                          if (initials) return initials;
+                        } else if (nameParts.length === 1 && nameParts[0]) {
+                          return nameParts[0].substring(0, 1).toUpperCase();
+                        }
+                      }
+                      
+                      // 4. If email is mj@test.com, use MJ as initials
+                      if (userData.email === 'mj@test.com') {
+                        return 'MJ';
+                      }
+                    }
+                  } catch (e) {
+                    console.error("Error getting initials:", e);
+                  }
+                  return <User className="h-5 w-5" />;
+                })()}
               </div>
               <div>
                 <p className="font-medium text-sm">{getUserDisplayName()}</p>

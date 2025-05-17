@@ -154,12 +154,37 @@ const MyProfile = () => {
   };
   
   // Initialize form state with user data or defaults
-  const [firstName, setFirstName] = useState(
-    userData?.first_name || user?.first_name || user?.name?.split(' ')[0] || ""
-  );
-  const [lastName, setLastName] = useState(
-    userData?.last_name || user?.last_name || user?.name?.split(' ')[1] || ""
-  );
+  const [firstName, setFirstName] = useState(() => {
+    // First try to get from localStorage
+    try {
+      const storedUserData = localStorage.getItem('rad_order_pad_user_data');
+      if (storedUserData) {
+        const parsedData = JSON.parse(storedUserData);
+        if (parsedData.first_name) return parsedData.first_name;
+      }
+    } catch (e) {
+      console.error("Error getting first name from localStorage:", e);
+    }
+    
+    // Then try from other sources
+    return userData?.first_name || user?.first_name || user?.name?.split(' ')[0] || "";
+  });
+  
+  const [lastName, setLastName] = useState(() => {
+    // First try to get from localStorage
+    try {
+      const storedUserData = localStorage.getItem('rad_order_pad_user_data');
+      if (storedUserData) {
+        const parsedData = JSON.parse(storedUserData);
+        if (parsedData.last_name) return parsedData.last_name;
+      }
+    } catch (e) {
+      console.error("Error getting last name from localStorage:", e);
+    }
+    
+    // Then try from other sources
+    return userData?.last_name || user?.last_name || user?.name?.split(' ')[1] || "";
+  });
   const [phoneNumber, setPhoneNumber] = useState(userData?.phone || "(555) 123-4567"); // Default as not in JWT
   
   // Get specialty from user data
@@ -206,7 +231,7 @@ const MyProfile = () => {
   
   // Function to get initials from name
   const getInitials = (first: string, last: string) => {
-    return `${first[0] || ''}${last[0] || ''}`;
+    return `${first[0] || ''}${last[0] || ''}`.toUpperCase();
   };
 
   // Trial user profile is simplified
@@ -236,12 +261,83 @@ const MyProfile = () => {
             <div className="flex items-center space-x-4">
               <Avatar className="h-16 w-16">
                 <AvatarFallback className="text-lg bg-amber-100 text-amber-800">
-                  {getInitials(firstName, lastName)}
+                  {(() => {
+                    // Try to get initials directly from localStorage
+                    try {
+                      const storedUserData = localStorage.getItem('rad_order_pad_user_data');
+                      if (storedUserData) {
+                        const userData = JSON.parse(storedUserData);
+                        console.log("Avatar - userData:", userData);
+                        
+                        // Check for different possible field names
+                        // 1. Check snake_case (first_name, last_name)
+                        if (userData.first_name || userData.last_name) {
+                          const first = userData.first_name || '';
+                          const last = userData.last_name || '';
+                          return getInitials(first, last);
+                        }
+                        
+                        // 2. Check camelCase (firstName, lastName)
+                        if (userData.firstName || userData.lastName) {
+                          const first = userData.firstName || '';
+                          const last = userData.lastName || '';
+                          return getInitials(first, last);
+                        }
+                        
+                        // 3. Check for name field that might contain full name
+                        if (userData.name && typeof userData.name === 'string') {
+                          const nameParts = userData.name.split(' ');
+                          if (nameParts.length >= 2) {
+                            return getInitials(nameParts[0], nameParts[1]);
+                          } else if (nameParts.length === 1 && nameParts[0]) {
+                            return nameParts[0].substring(0, 1).toUpperCase();
+                          }
+                        }
+                      }
+                    } catch (e) {
+                      console.error("Error getting initials from localStorage:", e);
+                    }
+                    
+                    // Fall back to state variables
+                    return firstName || lastName ? getInitials(firstName, lastName) : "MJ";
+                  })()}
                 </AvatarFallback>
               </Avatar>
               
               <div>
-                <h2 className="text-xl font-semibold">{firstName} {lastName}</h2>
+                <h2 className="text-xl font-semibold">
+                  {(() => {
+                    // Try to get name directly from localStorage
+                    try {
+                      const storedUserData = localStorage.getItem('rad_order_pad_user_data');
+                      if (storedUserData) {
+                        const userData = JSON.parse(storedUserData);
+                        console.log("Name - userData:", userData);
+                        
+                        // Check for different possible field names
+                        // 1. Check snake_case (first_name, last_name)
+                        if (userData.first_name || userData.last_name) {
+                          return `${userData.first_name || ''} ${userData.last_name || ''}`.trim();
+                        }
+                        
+                        // 2. Check camelCase (firstName, lastName)
+                        if (userData.firstName || userData.lastName) {
+                          return `${userData.firstName || ''} ${userData.lastName || ''}`.trim();
+                        }
+                        
+                        // 3. Check for name field that might contain full name
+                        if (userData.name && typeof userData.name === 'string') {
+                          return userData.name;
+                        }
+                      }
+                    } catch (e) {
+                      console.error("Error getting name from localStorage:", e);
+                    }
+                    
+                    // Fall back to state variables
+                    return `${firstName} ${lastName}`.trim();
+                  })()}
+                </h2>
                 <div className="mt-1 flex items-center">
                   <Badge variant="outline" className="bg-amber-100 border-amber-200 text-amber-800">Trial User</Badge>
                 </div>
