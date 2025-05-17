@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Home, LogOut, Settings, FileText, Building2, User, CreditCard, Users, Stethoscope, ListChecks } from "lucide-react";
+import { Home, LogOut, Settings, FileText, Building2, User, CreditCard, Users, Stethoscope, ListChecks, Map } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AppPage } from "@/App";
 import { UserRole, hasAccess } from "@/lib/roles";
@@ -316,13 +316,27 @@ const AppHeader: React.FC<AppHeaderProps> = ({
     // Organization Profile - double check access
     if (!isTrialUserToUse && hasAccess(currentEffectiveRole, AppPage.OrgProfile)) {
       menuItems.push(
-        <button 
+        <button
           key="org-profile"
           className="flex items-center w-full px-3 py-2.5 text-gray-800 hover:bg-gray-100 rounded-md"
           onClick={() => handleNavigation(AppPage.OrgProfile)}
         >
           <Building2 className="h-4 w-4 mr-3 text-gray-500" />
           <span>Organization</span>
+        </button>
+      );
+    }
+    
+    // Locations management - double check access
+    if (!isTrialUserToUse && hasAccess(currentEffectiveRole, AppPage.Locations)) {
+      menuItems.push(
+        <button
+          key="locations"
+          className="flex items-center w-full px-3 py-2.5 text-gray-800 hover:bg-gray-100 rounded-md"
+          onClick={() => handleNavigation(AppPage.Locations)}
+        >
+          <Map className="h-4 w-4 mr-3 text-gray-500" />
+          <span>Locations</span>
         </button>
       );
     }

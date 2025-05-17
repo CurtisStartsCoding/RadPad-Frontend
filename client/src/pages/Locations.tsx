@@ -36,7 +36,7 @@ const Locations = () => {
   const queryClient = useQueryClient();
   
   // Fetch locations from the API
-  const { data: locations, isLoading, error } = useQuery<ApiLocation[]>({
+  const { data, isLoading, error } = useQuery({
     queryKey: ['/api/organizations/mine/locations'],
     queryFn: async () => {
       const response = await apiRequest('GET', '/api/organizations/mine/locations', undefined);
@@ -48,6 +48,9 @@ const Locations = () => {
     },
     staleTime: 60000, // 1 minute
   });
+  
+  // Extract locations array from the response
+  const locations: ApiLocation[] = data?.locations || [];
   
   // Set primary location mutation
   const setPrimaryMutation = useMutation({
@@ -128,7 +131,7 @@ const Locations = () => {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {locations && locations.map((location) => (
+          {locations.map((location) => (
             <Card key={location.id} className={location.status === 'inactive' ? 'opacity-70' : ''}>
               <CardHeader className="pb-2">
                 <div className="flex justify-between items-start">
