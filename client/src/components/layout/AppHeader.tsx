@@ -153,6 +153,23 @@ const AppHeader: React.FC<AppHeaderProps> = ({
   
   // Get user email
   const getUserEmail = () => {
+    // First try to get user data from localStorage
+    try {
+      const storedUserData = localStorage.getItem('rad_order_pad_user_data');
+      if (storedUserData) {
+        const userData = JSON.parse(storedUserData);
+        console.log("Header - userData for email:", userData);
+        
+        // Check if email exists in stored data
+        if (userData.email) {
+          return userData.email;
+        }
+      }
+    } catch (e) {
+      console.error("Error parsing stored user data for email:", e);
+    }
+    
+    // Then try from auth context
     if (user && user.email) {
       return user.email;
     }
