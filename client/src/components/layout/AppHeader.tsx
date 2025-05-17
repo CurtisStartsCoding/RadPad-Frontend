@@ -5,7 +5,7 @@ import { AppPage } from "@/App";
 import { UserRole, hasAccess } from "@/lib/roles";
 import { useAuth } from "@/lib/useAuth";
 import { useLocation } from "wouter";
-import { getNewOrderPath, getUserRoleFromStorage } from "@/lib/navigation";
+import { getNewOrderPath, getUserRoleFromStorage, isTrialUser as checkIsTrialUser } from "@/lib/navigation";
 
 interface AppHeaderProps {
   title?: string;
@@ -27,10 +27,10 @@ const AppHeader: React.FC<AppHeaderProps> = ({
   // Get user role from storage
   const effectiveRole = (getUserRoleFromStorage() as UserRole) || UserRole.TrialPhysician;
   
-  // Force trial user check directly from auth context when available
+  // Use the isTrialUser utility function from navigation.ts
   const isTrialUser = user?.role
-    ? user.role === UserRole.TrialPhysician
-    : effectiveRole === UserRole.TrialPhysician;
+    ? checkIsTrialUser(user.role)
+    : checkIsTrialUser(effectiveRole);
   
   // Add component-level logging to track role changes
   console.group('🔍 AppHeader Role Debug');
@@ -41,44 +41,85 @@ const AppHeader: React.FC<AppHeaderProps> = ({
   console.groupEnd();
   
   const handleNavigation = (page: AppPage) => {
-    // First, update the current page state
-    if (onNavigate) {
-      onNavigate(page);
-    }
-    
-    // Close the menu immediately to avoid UI issues
-    setShowMenu(false);
-    
     // Debug user role information
     console.log("Navigation debug info:");
     console.log("- User role from context:", user?.role);
     console.log("- Effective role:", effectiveRole);
     console.log("- Is trial user?", isTrialUser);
+    console.log("- Navigating to page:", page);
     
-    // Update URL based on the page
+    // Determine the target URL based on the page
+    let targetUrl = "";
+    
     switch (page) {
       case AppPage.Profile:
-        setLocation("/profile");
+        targetUrl = "/profile";
         break;
       case AppPage.Dashboard:
-        setLocation("/");
+        targetUrl = "/";
         break;
       case AppPage.NewOrder:
         // Use the navigation utility to determine the correct path
-        const newOrderPath = getNewOrderPath(effectiveRole);
-        console.log(`Redirecting user to ${newOrderPath}`);
-        setLocation(newOrderPath);
+        targetUrl = getNewOrderPath(effectiveRole);
+        console.log(`Redirecting user to ${targetUrl}`);
         break;
       case AppPage.Security:
         console.log("Navigating to Security page");
-        setLocation("/security");
+        targetUrl = "/security";
+        break;
+      case AppPage.OrderList:
+        console.log("Navigating to Orders page");
+        targetUrl = "/orders";
+        break;
+      case AppPage.AdminQueue:
+        console.log("Navigating to Admin Queue page");
+        targetUrl = "/admin-queue";
+        break;
+      case AppPage.RadiologyQueue:
+        console.log("Navigating to Radiology Queue page");
+        targetUrl = "/radiology-queue";
+        break;
+      case AppPage.OrgProfile:
+        console.log("Navigating to Organization Profile page");
+        targetUrl = "/org-profile";
+        break;
+      case AppPage.Locations:
+        console.log("Navigating to Locations page");
+        targetUrl = "/locations";
+        break;
+      case AppPage.Users:
+        console.log("Navigating to Users page");
+        targetUrl = "/users";
+        break;
+      case AppPage.Connections:
+        console.log("Navigating to Connections page");
+        targetUrl = "/connections";
+        break;
+      case AppPage.Billing:
+        console.log("Navigating to Billing page");
+        targetUrl = "/billing";
         break;
       // Add other cases as needed for other pages
       default:
-        // For other pages, you might want to derive the URL from the page enum
-        const pageUrl = `/${page.toLowerCase().replace('_', '-')}`;
-        setLocation(pageUrl);
+        // For other pages, derive the URL from the page enum
+        targetUrl = `/${page.toLowerCase().replace('_', '-')}`;
     }
+    
+    // Update the current page state first
+    if (onNavigate) {
+      onNavigate(page);
+    }
+    
+    // Use setTimeout to ensure the menu is closed after the navigation is initiated
+    // This helps prevent any UI issues that might interfere with navigation
+    setTimeout(() => {
+      // Close the menu
+      setShowMenu(false);
+      
+      // Set the location to navigate to the new page
+      console.log(`Setting location to: ${targetUrl}`);
+      setLocation(targetUrl);
+    }, 0);
   };
   
   // Handle logout action
@@ -195,248 +236,83 @@ const AppHeader: React.FC<AppHeaderProps> = ({
   
   // Generate menu items based on user role access
   const getMenuItems = () => {
-    const menuItems = [];
+    console.log('Menu items being generated for role:', effectiveRole);
+    console.log('Is trial user?', isTrialUser);
     
-    // Get role from storage
-    const currentEffectiveRole = (getUserRoleFromStorage() as UserRole) || UserRole.Physician;
-    
-    const isTrialUserToUse = user?.role
-      ? user.role === UserRole.TrialPhysician
-      : currentEffectiveRole === UserRole.TrialPhysician;
-    
-    console.log('Menu items being generated for role:', currentEffectiveRole);
-    console.log('Is trial user?', isTrialUserToUse);
-    
-    // For trial users, ONLY show New Order, My Profile, and Security
-    // Return early to prevent adding any other menu items
-    if (isTrialUserToUse) {
-      return [
-        // New Order
-        <button
-          key="new-order"
-          className="flex items-center w-full px-3 py-2.5 text-gray-800 hover:bg-gray-100 rounded-md"
-          onClick={() => handleNavigation(AppPage.NewOrder)}
-        >
-          <Stethoscope className="h-4 w-4 mr-3 text-gray-500" />
-          <span>New Order</span>
-        </button>,
-
-        // My Profile
-        <button
-          key="profile"
-          className="flex items-center w-full px-3 py-2.5 text-gray-800 hover:bg-gray-100 rounded-md"
-          onClick={() => handleNavigation(AppPage.Profile)}
-        >
-          <User className="h-4 w-4 mr-3 text-gray-500" />
-          <span>My Profile</span>
-        </button>,
-
-        // Security
-        <button
-          key="security"
-          className="flex items-center w-full px-3 py-2.5 text-gray-800 hover:bg-gray-100 rounded-md"
-          onClick={() => handleNavigation(AppPage.Security)}
-        >
-          <Settings className="h-4 w-4 mr-3 text-gray-500" />
-          <span>Security</span>
-        </button>
-      ];
-    }
-
-    // For non-trial users, show all authorized menu items
-    if (hasAccess(currentEffectiveRole, AppPage.Dashboard)) {
-      menuItems.push(
-        <button
-          key="home"
-          className="flex items-center w-full px-3 py-2.5 text-gray-800 hover:bg-gray-100 rounded-md"
-          onClick={() => handleNavigation(AppPage.Dashboard)}
-        >
-          <Home className="h-4 w-4 mr-3 text-gray-500" />
-          <span>Dashboard</span>
-        </button>
-      );
-    }
-    
-    // New Order (for physicians only)
-    if (hasAccess(currentEffectiveRole, AppPage.NewOrder)) {
-      menuItems.push(
-        <button
-          key="new-order"
-          className="flex items-center w-full px-3 py-2.5 text-gray-800 hover:bg-gray-100 rounded-md"
-          onClick={() => handleNavigation(AppPage.NewOrder)}
-        >
-          <Stethoscope className="h-4 w-4 mr-3 text-gray-500" />
-          <span>New Order</span>
-        </button>
-      );
-    }
-    
-    // Orders List - double check access
-    if (!isTrialUserToUse && hasAccess(currentEffectiveRole, AppPage.OrderList)) {
-      menuItems.push(
-        <button
-          key="orders"
-          className="flex items-center w-full px-3 py-2.5 text-gray-800 hover:bg-gray-100 rounded-md"
-          onClick={() => handleNavigation(AppPage.OrderList)}
-        >
-          <ListChecks className="h-4 w-4 mr-3 text-gray-500" />
-          <span>Orders</span>
-        </button>
-      );
-    }
-    
-    // Admin Queue (for admin staff) - double check access
-    if (!isTrialUserToUse && hasAccess(currentEffectiveRole, AppPage.AdminQueue)) {
-      menuItems.push(
-        <button
-          key="admin-queue"
-          className="flex items-center w-full px-3 py-2.5 text-gray-800 hover:bg-gray-100 rounded-md"
-          onClick={() => handleNavigation(AppPage.AdminQueue)}
-        >
-          <FileText className="h-4 w-4 mr-3 text-gray-500" />
-          <span>Admin Queue</span>
-        </button>
-      );
-    }
-    
-    // Radiology Queue (for radiology staff) - double check access
-    if (!isTrialUserToUse && hasAccess(currentEffectiveRole, AppPage.RadiologyQueue)) {
-      menuItems.push(
-        <button 
-          key="radiology-queue"
-          className="flex items-center w-full px-3 py-2.5 text-gray-800 hover:bg-gray-100 rounded-md"
-          onClick={() => handleNavigation(AppPage.RadiologyQueue)}
-        >
-          <FileText className="h-4 w-4 mr-3 text-gray-500" />
-          <span>Radiology Queue</span>
-        </button>
-      );
-    }
-    
-    // Organization Profile - double check access
-    if (!isTrialUserToUse && hasAccess(currentEffectiveRole, AppPage.OrgProfile)) {
-      menuItems.push(
-        <button
-          key="org-profile"
-          className="flex items-center w-full px-3 py-2.5 text-gray-800 hover:bg-gray-100 rounded-md"
-          onClick={() => handleNavigation(AppPage.OrgProfile)}
-        >
-          <Building2 className="h-4 w-4 mr-3 text-gray-500" />
-          <span>Organization</span>
-        </button>
-      );
-    }
-    
-    // Locations management - double check access
-    if (!isTrialUserToUse && hasAccess(currentEffectiveRole, AppPage.Locations)) {
-      menuItems.push(
-        <button
-          key="locations"
-          className="flex items-center w-full px-3 py-2.5 text-gray-800 hover:bg-gray-100 rounded-md"
-          onClick={() => handleNavigation(AppPage.Locations)}
-        >
-          <Map className="h-4 w-4 mr-3 text-gray-500" />
-          <span>Locations</span>
-        </button>
-      );
-    }
-    
-    // Users management - double check access
-    if (!isTrialUserToUse && hasAccess(currentEffectiveRole, AppPage.Users)) {
-      menuItems.push(
-        <button 
-          key="users"
-          className="flex items-center w-full px-3 py-2.5 text-gray-800 hover:bg-gray-100 rounded-md"
-          onClick={() => handleNavigation(AppPage.Users)}
-        >
-          <Users className="h-4 w-4 mr-3 text-gray-500" />
-          <span>Users</span>
-        </button>
-      );
-    }
-    
-    // Billing - double check access
-    if (!isTrialUserToUse && hasAccess(currentEffectiveRole, AppPage.Billing)) {
-      menuItems.push(
-        <button 
-          key="billing"
-          className="flex items-center w-full px-3 py-2.5 text-gray-800 hover:bg-gray-100 rounded-md"
-          onClick={() => handleNavigation(AppPage.Billing)}
-        >
-          <CreditCard className="h-4 w-4 mr-3 text-gray-500" />
-          <span>Billing & Credits</span>
-        </button>
-      );
-    }
-    
-    // Add profile and security for non-trial users (these are always available)
-    menuItems.push(
-      <button
-        key="profile"
-        className="flex items-center w-full px-3 py-2.5 text-gray-800 hover:bg-gray-100 rounded-md"
-        onClick={() => handleNavigation(AppPage.Profile)}
-      >
-        <User className="h-4 w-4 mr-3 text-gray-500" />
-        <span>My Profile</span>
-      </button>,
-      <button
-        key="security"
-        className="flex items-center w-full px-3 py-2.5 text-gray-800 hover:bg-gray-100 rounded-md"
-        onClick={() => handleNavigation(AppPage.Security)}
-      >
-        <Settings className="h-4 w-4 mr-3 text-gray-500" />
-        <span>Security</span>
-      </button>
-    );
-    
-    // Super Admin sections - double check access
-    if (!isTrialUserToUse && currentEffectiveRole === UserRole.SuperAdmin) {
-      menuItems.push(
-        <button 
-          key="superadmin-dashboard"
-          className="flex items-center w-full px-3 py-2.5 text-gray-800 hover:bg-gray-100 rounded-md"
-          onClick={() => handleNavigation(AppPage.SuperAdminDashboard)}
-        >
-          <Home className="h-4 w-4 mr-3 text-gray-500" />
-          <span>Admin Dashboard</span>
-        </button>
-      );
+    // Define menu item configuration
+    // Each item has: key, page, icon, label, and optional condition
+    const menuItemsConfig = [
+      // Core Workflow
+      { key: "home", page: AppPage.Dashboard, icon: <Home className="h-4 w-4 mr-3 text-gray-500" />, label: "Dashboard" },
+      { key: "new-order", page: AppPage.NewOrder, icon: <Stethoscope className="h-4 w-4 mr-3 text-gray-500" />, label: "New Order" },
+      { key: "orders", page: AppPage.OrderList, icon: <ListChecks className="h-4 w-4 mr-3 text-gray-500" />, label: "Orders" },
+      { key: "admin-queue", page: AppPage.AdminQueue, icon: <FileText className="h-4 w-4 mr-3 text-gray-500" />, label: "Admin Queue" },
+      { key: "radiology-queue", page: AppPage.RadiologyQueue, icon: <FileText className="h-4 w-4 mr-3 text-gray-500" />, label: "Radiology Queue" },
       
-      menuItems.push(
-        <button 
-          key="superadmin-organizations"
-          className="flex items-center w-full px-3 py-2.5 text-gray-800 hover:bg-gray-100 rounded-md"
-          onClick={() => handleNavigation(AppPage.SuperAdminOrganizations)}
-        >
-          <Building2 className="h-4 w-4 mr-3 text-gray-500" />
-          <span>Organizations</span>
-        </button>
-      );
+      // Organization Management
+      { key: "org-profile", page: AppPage.OrgProfile, icon: <Building2 className="h-4 w-4 mr-3 text-gray-500" />, label: "Organization" },
+      { key: "locations", page: AppPage.Locations, icon: <Map className="h-4 w-4 mr-3 text-gray-500" />, label: "Locations" },
+      { key: "users", page: AppPage.Users, icon: <Users className="h-4 w-4 mr-3 text-gray-500" />, label: "Users" },
+      { key: "billing", page: AppPage.Billing, icon: <CreditCard className="h-4 w-4 mr-3 text-gray-500" />, label: "Billing & Credits" },
       
-      menuItems.push(
-        <button 
-          key="superadmin-users"
-          className="flex items-center w-full px-3 py-2.5 text-gray-800 hover:bg-gray-100 rounded-md"
-          onClick={() => handleNavigation(AppPage.SuperAdminUsers)}
-        >
-          <Users className="h-4 w-4 mr-3 text-gray-500" />
-          <span>All Users</span>
-        </button>
-      );
+      // User Settings (always available)
+      { key: "profile", page: AppPage.Profile, icon: <User className="h-4 w-4 mr-3 text-gray-500" />, label: "My Profile", alwaysShow: true },
+      { key: "security", page: AppPage.Security, icon: <Settings className="h-4 w-4 mr-3 text-gray-500" />, label: "Security", alwaysShow: true },
       
-      menuItems.push(
-        <button 
-          key="superadmin-logs"
-          className="flex items-center w-full px-3 py-2.5 text-gray-800 hover:bg-gray-100 rounded-md"
-          onClick={() => handleNavigation(AppPage.SuperAdminLogs)}
-        >
-          <FileText className="h-4 w-4 mr-3 text-gray-500" />
-          <span>System Logs</span>
-        </button>
-      );
-    }
+      // Super Admin sections
+      {
+        key: "superadmin-dashboard",
+        page: AppPage.SuperAdminDashboard,
+        icon: <Home className="h-4 w-4 mr-3 text-gray-500" />,
+        label: "Admin Dashboard",
+        condition: effectiveRole === UserRole.SuperAdmin
+      },
+      {
+        key: "superadmin-organizations",
+        page: AppPage.SuperAdminOrganizations,
+        icon: <Building2 className="h-4 w-4 mr-3 text-gray-500" />,
+        label: "Organizations",
+        condition: effectiveRole === UserRole.SuperAdmin
+      },
+      {
+        key: "superadmin-users",
+        page: AppPage.SuperAdminUsers,
+        icon: <Users className="h-4 w-4 mr-3 text-gray-500" />,
+        label: "All Users",
+        condition: effectiveRole === UserRole.SuperAdmin
+      },
+      {
+        key: "superadmin-logs",
+        page: AppPage.SuperAdminLogs,
+        icon: <FileText className="h-4 w-4 mr-3 text-gray-500" />,
+        label: "System Logs",
+        condition: effectiveRole === UserRole.SuperAdmin
+      }
+    ];
     
-    return menuItems;
+    // Create menu items based on user access
+    return menuItemsConfig
+      .filter(item => {
+        // Always show items marked as alwaysShow
+        if (item.alwaysShow) return true;
+        
+        // For items with explicit conditions, use those
+        if (item.condition !== undefined) return item.condition;
+        
+        // Otherwise, check access based on role
+        // The hasAccess function already handles the trial user special case
+        return hasAccess(effectiveRole, item.page.toLowerCase().replace('_', '-'));
+      })
+      .map(item => (
+        <button
+          key={item.key}
+          className="flex items-center w-full px-3 py-2.5 text-gray-800 hover:bg-gray-100 rounded-md"
+          onClick={() => handleNavigation(item.page)}
+        >
+          {item.icon}
+          <span>{item.label}</span>
+        </button>
+      ));
   };
   
   return (

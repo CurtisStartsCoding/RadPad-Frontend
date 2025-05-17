@@ -368,6 +368,24 @@ function App() {
           <Route path="/trial-validation">
             <TrialValidation />
           </Route>
+          <Route path="/orders">
+            {shouldBeAuthenticated ? (
+              <div className="h-screen flex flex-col">
+                <div className="w-full flex-1 overflow-auto">
+                  <AppHeader
+                    title={getPageTitle(AppPage.OrderList)}
+                    subtitle={getPageSubtitle(AppPage.OrderList)}
+                    onNavigate={handleNavigate}
+                  />
+                  <main className="h-full">
+                    <OrderList />
+                  </main>
+                </div>
+              </div>
+            ) : (
+              <AuthPage />
+            )}
+          </Route>
           <Route path="/new-order">
             {shouldBeAuthenticated ? (
               <div className="h-screen flex flex-col">
@@ -379,6 +397,132 @@ function App() {
                   />
                   <main className="h-full">
                     <NewOrder userRole={(user?.role as UserRole) || currentRole} />
+                  </main>
+                </div>
+              </div>
+            ) : (
+              <AuthPage />
+            )}
+          </Route>
+          <Route path="/admin-queue">
+            {shouldBeAuthenticated ? (
+              <div className="h-screen flex flex-col">
+                <div className="w-full flex-1 overflow-auto">
+                  <AppHeader
+                    title={getPageTitle(AppPage.AdminQueue)}
+                    subtitle={getPageSubtitle(AppPage.AdminQueue)}
+                    onNavigate={handleNavigate}
+                  />
+                  <main className="h-full">
+                    <AdminQueue navigateTo={(page) => setCurrentPage(page)} />
+                  </main>
+                </div>
+              </div>
+            ) : (
+              <AuthPage />
+            )}
+          </Route>
+          <Route path="/radiology-queue">
+            {shouldBeAuthenticated ? (
+              <div className="h-screen flex flex-col">
+                <div className="w-full flex-1 overflow-auto">
+                  <AppHeader
+                    title={getPageTitle(AppPage.RadiologyQueue)}
+                    subtitle={getPageSubtitle(AppPage.RadiologyQueue)}
+                    onNavigate={handleNavigate}
+                  />
+                  <main className="h-full">
+                    <RadiologyQueue />
+                  </main>
+                </div>
+              </div>
+            ) : (
+              <AuthPage />
+            )}
+          </Route>
+          <Route path="/org-profile">
+            {shouldBeAuthenticated ? (
+              <div className="h-screen flex flex-col">
+                <div className="w-full flex-1 overflow-auto">
+                  <AppHeader
+                    title={getPageTitle(AppPage.OrgProfile)}
+                    subtitle={getPageSubtitle(AppPage.OrgProfile)}
+                    onNavigate={handleNavigate}
+                  />
+                  <main className="h-full">
+                    <OrganizationProfile />
+                  </main>
+                </div>
+              </div>
+            ) : (
+              <AuthPage />
+            )}
+          </Route>
+          <Route path="/locations">
+            {shouldBeAuthenticated ? (
+              <div className="h-screen flex flex-col">
+                <div className="w-full flex-1 overflow-auto">
+                  <AppHeader
+                    title={getPageTitle(AppPage.Locations)}
+                    subtitle={getPageSubtitle(AppPage.Locations)}
+                    onNavigate={handleNavigate}
+                  />
+                  <main className="h-full">
+                    <Locations />
+                  </main>
+                </div>
+              </div>
+            ) : (
+              <AuthPage />
+            )}
+          </Route>
+          <Route path="/users">
+            {shouldBeAuthenticated ? (
+              <div className="h-screen flex flex-col">
+                <div className="w-full flex-1 overflow-auto">
+                  <AppHeader
+                    title={getPageTitle(AppPage.Users)}
+                    subtitle={getPageSubtitle(AppPage.Users)}
+                    onNavigate={handleNavigate}
+                  />
+                  <main className="h-full">
+                    <Users />
+                  </main>
+                </div>
+              </div>
+            ) : (
+              <AuthPage />
+            )}
+          </Route>
+          <Route path="/connections">
+            {shouldBeAuthenticated ? (
+              <div className="h-screen flex flex-col">
+                <div className="w-full flex-1 overflow-auto">
+                  <AppHeader
+                    title={getPageTitle(AppPage.Connections)}
+                    subtitle={getPageSubtitle(AppPage.Connections)}
+                    onNavigate={handleNavigate}
+                  />
+                  <main className="h-full">
+                    <Connections />
+                  </main>
+                </div>
+              </div>
+            ) : (
+              <AuthPage />
+            )}
+          </Route>
+          <Route path="/billing">
+            {shouldBeAuthenticated ? (
+              <div className="h-screen flex flex-col">
+                <div className="w-full flex-1 overflow-auto">
+                  <AppHeader
+                    title={getPageTitle(AppPage.Billing)}
+                    subtitle={getPageSubtitle(AppPage.Billing)}
+                    onNavigate={handleNavigate}
+                  />
+                  <main className="h-full">
+                    <BillingCredits userRole={currentRole} />
                   </main>
                 </div>
               </div>
