@@ -31,8 +31,6 @@ import TrialValidation from "@/pages/TrialValidation";
 import NotFound from "@/pages/not-found";
 import ForgotPassword from "@/pages/auth/ForgotPassword";
 import ResetPassword from "@/pages/auth/ResetPassword";
-// Removed import for Login component that was deleted
-
 // Onboarding imports
 import OrgSignUp from "@/pages/OrgSignUp";
 import OrgVerification from "@/pages/OrgVerification";
@@ -45,8 +43,6 @@ import SuperAdminDashboard from "@/pages/SuperAdminDashboard";
 import SuperAdminOrganizations from "@/pages/SuperAdminOrganizations";
 import SuperAdminUsers from "@/pages/SuperAdminUsers";
 import SuperAdminLogs from "@/pages/SuperAdminLogs";
-
-// Test pages
 
 // Enum for all available pages
 export enum AppPage {
@@ -79,7 +75,6 @@ export enum AppPage {
   SuperAdminUsers = "superadmin-users",
   SuperAdminLogs = "superadmin-logs",
   SuperAdminBilling = "superadmin-billing",
-  // Test pages
 }
 
 // Helper function to get page title based on the current page
@@ -122,7 +117,6 @@ const getPageTitle = (page: AppPage): string => {
       return "System Logs";
     case AppPage.SuperAdminBilling:
       return "Billing Management";
-    // Test pages
     default:
       return "RadOrderPad";
   }
@@ -146,8 +140,6 @@ function App() {
   const [location, setLocation] = useLocation();
   const { isAuthenticated, user, isLoading } = useAuth();
   
-  // Use the user's role from auth context instead of a separate state
-  // Cast to UserRole to ensure type compatibility
   const currentRole = (user?.role as UserRole) || UserRole.Physician;
   
   // Add a forced loading timeout to prevent getting stuck in loading state
@@ -169,13 +161,10 @@ function App() {
     // Add other URL mappings as needed
   }, [location]);
   
-  // This function is no longer needed as we're using the user's role directly
-
   // Force loading to complete after a timeout
   useEffect(() => {
     const timer = setTimeout(() => {
       if (isLoading) {
-        console.log("Loading timeout reached, forcing loading to complete");
         setForceLoadingComplete(true);
       }
     }, 2000); // 2 second timeout
@@ -187,11 +176,8 @@ function App() {
   useEffect(() => {
     const token = localStorage.getItem('rad_order_pad_access_token');
     setHasToken(!!token);
-    console.log("Token check:", !!token ? "Token exists" : "No token");
   }, [location]); // Re-check when location changes (after login)
 
-  // Determine if user should be authenticated based on token and auth state
-  // Check token directly from localStorage for the most up-to-date state
   const token = localStorage.getItem('rad_order_pad_access_token');
   const shouldBeAuthenticated = isAuthenticated || hasToken || !!token;
   
@@ -201,7 +187,6 @@ function App() {
   // Redirect based on authentication state
   useEffect(() => {
     if (!effectiveLoading) {
-      // Check token directly from localStorage for the most up-to-date state
       const token = localStorage.getItem('rad_order_pad_access_token');
       const currentlyAuthenticated = isAuthenticated || hasToken || !!token;
       
@@ -212,28 +197,19 @@ function App() {
           userRole = user.role;
         } else {
           userRole = getUserRoleFromStorage();
-          if (userRole) {
-            console.log(`Using role from storage: ${userRole}`);
-          }
         }
 
-        // Handle trial users differently
         if (userRole === UserRole.TrialPhysician) {
-          console.log("Trial user detected, showing trial validation page");
           setCurrentPage(AppPage.NewOrder);
           if (location === "/auth" || location === "/") {
             setLocation("/trial-validation");
           }
         } else if (userRole && ['radiologist', 'admin_radiology', 'scheduler'].includes(userRole)) {
-          // User has a radiology role, show Radiology Queue
-          console.log(`User has role ${userRole}, showing Radiology Queue`);
           setCurrentPage(AppPage.RadiologyQueue);
           if (location === "/auth") {
             setLocation("/radiology-queue");
           }
         } else {
-          // User has a non-radiology role or role couldn't be determined, show Dashboard
-          console.log("User is authenticated, showing dashboard");
           setCurrentPage(AppPage.Dashboard);
           if (location === "/auth") {
             setLocation("/");
@@ -245,35 +221,13 @@ function App() {
                 location !== "/trial-auth" &&
                 location !== "/trial" &&
                 location !== "/trial-validation") {
-        // User is not authenticated and not on auth, password reset, or trial pages, redirect to login
-        console.log("User is not authenticated, redirecting to login");
         setLocation("/auth");
       }
     }
   }, [shouldBeAuthenticated, effectiveLoading, location, setLocation, isAuthenticated, hasToken, user]);
   
-  // Add an effect to log when the user or currentRole changes
   useEffect(() => {
-    if (user) {
-      console.group('🔄 App User Role Sync');
-      console.log('User role updated:', user.role);
-      console.log('Current role being used:', currentRole);
-      console.groupEnd();
-    }
-  }, [user, currentRole]);
-
-  // Log API configuration on app startup
-  useEffect(() => {
-    // Log API configuration to verify we're using the remote API
     logApiConfiguration();
-    
-    // Additional verification log
-    console.group('🔍 API Verification');
-    console.log('✅ This application is configured to use the remote API');
-    console.log(`🌐 Remote API URL: ${REMOTE_API_URL}`);
-    console.log('❌ Mock endpoints are NOT being used');
-    console.log('📝 All API requests and responses will be logged in the console');
-    console.groupEnd();
   }, []);
 
   // Function to handle navigation from sidebar - simply update the current page
@@ -312,12 +266,10 @@ function App() {
         return <MyProfile />;
       case AppPage.Security:
         return <Security />;
-      // Auth pages
       case AppPage.Login:
         return <AuthPage />;
       case AppPage.TrialAuth:
         return <TrialAuthPage />;
-      // Onboarding pages
       case AppPage.OrgSignUp:
         return <OrgSignUp />;
       case AppPage.OrgVerification:
@@ -328,7 +280,6 @@ function App() {
         return <OrgLocations />;
       case AppPage.OrgUsers:
         return <OrgUsers />;
-      // Super Admin pages
       case AppPage.SuperAdminDashboard:
         return <SuperAdminDashboard navigateTo={(page) => setCurrentPage(page as AppPage)} />;
       case AppPage.SuperAdminOrganizations:
@@ -339,7 +290,6 @@ function App() {
         return <SuperAdminLogs />;
       case AppPage.SuperAdminBilling:
         return <BillingCredits userRole={UserRole.SuperAdmin} />;
-      // Test pages
       default:
         return <Dashboard navigateTo={(page) => setCurrentPage(page)} />;
     }
