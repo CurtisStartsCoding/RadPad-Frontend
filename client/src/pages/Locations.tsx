@@ -50,7 +50,10 @@ const Locations = () => {
   });
   
   // Extract locations array from the response
-  const locations: ApiLocation[] = data?.locations || [];
+  // Handle both array and single object cases
+  const locations: ApiLocation[] = Array.isArray(data?.locations)
+    ? data.locations
+    : (data?.locations ? [data.locations] : []);
   
   // Set primary location mutation
   const setPrimaryMutation = useMutation({
