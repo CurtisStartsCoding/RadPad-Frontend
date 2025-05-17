@@ -139,12 +139,13 @@ const Register = () => {
                       <div className="space-y-2">
                         <Label htmlFor="password">Password</Label>
                         <div className="relative">
-                          <Input 
-                            id="password" 
-                            type={showPassword ? "text" : "password"} 
-                            placeholder="••••••••" 
+                          <Input
+                            id="password"
+                            type={showPassword ? "text" : "password"}
+                            placeholder="••••••••"
                             className="pl-10"
                             required
+                            autoComplete="new-password"
                           />
                           <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-slate-400" />
                           <button 
@@ -160,12 +161,13 @@ const Register = () => {
                       <div className="space-y-2">
                         <Label htmlFor="confirm-password">Confirm Password</Label>
                         <div className="relative">
-                          <Input 
-                            id="confirm-password" 
-                            type={showConfirmPassword ? "text" : "password"} 
-                            placeholder="••••••••" 
+                          <Input
+                            id="confirm-password"
+                            type={showConfirmPassword ? "text" : "password"}
+                            placeholder="••••••••"
                             className="pl-10"
                             required
+                            autoComplete="new-password"
                           />
                           <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-slate-400" />
                           <button 
@@ -286,12 +288,13 @@ const Register = () => {
                   <div className="space-y-2">
                     <Label htmlFor="trial-password">Password</Label>
                     <div className="relative">
-                      <Input 
-                        id="trial-password" 
-                        type={showPassword ? "text" : "password"} 
-                        placeholder="••••••••" 
+                      <Input
+                        id="trial-password"
+                        type={showPassword ? "text" : "password"}
+                        placeholder="••••••••"
                         className="pl-10"
                         required
+                        autoComplete="new-password"
                       />
                       <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-slate-400" />
                       <button 

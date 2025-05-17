@@ -79,14 +79,15 @@ const AcceptInvitation = () => {
                 <div className="space-y-2">
                   <Label htmlFor="password">Create Password</Label>
                   <div className="relative">
-                    <Input 
-                      id="password" 
-                      type={showPassword ? "text" : "password"} 
-                      placeholder="••••••••" 
+                    <Input
+                      id="password"
+                      type={showPassword ? "text" : "password"}
+                      placeholder="••••••••"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       className="pl-10"
                       required
+                      autoComplete="new-password"
                     />
                     <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-slate-400" />
                     <button 
@@ -105,14 +106,15 @@ const AcceptInvitation = () => {
                 <div className="space-y-2">
                   <Label htmlFor="confirm-password">Confirm Password</Label>
                   <div className="relative">
-                    <Input 
-                      id="confirm-password" 
-                      type={showConfirmPassword ? "text" : "password"} 
-                      placeholder="••••••••" 
+                    <Input
+                      id="confirm-password"
+                      type={showConfirmPassword ? "text" : "password"}
+                      placeholder="••••••••"
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       className="pl-10"
                       required
+                      autoComplete="new-password"
                     />
                     <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-slate-400" />
                     <button 
