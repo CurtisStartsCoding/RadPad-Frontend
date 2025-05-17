@@ -135,7 +135,11 @@ const Dashboard = ({ navigateTo }: DashboardProps) => {
     if (newOrderPath === '/trial-validation') {
       window.location.href = newOrderPath;
     } else {
+      // Update the app state
       navigateTo(AppPage.NewOrder);
+      
+      // Also update the URL to trigger actual navigation
+      window.location.href = newOrderPath;
     }
   };
   
