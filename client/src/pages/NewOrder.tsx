@@ -331,7 +331,7 @@ const NewOrder = ({ userRole = UserRole.Physician }: NewOrderProps) => {
 
   // Function to add additional clarification section
   const addAdditionalClarification = () => {
-    const newText = dictationText + "\n\n--------Additional Clarification----------\n\n";
+    const newText = dictationText + "\n--------Additional Clarification----------\n";
     setDictationText(newText);
     setCharacterCount(newText.length);
     
