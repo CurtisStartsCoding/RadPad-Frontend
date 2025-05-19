@@ -6,7 +6,6 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import ValidationView from "@/components/order/ValidationView";
 import { ArrowLeft, AlertCircle, Info, X, Beaker, InfoIcon, Mic, RefreshCcw, CheckCircle, XCircle, FileText, Sparkles, MoveDown } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { UserRole } from "@/lib/roles";
 import AppHeader from "@/components/layout/AppHeader";
 import { AppPage } from "@/App";
 import { useToast } from "@/hooks/use-toast";
@@ -510,7 +509,6 @@ const TrialValidation = () => {
       <AppHeader
         title="Trial Validation"
         subtitle="Step 1 of 3: Dictation"
-        userRole={UserRole.TrialPhysician}
         onNavigate={handleNavigate}
       />
       <div className="p-6">
