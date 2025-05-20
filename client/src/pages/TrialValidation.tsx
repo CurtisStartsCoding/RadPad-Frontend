@@ -508,7 +508,6 @@ const TrialValidation = () => {
     <div>
       <AppHeader
         title="Trial Validation"
-        subtitle="Step 1 of 3: Dictation"
         onNavigate={handleNavigate}
       />
       <div className="p-6">
@@ -529,10 +528,6 @@ const TrialValidation = () => {
             </CardDescription>
           </CardHeader>
         </Card>
-        
-        <div className="text-sm font-medium text-blue-600 mb-4">
-          Step 1 of 3: Dictation
-        </div>
         
         {/* Dictation Form */}
         {orderStep === 'dictation' && (
