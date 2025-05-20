@@ -507,7 +507,7 @@ const TrialValidation = () => {
   return (
     <div>
       <AppHeader
-        title="Trial Validation"
+        title="Rad Order Pad"
         onNavigate={handleNavigate}
       />
       <div className="p-6">
