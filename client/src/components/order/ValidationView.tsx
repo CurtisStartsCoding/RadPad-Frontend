@@ -4,8 +4,6 @@ import {
   FileText,
   Info,
   Tag,
-  Briefcase,
-  AlertCircle,
   ClipboardCheck
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
@@ -149,59 +147,6 @@ const ValidationView: React.FC<ValidationViewProps> = ({
             </div>
           </div>
         )}
-        
-        {/* Guidelines and AUC Compliance Summary */}
-        <div className="mb-6">
-          <h3 className="text-md font-medium text-gray-900 mb-2 flex items-center">
-            <Briefcase className="h-4 w-4 mr-2 text-gray-600" />
-            Guidelines & AUC Compliance
-          </h3>
-          <div className="bg-gray-50 p-4 rounded-md">
-            <div className="flex items-center mb-3">
-              <p className="text-sm font-semibold text-gray-700">Appropriateness Validation</p>
-              <div className="ml-auto flex items-center gap-3 mr-1">
-                {validationResult.validationStatus === 'valid' ? (
-                  <div className="flex items-center gap-1 bg-green-50 text-green-700 px-2 py-1 rounded-full">
-                    <CheckCircle className="h-3.5 w-3.5" />
-                    <span className="text-xs font-medium">Compliant</span>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-1 bg-yellow-50 text-yellow-700 px-2 py-1 rounded-full">
-                    <AlertCircle className="h-3.5 w-3.5" />
-                    <span className="text-xs font-medium">Review Required</span>
-                  </div>
-                )}
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-2 gap-x-8 gap-y-2 mb-4 text-sm">
-              <div className="flex items-center">
-                <span className="text-gray-600">ACR Guidelines</span>
-                {validationResult.validationStatus === 'valid' && (
-                  <CheckCircle className="h-3.5 w-3.5 text-green-500 ml-2" />
-                )}
-              </div>
-              <div className="flex items-center">
-                <span className="text-gray-600">CMS AUC</span>
-                {validationResult.validationStatus === 'valid' && (
-                  <CheckCircle className="h-3.5 w-3.5 text-green-500 ml-2" />
-                )}
-              </div>
-              <div className="flex items-center">
-                <span className="text-gray-600">NCCN Guidelines</span>
-                {validationResult.validationStatus === 'valid' && (
-                  <CheckCircle className="h-3.5 w-3.5 text-green-500 ml-2" />
-                )}
-              </div>
-              <div className="flex items-center">
-                <span className="text-gray-600">Medicare AUC</span>
-                {validationResult.validationStatus === 'valid' && (
-                  <CheckCircle className="h-3.5 w-3.5 text-green-500 ml-2" />
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
         
         {/* Action Buttons */}
         <div className="flex justify-between mt-8">
