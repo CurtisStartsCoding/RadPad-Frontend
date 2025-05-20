@@ -103,7 +103,7 @@ const getPageTitle = (page: AppPage): string => {
     case AppPage.Billing:
       return "Billing & Credits";
     case AppPage.Profile:
-      return "My Profile";
+      return "Rad Order Pad";
     case AppPage.Security:
       return "Security";
     // Super Admin pages
