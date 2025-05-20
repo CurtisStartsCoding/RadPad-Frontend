@@ -22,30 +22,110 @@ import {
 import {
   Lock,
   AlertCircle,
-  RefreshCw
+  RefreshCw,
+  Loader2
 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { getApiUrl } from "@/lib/config";
 
 const Security = () => {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showResetDialog, setShowResetDialog] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const { toast } = useToast();
   
   // Function to handle password change
-  const handlePasswordChange = (e: React.FormEvent) => {
+  const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
+    
     // Check if passwords match
     if (newPassword !== confirmPassword) {
       return;
     }
     
-    // In a real app, this would call an API
-    console.log("Changing password:", { currentPassword, newPassword });
+    // Get user email from localStorage
+    const userDataStr = localStorage.getItem('rad_order_pad_user_data');
+    if (!userDataStr) {
+      console.error("User data not found in localStorage");
+      return;
+    }
     
-    // Reset form
-    setCurrentPassword("");
-    setNewPassword("");
-    setConfirmPassword("");
+    try {
+      const userData = JSON.parse(userDataStr);
+      const email = userData.email;
+      
+      // Get the user role from localStorage
+      const userRole = localStorage.getItem('rad_order_pad_user_role');
+      const isTrial = userRole === 'trial_physician';
+      
+      // Show loading state
+      setIsUpdating(true);
+      
+      // Get the token for authorization
+      const token = localStorage.getItem('rad_order_pad_access_token');
+      
+      // Prepare request body based on user type
+      let requestBody;
+      let endpoint;
+      
+      if (isTrial) {
+        // For trial users, only email and newPassword are required
+        endpoint = '/auth/trial/update-password';
+        requestBody = {
+          email,
+          newPassword
+        };
+      } else {
+        // For regular users, include currentPassword
+        endpoint = '/api/auth/update-password';
+        requestBody = {
+          email,
+          currentPassword,
+          newPassword
+        };
+      }
+      
+      // Make the API request
+      const response = await fetch(getApiUrl(endpoint), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(requestBody)
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to update password');
+      }
+      
+      // Show success message
+      toast({
+        title: "Success",
+        description: "Your password has been updated successfully",
+        variant: "default"
+      });
+      
+      // Reset form
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (error) {
+      console.error("Password update error:", error);
+      
+      // Show error message
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to update password",
+        variant: "destructive"
+      });
+    } finally {
+      setIsUpdating(false);
+    }
   };
 
   return (
@@ -129,9 +209,16 @@ const Security = () => {
                 
                 <Button
                   type="submit"
-                  disabled={!currentPassword || !newPassword || !confirmPassword || newPassword !== confirmPassword}
+                  disabled={!currentPassword || !newPassword || !confirmPassword || newPassword !== confirmPassword || isUpdating}
                 >
-                  Update Password
+                  {isUpdating ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Updating...
+                    </>
+                  ) : (
+                    "Update Password"
+                  )}
                 </Button>
               </div>
             </form>
