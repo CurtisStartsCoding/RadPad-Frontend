@@ -364,12 +364,10 @@ const MyProfile = () => {
                   <div className="ml-3">
                     <h3 className="text-sm font-medium text-amber-800">Trial Account</h3>
                     <div className="mt-2 text-sm text-amber-700">
-                      <p>You have used {validationsUsed} of {maxValidations} order validations in your trial ({validationsRemaining} remaining). Upgrade to a full account to access all features including dashboard, order history, and organization management.</p>
+                      <p>You have used {validationsUsed} of {maxValidations} order validations in your trial ({validationsRemaining} remaining).</p>
                     </div>
-                    <div className="mt-4">
-                      <Button className="bg-amber-600 hover:bg-amber-700 text-white">
-                        Upgrade Account
-                      </Button>
+                    <div className="mt-2 text-sm text-amber-700">
+                      <p>*** Some text about how to upgrade account ***</p>
                     </div>
                   </div>
                 </div>
