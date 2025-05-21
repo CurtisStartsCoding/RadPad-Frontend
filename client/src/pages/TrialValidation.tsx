@@ -117,7 +117,7 @@ const TrialValidation = () => {
       // Prepare the request payload
       const requestPayload = {
         dictationText,
-        isOverrideValidation: attemptCount > 0
+        isOverrideValidation: attemptCount >= 3  // Changed from > 0 to >= 3 to match NewOrder.tsx behavior
       };
       
       // Make a real API call to validate the order
