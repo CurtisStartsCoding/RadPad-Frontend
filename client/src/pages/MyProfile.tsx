@@ -240,13 +240,10 @@ const MyProfile = () => {
       <div className="p-6">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-semibold">My Profile</h1>
+            <h1 className="text-2xl font-semibold">Rad Order Pad</h1>
             <p className="text-sm text-slate-500">Your trial account information</p>
           </div>
-          <Button variant="outline">
-            <Beaker className="h-4 w-4 mr-2" />
             Trial User
-          </Button>
         </div>
         
         <Card>
@@ -384,7 +381,7 @@ const MyProfile = () => {
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-semibold">My Profile</h1>
+          <h1 className="text-2xl font-semibold">Rad Order Pad</h1>
           <p className="text-sm text-slate-500">View and edit your profile information</p>
         </div>
         {!isEditing ? (
