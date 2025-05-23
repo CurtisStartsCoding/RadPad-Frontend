@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { getApiUrl } from "@/lib/config";
+import { useAuth } from "@/lib/useAuth";
 
 const Security = () => {
   const [currentPassword, setCurrentPassword] = useState("");
@@ -34,7 +35,9 @@ const Security = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showResetDialog, setShowResetDialog] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
   const { toast } = useToast();
+  const { requestPasswordReset } = useAuth();
   
   // Function to handle password change
   const handlePasswordChange = async (e: React.FormEvent) => {
@@ -125,6 +128,69 @@ const Security = () => {
       });
     } finally {
       setIsUpdating(false);
+    }
+  };
+
+  // Function to handle password reset request
+  const handlePasswordReset = async () => {
+    // Get user email from localStorage
+    const userDataStr = localStorage.getItem('rad_order_pad_user_data');
+    if (!userDataStr) {
+      console.error("User data not found in localStorage");
+      toast({
+        title: "Error",
+        description: "User information not found. Please log in again.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    try {
+      setIsResetting(true);
+      
+      const userData = JSON.parse(userDataStr);
+      const email = userData.email;
+      
+      // Check if this is a trial user
+      const userRole = localStorage.getItem('rad_order_pad_user_role');
+      const isTrial = userRole === 'trial_physician';
+      
+      if (isTrial) {
+        // For trial users, show a message that this feature is not available
+        setTimeout(() => {
+          toast({
+            title: "Trial Account Limitation",
+            description: "Password reset is not available for trial accounts. Please register for a full account to access all features.",
+            variant: "default"
+          });
+          setShowResetDialog(false);
+        }, 1000);
+        return;
+      }
+      
+      // For regular users, call the requestPasswordReset function
+      await requestPasswordReset(email);
+      
+      // Show success message
+      toast({
+        title: "Success",
+        description: "Password reset link has been sent to your email",
+        variant: "default"
+      });
+      
+      // Close the dialog
+      setShowResetDialog(false);
+    } catch (error) {
+      console.error("Password reset request error:", error);
+      
+      // Show error message
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to send password reset link",
+        variant: "destructive"
+      });
+    } finally {
+      setIsResetting(false);
     }
   };
 
@@ -237,8 +303,15 @@ const Security = () => {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction>
-              Send Reset Link
+            <AlertDialogAction onClick={handlePasswordReset} disabled={isResetting}>
+              {isResetting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Sending...
+                </>
+              ) : (
+                "Send Reset Link"
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

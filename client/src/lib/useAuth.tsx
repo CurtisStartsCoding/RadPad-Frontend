@@ -424,7 +424,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // Password reset request mutation
   const requestPasswordResetMutation = useMutation({
     mutationFn: async (email: string): Promise<any> => {
-      const response = await apiRequest('POST', '/api/auth/request-password-reset', { email });
+      // Check if this is a trial user
+      const userRole = localStorage.getItem('rad_order_pad_user_role');
+      const isTrial = userRole === 'trial_physician';
+      
+      // Use trial-specific endpoint for trial users
+      const endpoint = isTrial
+        ? '/api/auth/trial/request-password-reset'
+        : '/api/auth/request-password-reset';
+      
+      console.log(`Using password reset endpoint: ${endpoint} for user role: ${userRole}`);
+      
+      const response = await apiRequest('POST', endpoint, { email });
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.message || 'Failed to request password reset');
@@ -436,7 +447,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // Reset password mutation
   const resetPasswordMutation = useMutation({
     mutationFn: async ({ token, newPassword }: { token: string; newPassword: string }): Promise<any> => {
-      const response = await apiRequest('POST', '/api/auth/reset-password', {
+      // Check if this is a trial user
+      const userRole = localStorage.getItem('rad_order_pad_user_role');
+      const isTrial = userRole === 'trial_physician';
+      
+      // Use trial-specific endpoint for trial users
+      const endpoint = isTrial
+        ? '/api/auth/trial/reset-password'
+        : '/api/auth/reset-password';
+      
+      console.log(`Using password reset endpoint: ${endpoint} for user role: ${userRole}`);
+      
+      const response = await apiRequest('POST', endpoint, {
         token,
         password: newPassword
       });
