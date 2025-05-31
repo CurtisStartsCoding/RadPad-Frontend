@@ -717,7 +717,7 @@ const TrialValidation = () => {
                   </p>
                   <p className="text-sm text-blue-700">
                     <br></br>
-                    *** Some text about how to upgrade account ***
+                    Please contact support to upgrade to a full account.
                   </p>
                 </CardContent>
               </Card>

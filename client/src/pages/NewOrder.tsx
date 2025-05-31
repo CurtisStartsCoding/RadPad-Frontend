@@ -703,9 +703,9 @@ const NewOrder = ({ userRole = UserRole.Physician }: NewOrderProps) => {
                     <p className="text-sm text-blue-700">
                       To continue using RadOrderPad with unlimited validations and to submit orders to radiology groups, please sign up for a full account.
                     </p>
-                    <Button className="mt-3 bg-blue-700 hover:bg-blue-800">
-                      Sign Up for Full Account
-                    </Button>
+                    <p className="mt-3 text-sm text-blue-700 font-medium">
+                      Please contact support to upgrade to a full account.
+                    </p>
                   </CardContent>
                 </Card>
                 

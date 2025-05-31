@@ -364,7 +364,7 @@ const MyProfile = () => {
                       <p>You have used {validationsUsed} of {maxValidations} order validations in your trial ({validationsRemaining} remaining).</p>
                     </div>
                     <div className="mt-2 text-sm text-amber-700">
-                      <p>*** Some text about how to upgrade account ***</p>
+                      <p>Please contact support to upgrade to a full account.</p>
                     </div>
                   </div>
                 </div>
