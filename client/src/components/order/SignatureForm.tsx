@@ -115,6 +115,7 @@ const SignatureForm = ({
   };
 
   const handleSubmitOrder = async () => {
+    console.log("Signature Form - handleSubmitOrder")
     if (!hasRequiredPatientInfo) {
       toast({
         title: "Missing Patient Information",
@@ -180,10 +181,12 @@ const SignatureForm = ({
       // Get the CPT code from validation result
       const cptCode = validationResult.cptCode ||
                      (validationResult.procedureCodes && validationResult.procedureCodes.length > 0 ?
-                      validationResult.procedureCodes[0].code : "73721"); // Default to MRI knee if no code available
+                      validationResult.procedureCodes[0].code : undefined); // No default code
       
       // Update the order with final validation information
+      // Use the correct endpoint for order finalization
       const orderResponse = await apiRequest("PUT", `/api/orders/${orderId || newOrderId}`, {
+        status: "pending_admin", // Set the status to pending_admin
         final_validation_status: "appropriate", // Always use a valid value
         final_compliance_score: validationResult.complianceScore || 0.8,
         final_cpt_code: cptCode,

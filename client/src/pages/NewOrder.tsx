@@ -314,6 +314,7 @@ const NewOrder = ({ userRole = UserRole.Physician }: NewOrderProps) => {
   
   // Handle order submission
   const handleOrderSubmitted = (orderId: number) => {
+    console.log("NewOrder - handleOrderSubmitted  orderId:", {orderId});
     setSubmittedOrderId(orderId);
     // You could redirect to a confirmation page or show a success message
     alert(`Order #${orderId} has been successfully submitted!`);
