@@ -184,7 +184,8 @@ const SignatureForm = ({
         // Use current timestamp with milliseconds for uniqueness
         const timestamp = new Date().getTime();
         // Convert to number and ensure it's a reasonable size for an ID
-        orderId = parseInt(timestamp.toString().slice(-10));
+        // orderId = parseInt(timestamp.toString().slice(-10));
+        orderId = 333;
         console.log("Generated local order ID:", orderId);
       }
       
@@ -197,10 +198,19 @@ const SignatureForm = ({
       // Use the correct endpoint for order finalization
       const orderResponse = await apiRequest("PUT", `/api/orders/${orderId}`, {
         status: "pending_admin", // Set the status to pending_admin
-        final_validation_status: "appropriate", // Always use a valid value
-        final_compliance_score: validationResult.complianceScore || 0.8,
-        final_cpt_code: cptCode,
-        clinical_indication: dictationText, // Always use the original dictation text
+        // Use nested structure for required fields
+        
+        final_validation_status: "appropriate" // Always use a valid value
+        ,
+        finalComplianceScore: {
+          final_compliance_score: validationResult.complianceScore || 0.8
+        },
+        finalCPTCode: {
+          final_cpt_code: cptCode
+        },
+        clinicalIndication: {
+          clinical_indication: dictationText // Always use the original dictation text
+        },
         overridden: validationResult.overridden || false,
         signed_by_user_id: user?.id,
         signature_date: new Date().toISOString(),
