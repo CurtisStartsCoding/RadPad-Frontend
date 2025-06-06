@@ -279,6 +279,27 @@ const Dashboard = ({ navigateTo }: DashboardProps) => {
     return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
   };
   
+  // Handle viewing order details
+  const handleViewOrderDetails = (orderId: number) => {
+    console.log(`Fetching details for order ID: ${orderId}`);
+    
+    // Make API call to get order details
+    apiRequest('GET', `/api/orders/${orderId}`, undefined)
+      .then(async (response) => {
+        if (response.ok) {
+          const orderDetails = await response.json();
+          console.log('Order details retrieved successfully:', orderDetails);
+          // In a real implementation, you might navigate to an order details page
+          // or open a modal to display the order details
+        } else {
+          console.error(`Failed to fetch order details. Status: ${response.status}`);
+        }
+      })
+      .catch((error) => {
+        console.error('Error fetching order details:', error);
+      });
+  };
+  
   // Get status badge for an order
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -475,7 +496,12 @@ const Dashboard = ({ navigateTo }: DashboardProps) => {
                           <TableCell>{order.modality || 'N/A'}</TableCell>
                           <TableCell>{getStatusBadge(order.status)}</TableCell>
                           <TableCell className="text-right">
-                            <Button variant="ghost" size="sm" className="h-8 px-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 px-2"
+                              onClick={() => handleViewOrderDetails(order.id)}
+                            >
                               <ChevronRight className="h-4 w-4" />
                             </Button>
                           </TableCell>
