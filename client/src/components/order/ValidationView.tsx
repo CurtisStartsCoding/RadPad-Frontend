@@ -15,6 +15,7 @@ interface MedicalCode {
   code: string;
   description: string;
   type: 'ICD-10' | 'CPT';
+  isPrimary?: boolean;
 }
 
 export interface ProcessedDictation {
@@ -116,7 +117,14 @@ const ValidationView: React.FC<ValidationViewProps> = ({
                     <ul className="space-y-2">
                       {diagnosisCodes.map((code, index) => (
                         <li key={index} className="text-sm">
-                          <span className="font-mono text-primary font-medium">{code.code}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono text-primary font-medium">{code.code}</span>
+                            {code.isPrimary && (
+                              <Badge className="bg-green-100 text-green-800 hover:bg-green-200 text-xs">
+                                Primary
+                              </Badge>
+                            )}
+                          </div>
                           <span className="text-gray-700 block">{code.description}</span>
                         </li>
                       ))}
@@ -134,7 +142,14 @@ const ValidationView: React.FC<ValidationViewProps> = ({
                     <ul className="space-y-2">
                       {procedureCodes.map((code, index) => (
                         <li key={index} className="text-sm">
-                          <span className="font-mono text-primary font-medium">{code.code}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono text-primary font-medium">{code.code}</span>
+                            {code.isPrimary && (
+                              <Badge className="bg-green-100 text-green-800 hover:bg-green-200 text-xs">
+                                Primary
+                              </Badge>
+                            )}
+                          </div>
                           <span className="text-gray-700 block">{code.description}</span>
                         </li>
                       ))}

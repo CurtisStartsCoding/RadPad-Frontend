@@ -189,12 +189,14 @@ const TrialValidation = () => {
           ...(result.suggestedICD10Codes?.map((icd: any) => ({
             code: icd.code,
             description: icd.description,
-            type: 'ICD-10' as const
+            type: 'ICD-10' as const,
+            isPrimary: icd.isPrimary || false
           })) || []),
           ...(result.suggestedCPTCodes?.map((cpt: any) => ({
             code: cpt.code,
             description: cpt.description,
-            type: 'CPT' as const
+            type: 'CPT' as const,
+            isPrimary: cpt.isPrimary || false
           })) || [])
         ]
       });
