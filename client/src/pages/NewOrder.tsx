@@ -218,13 +218,15 @@ const NewOrder = ({ userRole = UserRole.Physician }: NewOrderProps) => {
                 code: icd.code,
                 description: icd.description,
                 type: 'ICD-10' as const,
-                confidence: icd.confidence || 0.8
+                confidence: icd.confidence || 0.8,
+                isPrimary: icd.isPrimary || false
               })) || []),
               ...(apiResult.validationResult.suggestedCPTCodes?.map((cpt: any) => ({
                 code: cpt.code,
                 description: cpt.description,
                 type: 'CPT' as const,
-                confidence: cpt.confidence || 0.8
+                confidence: cpt.confidence || 0.8,
+                isPrimary: cpt.isPrimary || false
               })) || [])
             ],
             orderId: apiResult.orderId
