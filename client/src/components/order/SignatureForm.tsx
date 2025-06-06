@@ -152,30 +152,40 @@ const SignatureForm = ({
       // Use the remote API's order update endpoint
       // The order was already created during validation
       // Extract orderId from the validation result if available
-      const orderId = validationResult.orderId;
+      let orderId = validationResult.orderId;
+      let newOrderId: number | undefined;
       
       // If no orderId is available, we need to create a new order
+      // if (!orderId) {
+      //   // Create a new order using the validation endpoint
+      //   const createOrderResponse = await apiRequest("POST", "/api/orders/validate", {
+      //     dictationText,
+      //     patientInfo: {
+      //       firstName: patient.name.split(' ')[0] || '',
+      //       lastName: patient.name.split(' ').slice(1).join(' ') || '',
+      //       dateOfBirth: patient.dob,
+      //       gender: patient.gender,
+      //       mrn: patient.mrn || 'Unknown'
+      //     }
+      //   });
+        
+      //   const createOrderData = await createOrderResponse.json();
+        
+      //   if (!createOrderData.orderId) {
+      //     throw new Error("Failed to create order");
+      //   }
+        
+      //   // Use the newly created order ID
+      //   newOrderId = createOrderData.orderId;
+      // }
+
       if (!orderId) {
-        // Create a new order using the validation endpoint
-        const createOrderResponse = await apiRequest("POST", "/api/orders/validate", {
-          dictationText,
-          patientInfo: {
-            firstName: patient.name.split(' ')[0] || '',
-            lastName: patient.name.split(' ').slice(1).join(' ') || '',
-            dateOfBirth: patient.dob,
-            gender: patient.gender,
-            mrn: patient.mrn || 'Unknown'
-          }
-        });
-        
-        const createOrderData = await createOrderResponse.json();
-        
-        if (!createOrderData.orderId) {
-          throw new Error("Failed to create order");
-        }
-        
-        // Use the newly created order ID
-        var newOrderId = createOrderData.orderId;
+        // Create a timestamp-based order ID
+        // Use current timestamp with milliseconds for uniqueness
+        const timestamp = new Date().getTime();
+        // Convert to number and ensure it's a reasonable size for an ID
+        orderId = parseInt(timestamp.toString().slice(-10));
+        console.log("Generated local order ID:", orderId);
       }
       
       // Get the CPT code from validation result
@@ -185,7 +195,7 @@ const SignatureForm = ({
       
       // Update the order with final validation information
       // Use the correct endpoint for order finalization
-      const orderResponse = await apiRequest("PUT", `/api/orders/${orderId || newOrderId}`, {
+      const orderResponse = await apiRequest("PUT", `/api/orders/${orderId}`, {
         status: "pending_admin", // Set the status to pending_admin
         final_validation_status: "appropriate", // Always use a valid value
         final_compliance_score: validationResult.complianceScore || 0.8,
@@ -213,7 +223,7 @@ const SignatureForm = ({
         });
       }
       
-      onSubmitted(orderId || newOrderId);
+      onSubmitted(orderId);
     } catch (error) {
       console.error("Error submitting order:", error);
       toast({
