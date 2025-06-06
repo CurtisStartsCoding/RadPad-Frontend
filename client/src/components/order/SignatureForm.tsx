@@ -189,39 +189,46 @@ const SignatureForm = ({
         console.log("Generated local order ID:", orderId);
       }
       
-      // Get the CPT code from validation result
-      const cptCode = validationResult.cptCode ||
-                     (validationResult.procedureCodes && validationResult.procedureCodes.length > 0 ?
-                      validationResult.procedureCodes[0].code : undefined); // No default code
+      // Extract CPT code from validation result
+      const finalCPTCode = validationResult.procedureCodes && validationResult.procedureCodes.length > 0
+        ? validationResult.procedureCodes[0].code
+        : (validationResult.cptCode || "00000");
       
-      // Update the order with final validation information
-      // Use the correct endpoint for order finalization
-      const orderResponse = await apiRequest("PUT", `/api/orders/${orderId}`, {
-        status: "pending_admin", // Set the status to pending_admin
-        // Use nested structure for required fields
-        
-        final_validation_status: "appropriate" // Always use a valid value
-        ,
-        finalComplianceScore: {
-          final_compliance_score: validationResult.complianceScore || 0.8
+      // Create a new order using the PUT /api/orders/new endpoint
+      // Following the exact structure from the test script
+      const orderResponse = await apiRequest("PUT", "/api/orders/new", {
+        dictationText: dictationText,
+        patientInfo: {
+          id: patient.id // Minimal patient info with just ID as recommended
         },
-        finalCPTCode: {
-          final_cpt_code: cptCode
-        },
-        clinicalIndication: {
-          clinical_indication: dictationText // Always use the original dictation text
-        },
-        overridden: validationResult.overridden || false,
-        signed_by_user_id: user?.id,
-        signature_date: new Date().toISOString(),
-        signer_name: fullName
+        status: "pending_admin",
+        finalValidationStatus: validationResult.validationStatus || "appropriate",
+        finalCPTCode: finalCPTCode,
+        clinicalIndication: dictationText,
+        finalICD10Codes: validationResult.diagnosisCodes?.map(code => code.code) || [],
+        referring_organization_name: "Unknown Organization",
+        validationResult: validationResult
       });
 
+      // Parse the response
       const orderData = await orderResponse.json();
+      console.log("Order creation response:", orderData);
       
+      // Check if the order creation was successful
       if (!orderData.success) {
-        throw new Error("Failed to update order");
+        console.error("Order creation failed:", orderData);
+        throw new Error(`Failed to create order: ${orderData.message || "Unknown error"}`);
       }
+      
+      // Get the new order ID from the response
+      orderId = orderData.orderId;
+      
+      if (!orderId) {
+        console.error("No order ID in response:", orderData);
+        throw new Error("No order ID returned from API");
+      }
+      
+      console.log("Order created successfully with ID:", orderId);
       
       // Display different message for temporary patients
       if (isTemporaryPatient) {
