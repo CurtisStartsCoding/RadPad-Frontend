@@ -136,7 +136,7 @@ const NewOrder = ({ userRole = UserRole.Physician }: NewOrderProps) => {
     try {
       // Show loading state
       setIsProcessing(true);
-      setValidationFeedback("Processing your order...");
+      // Don't set validation feedback for processing state
       
       // Determine which API endpoint to use based on user role
       const endpoint = isTrialUser ? '/api/orders/validate/trial' : '/api/orders/validate';
@@ -555,13 +555,27 @@ const NewOrder = ({ userRole = UserRole.Physician }: NewOrderProps) => {
                 </span>
               </p>
               
-              {validationFeedback && (
+              {/* Processing indicator */}
+              {isProcessing && (
+                <div className="mt-3 bg-blue-50 border border-blue-200 rounded-md p-3">
+                  <div className="flex items-center">
+                    <svg className="animate-spin h-4 w-4 text-blue-600 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span className="text-sm text-blue-700 font-medium">Processing your order...</span>
+                  </div>
+                </div>
+              )}
+              
+              {/* Validation feedback - only shown for actual issues */}
+              {validationFeedback && !isProcessing && (
                 <Alert variant="destructive" className="mt-3 bg-red-50 border-red-200 text-red-800">
                   <div className="flex justify-between">
                     <div className="flex items-start">
                       <AlertCircle className="h-4 w-4 mt-0.5 mr-2 flex-shrink-0" />
                       <AlertDescription className="text-sm">
-                        {!isProcessing && <div className="font-medium mb-1">Issues with Dictation</div>}
+                        <div className="font-medium mb-1">Issues with Dictation</div>
                         {validationFeedback}
                       </AlertDescription>
                     </div>
