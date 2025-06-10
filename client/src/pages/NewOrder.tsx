@@ -144,7 +144,6 @@ const NewOrder = ({ userRole = UserRole.Physician }: NewOrderProps) => {
       console.log("Making API call to:", endpoint);
       console.log("Request payload:", {
         dictationText,
-        orderId: validationResult?.orderId,
         isOverrideValidation: attemptCount > 0
       });
       
@@ -169,7 +168,6 @@ const NewOrder = ({ userRole = UserRole.Physician }: NewOrderProps) => {
         // Full payload for regular endpoint
         requestPayload = {
           dictationText,
-          orderId: validationResult?.orderId,
           isOverrideValidation: attemptCount > 0,
           patientInfo: {
             id: 1,
@@ -228,8 +226,8 @@ const NewOrder = ({ userRole = UserRole.Physician }: NewOrderProps) => {
                 confidence: cpt.confidence || 0.8,
                 isPrimary: cpt.isPrimary || false
               })) || [])
-            ],
-            orderId: apiResult.orderId
+            ]
+            // orderId is no longer returned by the validation endpoint
           };
           
           console.log("Processed validation result:", result);

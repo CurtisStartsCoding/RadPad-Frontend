@@ -19,7 +19,7 @@ interface MedicalCode {
 }
 
 export interface ProcessedDictation {
-  orderId?: string | number; // Order ID returned from the API
+  orderId?: string | number; // Order ID is not returned by validation endpoint, but may be set later in the workflow
   validationStatus: 'valid' | 'incomplete' | 'invalid';
   feedback?: string;
   complianceScore?: number; // On a scale of 0-9
