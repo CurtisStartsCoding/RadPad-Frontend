@@ -24,7 +24,14 @@ This document maps core API endpoints to the primary database tables they intera
     -   **Constraint:** Public endpoint for trial user registration.
 -   **`POST /api/auth/trial/login`**
     -   Reads: `trial_users` (Main)
-    -   **Note:** No session tracking for trial users, just JWT token generation.
+    -   **Note:** No session tracking for trial users, just JWT token generation and user profile retrieval.
+-   **`GET /api/auth/trial/me`**
+    -   Reads: `trial_users` (Main)
+    -   **Note:** Validates JWT token and returns trial user profile and validation usage information.
+-   **`POST /api/auth/trial/update-password`**
+    -   Reads: `trial_users` (Main - to find user by email)
+    -   Writes: `trial_users` (Main - to update `password_hash` and `last_validation_at`)
+    -   **Note:** Simplified password update flow without email token verification, intended for trial accounts only.
 -   **`POST /api/auth/refresh`**
     -   Reads: `refresh_tokens` (Main), `users` (Main)
     -   Writes: `sessions` (Main), `refresh_tokens` (rotate/update)
@@ -99,8 +106,9 @@ This document maps core API endpoints to the primary database tables they intera
 ## Orders (`/api/orders`) - Physician/General Access
 
 -   **`POST /api/orders/validate`** (Submit dictation for validation/retry/override)
-    -   Reads: `patients` (PHI), `prompt_templates`(Main), `prompt_assignments`(Main), `medical_*` tables (Main), Redis Cache, `orders` (PHI - Check for existing draft)
-    -   Writes: **`orders` (PHI - Create draft on first call)**, `validation_attempts`(PHI), `llm_validation_logs`(Main), `order_history` (PHI - log validation attempt)
+    -   Reads: `prompt_templates`(Main), `prompt_assignments`(Main), `medical_*` tables (Main), Redis Cache
+    -   Writes: `llm_validation_logs`(Main)
+    -   **Note:** This endpoint is completely stateless during the physician's iterative dictation and validation process. It only performs LLM validation on the provided `dictationText` and returns the `validationResult`. It does NOT require `patientInfo`, `orderId`, or `radiologyOrganizationId` in the request, and it does NOT create any `orders` or `validation_attempts` database records. When an order is finalized via a separate endpoint (e.g., `PUT /orders/{orderId}`), then `orders`, `patients`, and `validation_attempts` records will be created.
 -   **`POST /api/orders/validate/trial`** (Trial user validation)
     -   Reads: `trial_users` (Main), `prompt_templates`(Main), `medical_*` tables (Main), Redis Cache
     -   Writes: `trial_users` (Main - update validation_count), `llm_validation_logs`(Main)
@@ -115,9 +123,19 @@ This document maps core API endpoints to the primary database tables they intera
 
 ## Orders - Submission & Finalization (`/api/orders`)
 
--   **`PUT /api/orders/{orderId}`** (Finalize/Update Order Upon Signature)
-    -   Reads: `orders` (PHI - Verify draft), `users` (Main - Verify signer)
-    *   Writes: **`orders` (PHI - Update** with final validation state, override info, signature, status='pending_admin'), **`patients` (PHI - Create if temporary patient info provided)**, `order_history` (PHI - log 'signed'), `document_uploads` (PHI - create signature record)
+-   **`POST /api/orders`** (Create and Finalize Order After Validation)
+    -   Reads: `users` (Main - Verify user), `patients` (PHI - If existing patient ID provided)
+    -   Writes: `patients` (PHI - Create if new patient), `orders` (PHI - Create new order), `validation_attempts` (PHI - Log final attempt), `order_history` (PHI - Log 'order_created' and 'order_signed' events), `document_uploads` (PHI - Store signature)
+    -   **Note:** Performs all operations within a PHI database transaction to ensure data consistency. Creates a complete order record with patient information, validation results, and signature data.
+
+-   **`PUT /api/orders/new`** (Legacy Create New Order After Validation)
+    -   Reads: `users` (Main - Verify user)
+    -   Writes: **`orders` (PHI - Create** new order with validation state, patient info, status='pending_admin', radiology_organization_id=NULL), **`patients` (PHI - Create if patient info provided)**, `order_history` (PHI - log 'created'), `validation_attempts` (PHI - log validation attempt)
+    -   **Note:** `radiology_organization_id` is NULL when physicians create orders. It's assigned later by administrative staff when sending to radiology.
+
+-   **`PUT /api/orders/{orderId}`** (Update Existing Order Upon Signature)
+    -   Reads: `orders` (PHI - Verify order), `users` (Main - Verify signer)
+    -   Writes: **`orders` (PHI - Update** with signature, status='pending_admin'), `order_history` (PHI - log 'signed'), `document_uploads` (PHI - create signature record)
 
 ## Orders - Admin Actions (`/api/admin/orders`)
 

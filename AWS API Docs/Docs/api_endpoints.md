@@ -32,8 +32,10 @@ API Endpoints Overview (Conceptual)
 -   `POST /auth/verify-email`: Verify email via token.
 -   `POST /auth/request-password-reset`: Initiate password reset flow.
 -   `POST /auth/reset-password`: Complete password reset using token.
--   `POST /auth/trial/register`: Register a new trial user with email, password, name, and specialty. Creates a trial user record and returns a trial JWT token. No organization association. **(Public Access)**
--   `POST /auth/trial/login`: Trial user login. Authenticates trial user credentials and returns a trial JWT token. **(Public Access)**
+-   `POST /auth/trial/register`: Register a new trial user with email, password, name, and specialty. Creates a trial user record and returns a trial JWT token along with validation usage information (`trialInfo` object containing `validationsUsed`, `maxValidations`, and `validationsRemaining`). No organization association. **(Public Access)**
+-   `POST /auth/trial/login`: Trial user login. Authenticates trial user credentials and returns a trial JWT token, user profile information, and validation usage information (`trialInfo` object). **(Public Access)**
+-   `GET /auth/trial/me`: Get the profile and trial status of the currently authenticated trial user. Returns the user profile and validation usage information (`trialInfo` object). **(Authenticated - Trial User JWT)**
+-   `POST /auth/trial/update-password`: Updates the password for a trial user. **Note: This is a simplified flow without email token verification, intended for trial accounts only.** Requires `email` and `newPassword` in the request body. Returns a success message on successful update. **(Public Access)**
 
 ## Organizations (`/organizations`)
 
@@ -78,15 +80,25 @@ API Endpoints Overview (Conceptual)
 
 ## Orders - Physician/General Access (`/orders`)
 
--   `POST /orders/start`: (Optional) Initiate patient tagging for a new order draft. **(Physician/Admin Staff Role)**
--   `POST /orders/validate`: Submits dictation for validation. **On first call for an order, creates a draft `orders` record and returns `orderId`.** Handles subsequent clarifications and the final override validation call (using provided `orderId` and `isOverrideValidation` flag). Triggers validation engine and logs attempts. No credit consumption occurs at this stage. Returns validation result and `orderId`. **Error Handling:** Must handle LLM unavailability gracefully (e.g., 503 response). **(Physician Role)**
--   `POST /orders/validate/trial`: Submits dictation for validation in trial mode. Does not create any PHI records. Checks the trial user's validation count against their maximum allowed validations. Increments the validation count on successful validation. Returns validation result only. **Error Handling:** Returns 403 Forbidden when validation limit is reached. Must handle LLM unavailability gracefully (e.g., 503 response). **(Trial User Role)**
--   `GET /orders`: List orders relevant to the user (e.g., created by them, for their org, including drafts). **(Authenticated)**
+-   `POST /orders/start`: (Optional) Initiate patient tagging for a new order. **(Physician/Admin Staff Role)**
+-   `POST /orders/validate`: Submits dictation for validation. For initial iterative validation by the physician, the request body **only requires `dictationText`**. `patientInfo`, `orderId`, and `radiologyOrganizationId` are NOT required. No `orders` or `validation_attempts` records are created in the database during these stateless calls. The response for these calls will be `{ success: true, validationResult: ValidationResult }`. `llm_validation_logs` will still capture LLM interaction details. When the physician is ready to finalize the order, a separate endpoint (e.g., `PUT /orders/{orderId}`) will be used to create the order record. **Error Handling:** Must handle LLM unavailability gracefully (e.g., 503 response). **(Physician Role)**
+-   `POST /orders/validate/trial`: Submits dictation for validation in trial mode. Does not create any PHI records. Checks the trial user's validation count against their maximum allowed validations. Increments the validation count on successful validation. Returns validation result along with updated validation usage information (`trialInfo` object). **Error Handling:** Returns 403 Forbidden when validation limit is reached, including `trialInfo` in the error response. Must handle LLM unavailability gracefully (e.g., 503 response). **(Trial User Role)**
+-   `GET /orders`: List orders relevant to the user (e.g., created by them, for their org). **(Authenticated)**
 -   `GET /orders/{orderId}`: Get details of a specific order the user has access to. **(Authenticated)**
 
 ## Orders - Submission & Finalization (`/orders`)
 
--   `PUT /orders/{orderId}`: **(Finalization Endpoint)** Updates an existing draft order (identified by `orderId`) with final details upon signature. Saves final validated state (codes, score, status, notes), override info (`overridden`, `overrideJustification`), signature details (`signed_by_user_id`, `signature_date`), and sets status to `pending_admin`. **If the order corresponds to a temporary patient record (e.g., identified by specific flags or payload fields like `patient_name_update`), this endpoint is also responsible for creating the permanent patient record in the `patients` table using provided details and updating the `orders.patient_id` foreign key accordingly.** **Error Handling:** Must handle database write failures robustly (e.g., 500 response, logging). **(Physician Role)**
+-   `POST /api/orders`: **(Order Creation and Finalization Endpoint)** Creates a new order with validation results, patient information, and signature data. This endpoint is called after a physician completes the iterative validation process (using the stateless `POST /api/orders/validate`) and signs the order. It creates the persistent `orders` record, creates/links the `patients` record, logs the final `validation_attempts`, and records `order_history`. The request body includes:
+    - `patientInfo`: Object containing either `id` (for existing patient) or full patient details (`firstName`, `lastName`, `dateOfBirth`, `gender`, etc.)
+    - `dictationText`: The final, cumulative dictation text
+    - `finalValidationResult`: Object containing validation outcomes (`validationStatus`, `complianceScore`, `feedback`, `suggestedICD10Codes`, `suggestedCPTCodes`)
+    - `isOverride`: Boolean indicating if physician overrode the validation
+    - `overrideJustification`: String (required if `isOverride` is true)
+    - `signatureData`: String (base64 data URL or fileKey)
+    - `signerFullName`: String (typed name for attestation)
+    - `radiologyOrganizationId`: Optional ID of selected radiology organization
+    Returns a 201 Created response with `{ success: true, orderId: number, message: string }`. **Error Handling:** Must handle database write failures robustly (e.g., 500 response, logging). **(Physician Role)**
+-   `PUT /api/orders/{orderId}`: **(Order Update Endpoint)** Updates an existing order (identified by `orderId`) with final details upon signature. Saves final validated state (codes, score, status, notes), override info (`overridden`, `overrideJustification`), signature details (`signed_by_user_id`, `signature_date`), and sets status to `pending_admin`. **If the order corresponds to a temporary patient record (e.g., identified by specific flags or payload fields like `patient_name_update`), this endpoint is also responsible for creating the permanent patient record in the `patients` table using provided details and updating the `orders.patient_id` foreign key accordingly.** **Error Handling:** Must handle database write failures robustly (e.g., 500 response, logging). **(Physician Role)**
 
 ## Orders - Admin Actions (`/admin/orders`)
 
