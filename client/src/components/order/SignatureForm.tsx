@@ -194,20 +194,49 @@ const SignatureForm = ({
         ? validationResult.procedureCodes[0].code
         : (validationResult.cptCode || "00000");
       
-      // Create a new order using the PUT /api/orders/new endpoint
-      // Following the exact structure from the test script
-      const orderResponse = await apiRequest("PUT", "/api/orders/new", {
-        dictationText: dictationText,
+      // Get signature data from canvas
+      const canvas = canvasRef.current;
+      if (!canvas) {
+        throw new Error("Canvas reference is not available");
+      }
+      const signatureData = canvas.toDataURL('image/png');
+      
+      // Create a new order using the POST /api/orders endpoint
+      // Following the new API format from the documentation
+      const orderResponse = await apiRequest("POST", "/api/orders", {
         patientInfo: {
-          id: patient.id // Minimal patient info with just ID as recommended
+          // If it's an existing patient (id > 0), just provide the ID
+          // Otherwise, provide the full patient details
+          ...(patient.id > 0 ? { id: patient.id } : {
+            firstName: patient.name.split(' ')[0] || '',
+            lastName: patient.name.split(' ').slice(1).join(' ') || '',
+            dateOfBirth: patient.dob.split(' ')[0], // Extract just the date part
+            gender: patient.gender || 'unknownGender',
+            mrn: patient.mrn || 'Unknown'
+          })
         },
-        status: "pending_admin",
-        finalValidationStatus: validationResult.validationStatus || "appropriate",
-        finalCPTCode: finalCPTCode,
-        clinicalIndication: dictationText,
-        finalICD10Codes: validationResult.diagnosisCodes?.map(code => code.code) || [],
-        referring_organization_name: "Unknown Organization",
-        validationResult: validationResult
+        dictationText: dictationText,
+        finalValidationResult: {
+          validationStatus: validationResult.validationStatus || "appropriate",
+          complianceScore: validationResult.complianceScore || 80,
+          feedback: validationResult.feedback || "",
+          suggestedCPTCodes: validationResult.procedureCodes?.map((code, index) => ({
+            code: code.code,
+            description: code.description,
+            // Assume first CPT code is primary if isPrimary property doesn't exist
+            isPrimary: index === 0
+          })) || [],
+          suggestedICD10Codes: validationResult.diagnosisCodes?.map((code, index) => ({
+            code: code.code,
+            description: code.description,
+            // Assume first ICD10 code is primary if isPrimary property doesn't exist
+            isPrimary: index === 0
+          })) || [],
+          internalReasoning: validationResult.feedback || ""
+        },
+        isOverride: validationResult.overridden || false,
+        signatureData: signatureData,
+        signerFullName: fullName
       });
 
       // Parse the response
