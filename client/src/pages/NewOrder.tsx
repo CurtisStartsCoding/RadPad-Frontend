@@ -509,7 +509,9 @@ const NewOrder = ({ userRole = UserRole.Physician }: NewOrderProps) => {
         )}
       
         <div className="text-sm font-medium text-blue-600 mb-4">
-          Step 1 of 3: Dictation
+          {orderStep === 'dictation' && "Step 1 of 3: Dictation"}
+          {orderStep === 'validation' && "Step 2 of 3: Review"}
+          {orderStep === 'signature' && "Step 3 of 3: Sign Order"}
         </div>
         
         {/* Patient Information - Only show if not trial user */}
