@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import {
   Table,
   TableBody,
@@ -29,18 +30,20 @@ import PageHeader from "@/components/layout/PageHeader";
 interface ApiAdminOrder {
   id: number;
   order_number?: string;
-  status: 'pending_admin' | 'pending_radiology' | 'scheduled' | 'completed' | 'cancelled';
-  modality: string;
+  status: 'pending_admin' | 'pending_validation' | 'pending_radiology' | 'scheduled' | 'completed' | 'cancelled';
+  modality?: string;
   created_at: string;
   updated_at: string;
-  patient: {
+  patient_first_name?: string;
+  patient_last_name?: string;
+  patient_dob?: string;
+  patient_gender?: string;
+  patient_mrn?: string;
+  radiology_organization?: {
     id: number;
     name: string;
-    mrn: string;
-    dob: string;
-    gender?: string;
-  };
-  radiology_group: {
+  } | null;
+  referring_organization?: {
     id: number;
     name: string;
   };
@@ -57,18 +60,25 @@ interface AdminQueueProps {
 }
 
 const AdminQueue: React.FC<AdminQueueProps> = ({ navigateTo }) => {
+  const [, setLocation] = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFilter, setSelectedFilter] = useState("all");
   
-  // Fetch orders from the API
+  // Fetch orders from the API - using /api/orders since /api/admin/orders/queue might not be implemented
   const { data, isLoading, error } = useQuery<ApiAdminOrder[] | ApiOrdersResponse>({
-    queryKey: ['/api/admin/orders/queue'],
+    queryKey: ['/api/orders'],
     queryFn: async () => {
-      const response = await apiRequest('GET', '/api/admin/orders/queue', undefined);
+      console.log('Fetching orders from /api/orders');
+      const response = await apiRequest('GET', '/api/orders', undefined);
+      
       if (!response.ok) {
-        throw new Error('Failed to fetch admin orders');
+        const errorText = await response.text();
+        console.error('Failed to fetch orders:', response.status, errorText);
+        throw new Error(`Failed to fetch orders: ${response.status} ${errorText}`);
       }
+      
       const data = await response.json();
+      console.log('Orders response:', data);
       return data;
     },
     staleTime: 60000, // 1 minute
@@ -92,11 +102,16 @@ const AdminQueue: React.FC<AdminQueueProps> = ({ navigateTo }) => {
   // Further filter by search query
   const searchFilteredOrders = filteredOrders.filter((order: ApiAdminOrder) => {
     const searchLower = searchQuery.toLowerCase();
+    const patientName = `${order.patient_first_name || ''} ${order.patient_last_name || ''}`.toLowerCase();
+    const mrn = order.patient_mrn?.toLowerCase() || '';
+    const modality = order.modality?.toLowerCase() || '';
+    const radiologyGroup = order.radiology_organization?.name.toLowerCase() || '';
+    
     return (
-      order.patient.name.toLowerCase().includes(searchLower) ||
-      order.patient.mrn.toLowerCase().includes(searchLower) ||
-      order.modality.toLowerCase().includes(searchLower) ||
-      order.radiology_group.name.toLowerCase().includes(searchLower)
+      patientName.includes(searchLower) ||
+      mrn.includes(searchLower) ||
+      modality.includes(searchLower) ||
+      radiologyGroup.includes(searchLower)
     );
   });
   
@@ -116,7 +131,7 @@ const AdminQueue: React.FC<AdminQueueProps> = ({ navigateTo }) => {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'pending_admin':
-        return <Badge variant="outline" className="bg-amber-50 border-amber-200 text-amber-700">Needs Completion</Badge>;
+        return <Badge variant="outline" className="bg-amber-50 border-amber-200 text-amber-700">Pending Admin</Badge>;
       case 'pending_radiology':
         return <Badge variant="outline" className="bg-blue-50 border-blue-200 text-blue-700">Pending Radiology</Badge>;
       case 'scheduled':
@@ -145,7 +160,7 @@ const AdminQueue: React.FC<AdminQueueProps> = ({ navigateTo }) => {
           <Tabs defaultValue="orders" className="space-y-4">
             <TabsList>
               <TabsTrigger value="orders">All Orders</TabsTrigger>
-              <TabsTrigger value="incomplete">Needs Completion ({filteredOrders.filter((o: ApiAdminOrder) => o.status === 'pending_admin').length})</TabsTrigger>
+              <TabsTrigger value="incomplete">Pending Admin ({filteredOrders.filter((o: ApiAdminOrder) => o.status === 'pending_admin').length})</TabsTrigger>
               <TabsTrigger value="pending">Pending Radiology ({filteredOrders.filter((o: ApiAdminOrder) => o.status === 'pending_radiology').length})</TabsTrigger>
             </TabsList>
             
@@ -225,8 +240,8 @@ const AdminQueue: React.FC<AdminQueueProps> = ({ navigateTo }) => {
                     ) : (
                       searchFilteredOrders.map((order: ApiAdminOrder) => (
                         <TableRow key={order.id}>
-                          <TableCell className="font-medium">{order.patient.name}</TableCell>
-                          <TableCell className="font-mono text-xs">{order.patient.mrn}</TableCell>
+                          <TableCell className="font-medium">{`${order.patient_first_name || ''} ${order.patient_last_name || ''}`}</TableCell>
+                          <TableCell className="font-mono text-xs">{order.patient_mrn || 'N/A'}</TableCell>
                           <TableCell>
                             <div className="flex items-center">
                               <Calendar className="h-3.5 w-3.5 mr-1.5 text-slate-500" />
@@ -239,15 +254,21 @@ const AdminQueue: React.FC<AdminQueueProps> = ({ navigateTo }) => {
                               {formatTime(order.created_at)}
                             </div>
                           </TableCell>
-                          <TableCell>{order.modality}</TableCell>
-                          <TableCell>{order.radiology_group.name}</TableCell>
+                          <TableCell>{order.modality || 'N/A'}</TableCell>
+                          <TableCell>{order.radiology_organization?.name || 'Not assigned'}</TableCell>
                           <TableCell>{getStatusBadge(order.status)}</TableCell>
                           <TableCell className="text-right">
                             {order.status === 'pending_admin' ? (
                               <Button
-                                variant="outline"
+                                variant="default"
                                 size="sm"
-                                onClick={() => navigateTo && navigateTo(AppPage.AdminOrderFinalization)}
+                                onClick={() => {
+                                  console.log('Complete button clicked for order:', order.id);
+                                  // Store the order ID in sessionStorage for the AdminOrderFinalization page
+                                  sessionStorage.setItem('currentOrderId', order.id.toString());
+                                  // Navigate using wouter to change the URL
+                                  setLocation('/admin-order-finalization');
+                                }}
                               >
                                 <FileText className="h-4 w-4 mr-1" />
                                 Complete
@@ -299,8 +320,8 @@ const AdminQueue: React.FC<AdminQueueProps> = ({ navigateTo }) => {
                       .filter((order: ApiAdminOrder) => order.status === 'pending_admin')
                       .map((order: ApiAdminOrder) => (
                         <TableRow key={order.id}>
-                          <TableCell className="font-medium">{order.patient.name}</TableCell>
-                          <TableCell className="font-mono text-xs">{order.patient.mrn}</TableCell>
+                          <TableCell className="font-medium">{`${order.patient_first_name || ''} ${order.patient_last_name || ''}`}</TableCell>
+                          <TableCell className="font-mono text-xs">{order.patient_mrn || 'N/A'}</TableCell>
                           <TableCell>
                             <div className="flex items-center">
                               <Calendar className="h-3.5 w-3.5 mr-1.5 text-slate-500" />
@@ -313,14 +334,20 @@ const AdminQueue: React.FC<AdminQueueProps> = ({ navigateTo }) => {
                               {formatTime(order.created_at)}
                             </div>
                           </TableCell>
-                          <TableCell>{order.modality}</TableCell>
-                          <TableCell>{order.radiology_group.name}</TableCell>
+                          <TableCell>{order.modality || 'N/A'}</TableCell>
+                          <TableCell>{order.radiology_organization?.name || 'Not assigned'}</TableCell>
                           <TableCell>{getStatusBadge(order.status)}</TableCell>
                           <TableCell className="text-right">
                             <Button
-                              variant="outline"
+                              variant="default"
                               size="sm"
-                              onClick={() => navigateTo && navigateTo(AppPage.AdminOrderFinalization)}
+                              onClick={() => {
+                                console.log('Complete button clicked for order (tab 2):', order.id);
+                                // Store the order ID in sessionStorage for the AdminOrderFinalization page
+                                sessionStorage.setItem('currentOrderId', order.id.toString());
+                                // Navigate using wouter to change the URL
+                                setLocation('/admin-order-finalization');
+                              }}
                             >
                               <FileText className="h-4 w-4 mr-1" />
                               Complete
@@ -365,8 +392,8 @@ const AdminQueue: React.FC<AdminQueueProps> = ({ navigateTo }) => {
                       .filter((order: ApiAdminOrder) => order.status === 'pending_radiology')
                       .map((order: ApiAdminOrder) => (
                         <TableRow key={order.id}>
-                          <TableCell className="font-medium">{order.patient.name}</TableCell>
-                          <TableCell className="font-mono text-xs">{order.patient.mrn}</TableCell>
+                          <TableCell className="font-medium">{`${order.patient_first_name || ''} ${order.patient_last_name || ''}`}</TableCell>
+                          <TableCell className="font-mono text-xs">{order.patient_mrn || 'N/A'}</TableCell>
                           <TableCell>
                             <div className="flex items-center">
                               <Calendar className="h-3.5 w-3.5 mr-1.5 text-slate-500" />
@@ -379,8 +406,8 @@ const AdminQueue: React.FC<AdminQueueProps> = ({ navigateTo }) => {
                               {formatTime(order.created_at)}
                             </div>
                           </TableCell>
-                          <TableCell>{order.modality}</TableCell>
-                          <TableCell>{order.radiology_group.name}</TableCell>
+                          <TableCell>{order.modality || 'N/A'}</TableCell>
+                          <TableCell>{order.radiology_organization?.name || 'Not assigned'}</TableCell>
                           <TableCell>{getStatusBadge(order.status)}</TableCell>
                           <TableCell className="text-right">
                             <Button variant="outline" size="sm">
