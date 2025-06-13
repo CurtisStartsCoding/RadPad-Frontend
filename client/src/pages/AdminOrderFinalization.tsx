@@ -352,20 +352,76 @@ const AdminOrderFinalization: React.FC<AdminOrderFinalizationProps> = ({ navigat
   };
   
   // Handle send to radiology
-  const handleSendToRadiology = () => {
+  const handleSendToRadiology = async () => {
+    // For now, we'll use a hardcoded radiology organization ID
+    // In a future update, we'll get this from a dropdown selection
+    const radiologyOrganizationId = 2; // This is what the backend tests use
+    
     setIsSending(true);
     
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      // First, save patient information
+      const savePatientResponse = await apiRequest('PUT', `/api/admin/orders/${orderId}/patient-info`, {
+        first_name: patientInfo.firstName,
+        last_name: patientInfo.lastName,
+        middle_name: '',
+        date_of_birth: patientInfo.dateOfBirth,
+        gender: patientInfo.gender,
+        address_line1: patientInfo.addressLine1,
+        address_line2: patientInfo.addressLine2,
+        city: patientInfo.city,
+        state: patientInfo.state,
+        zip_code: patientInfo.zipCode,
+        phone_number: patientInfo.phoneNumber,
+        email: patientInfo.email,
+        mrn: patientInfo.mrn
+      });
+
+      if (!savePatientResponse.ok) {
+        const error = await savePatientResponse.json();
+        toast({
+          title: "Error",
+          description: error.message || "Failed to save patient information",
+          variant: "destructive",
+        });
+        setIsSending(false);
+        return;
+      }
+
+      // Then send to radiology
+      const response = await apiRequest('POST', `/api/admin/orders/${orderId}/send-to-radiology`, {
+        radiologyOrganizationId: radiologyOrganizationId
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        toast({
+          title: "Error",
+          description: error.message || "Failed to send order to radiology",
+          variant: "destructive",
+        });
+        setIsSending(false);
+        return;
+      }
+
+      const result = await response.json();
+      
       setIsSending(false);
       setOrderSent(true);
       
       toast({
         title: "Order sent to radiology",
-        description: "Order #" + order.id + " has been successfully sent to " + (order.radiology_organization?.name || order.radiologyGroup || 'the radiology facility'),
+        description: `Order #${order.id} has been successfully sent to radiology.${result.remainingCredits !== undefined ? ` Credits remaining: ${result.remainingCredits}` : ''}`,
         variant: "default",
       });
-    }, 1500);
+    } catch (error) {
+      setIsSending(false);
+      toast({
+        title: "Error",
+        description: "Failed to send order to radiology. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
   
   // Handle go back to queue
@@ -737,7 +793,52 @@ Referring Provider: Dr. TEST_Sarah MOCK_Johnson
                     </div>
                   </div>
                   
-                  <div className="flex justify-end mt-6">
+                  <div className="flex justify-between mt-6">
+                    <Button 
+                      variant="outline"
+                      onClick={async () => {
+                        try {
+                          const response = await apiRequest('PUT', `/api/admin/orders/${orderId}/patient-info`, {
+                            first_name: patientInfo.firstName,
+                            last_name: patientInfo.lastName,
+                            middle_name: '',
+                            date_of_birth: patientInfo.dateOfBirth,
+                            gender: patientInfo.gender,
+                            address_line1: patientInfo.addressLine1,
+                            address_line2: patientInfo.addressLine2,
+                            city: patientInfo.city,
+                            state: patientInfo.state,
+                            zip_code: patientInfo.zipCode,
+                            phone_number: patientInfo.phoneNumber,
+                            email: patientInfo.email,
+                            mrn: patientInfo.mrn
+                          });
+                          
+                          if (response.ok) {
+                            toast({
+                              title: "Success",
+                              description: "Patient information saved successfully",
+                              variant: "default",
+                            });
+                          } else {
+                            const error = await response.json();
+                            toast({
+                              title: "Error",
+                              description: error.message || "Failed to save patient information",
+                              variant: "destructive",
+                            });
+                          }
+                        } catch (error) {
+                          toast({
+                            title: "Error",
+                            description: "Failed to save patient information",
+                            variant: "destructive",
+                          });
+                        }
+                      }}
+                    >
+                      Save Patient Info
+                    </Button>
                     <Button onClick={handleNextTab}>
                       Continue to Insurance
                     </Button>
