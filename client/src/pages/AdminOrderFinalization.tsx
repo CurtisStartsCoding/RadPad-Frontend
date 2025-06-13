@@ -1,5 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AppPage } from "@/App";
+import { useQuery } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { useLocation } from "wouter";
 import { 
   Card, 
   CardContent, 
@@ -50,17 +53,72 @@ interface AdminOrderFinalizationProps {
 }
 
 const AdminOrderFinalization: React.FC<AdminOrderFinalizationProps> = ({ navigateTo }) => {
+  const [, setLocation] = useLocation();
   const [currentTab, setCurrentTab] = useState("patient");
   const [isSending, setIsSending] = useState(false);
   const [orderSent, setOrderSent] = useState(false);
   const { toast } = useToast();
   
-  // Mock order data based on ID (in a real app, this would be fetched from API)
-  // Just use first order for mock, but override modality for this example
-  const [order, setOrder] = useState({
+  // Get order ID from sessionStorage
+  const orderId = sessionStorage.getItem('currentOrderId');
+  
+  // Fetch order data from API
+  const { data: orderData, isLoading, error } = useQuery({
+    queryKey: ['/api/orders', orderId],
+    queryFn: async () => {
+      if (!orderId) throw new Error('No order ID found');
+      const response = await apiRequest('GET', `/api/orders/${orderId}`, undefined);
+      if (!response.ok) {
+        throw new Error('Failed to fetch order');
+      }
+      const result = await response.json();
+      console.log('Order data fetched:', result);
+      return result.data || result; // Handle both {data: order} and direct order response
+    },
+    enabled: !!orderId,
+  });
+  
+  // Initialize order state with fetched data or mock data
+  const [order, setOrder] = useState(orderData || {
     ...allOrders[0], 
     modality: "MOCK-MRI Knee (Test)"
   });
+  
+  // Update order state when data is loaded
+  useEffect(() => {
+    if (orderData) {
+      setOrder(orderData);
+      // Also update patient info with real data
+      setPatientInfo({
+        firstName: orderData.patient_first_name || '',
+        lastName: orderData.patient_last_name || '',
+        dateOfBirth: orderData.patient_dob || '',
+        gender: orderData.patient_gender || '',
+        addressLine1: orderData.patient_address_line1 || '',
+        addressLine2: orderData.patient_address_line2 || '',
+        city: orderData.patient_city || '',
+        state: orderData.patient_state || '',
+        zipCode: orderData.patient_zip_code || '',
+        phoneNumber: orderData.patient_phone_number || '',
+        email: orderData.patient_email || '',
+        mrn: orderData.patient_mrn || ''
+      });
+      // Also update insurance info with real data
+      setInsuranceInfo({
+        insurerName: orderData.insurance_name || '',
+        planName: orderData.insurance_plan_name || '',
+        policyNumber: orderData.insurance_policy_number || '',
+        groupNumber: orderData.insurance_group_number || '',
+        policyHolderName: `${orderData.patient_first_name || ''} ${orderData.patient_last_name || ''}`,
+        policyHolderRelationship: orderData.insurance_policy_holder_relationship || 'self',
+        policyHolderDateOfBirth: orderData.insurance_policy_holder_dob || orderData.patient_dob || '',
+        secondaryInsurerName: '',
+        secondaryPlanName: '',
+        secondaryPolicyNumber: '',
+        secondaryGroupNumber: ''
+      });
+    }
+  }, [orderData]);
   
   // Function to update radiology group
   const setRadiologyGroup = (group: string) => {
@@ -70,31 +128,31 @@ const AdminOrderFinalization: React.FC<AdminOrderFinalizationProps> = ({ navigat
     });
   };
   
-  // Patient information state
+  // Patient information state - use actual data if available
   const [patientInfo, setPatientInfo] = useState({
-    firstName: "TEST_" + (order.patient.name.split(' ')[0] || ''),
-    lastName: "MOCK_" + (order.patient.name.split(' ')[1] || ''),
-    dateOfBirth: order.patient.dob,
-    gender: "female",
-    addressLine1: "123 FAKE Street",
-    addressLine2: "MOCK Suite 456",
-    city: "TESTVILLE",
-    state: "ZZ",
-    zipCode: "00000",
-    phoneNumber: "(555) MOCK-DATA",
-    email: "fake.patient@mockdata.test",
-    mrn: "MOCK-" + order.patient.mrn
+    firstName: orderData?.patient_first_name || "TEST_" + (order.patient?.name?.split(' ')[0] || ''),
+    lastName: orderData?.patient_last_name || "MOCK_" + (order.patient?.name?.split(' ')[1] || ''),
+    dateOfBirth: orderData?.patient_dob || order.patient?.dob || '',
+    gender: orderData?.patient_gender || "female",
+    addressLine1: orderData?.patient_address_line1 || "123 FAKE Street",
+    addressLine2: orderData?.patient_address_line2 || "MOCK Suite 456",
+    city: orderData?.patient_city || "TESTVILLE",
+    state: orderData?.patient_state || "ZZ",
+    zipCode: orderData?.patient_zip_code || "00000",
+    phoneNumber: orderData?.patient_phone_number || "(555) MOCK-DATA",
+    email: orderData?.patient_email || "fake.patient@mockdata.test",
+    mrn: orderData?.patient_mrn || "MOCK-" + (order.patient?.mrn || '')
   });
   
   // Insurance information state
   const [insuranceInfo, setInsuranceInfo] = useState({
-    insurerName: "MOCK-Insurance Company (TEST)",
-    planName: "FAKE-Care PPO SAMPLE",
-    policyNumber: "TEST-POLICY-123456789",
-    groupNumber: "MOCK-GRP-12345",
-    policyHolderName: "TEST_" + order.patient.name,
-    policyHolderRelationship: "self",
-    policyHolderDateOfBirth: order.patient.dob,
+    insurerName: orderData?.insurance_name || "MOCK-Insurance Company (TEST)",
+    planName: orderData?.insurance_plan_name || "FAKE-Care PPO SAMPLE",
+    policyNumber: orderData?.insurance_policy_number || "TEST-POLICY-123456789",
+    groupNumber: orderData?.insurance_group_number || "MOCK-GRP-12345",
+    policyHolderName: orderData ? `${orderData.patient_first_name || ''} ${orderData.patient_last_name || ''}` : "TEST_Patient",
+    policyHolderRelationship: orderData?.insurance_policy_holder_relationship || "self",
+    policyHolderDateOfBirth: orderData?.insurance_policy_holder_dob || orderData?.patient_dob || '',
     secondaryInsurerName: "",
     secondaryPlanName: "",
     secondaryPolicyNumber: "",
@@ -304,7 +362,7 @@ const AdminOrderFinalization: React.FC<AdminOrderFinalizationProps> = ({ navigat
       
       toast({
         title: "Order sent to radiology",
-        description: "Order #" + order.id + " has been successfully sent to " + order.radiologyGroup,
+        description: "Order #" + order.id + " has been successfully sent to " + (order.radiology_organization?.name || order.radiologyGroup || 'the radiology facility'),
         variant: "default",
       });
     }, 1500);
@@ -312,9 +370,43 @@ const AdminOrderFinalization: React.FC<AdminOrderFinalizationProps> = ({ navigat
   
   // Handle go back to queue
   const handleBackToQueue = () => {
-    navigateTo && navigateTo(AppPage.AdminQueue);
+    setLocation('/admin-queue');
   };
   
+  // Handle loading state
+  if (isLoading) {
+    return (
+      <div className="p-6">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Loading order details...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Handle error state
+  if (error || !order) {
+    return (
+      <div className="p-6">
+        <Alert variant="destructive">
+          <AlertTitle>Error Loading Order</AlertTitle>
+          <AlertDescription>
+            {error?.message || 'Unable to load order details. Please try again.'}
+          </AlertDescription>
+        </Alert>
+        <Button
+          className="mt-4"
+          onClick={handleBackToQueue}
+        >
+          Back to Queue
+        </Button>
+      </div>
+    );
+  }
+
   return (
     <div className="p-6">
       <PageHeader
@@ -341,7 +433,7 @@ const AdminOrderFinalization: React.FC<AdminOrderFinalizationProps> = ({ navigat
               </div>
               <h2 className="text-xl font-medium mb-2">Order Successfully Sent</h2>
               <p className="text-center text-slate-500 max-w-md mb-6">
-                Order #{order.id} for {order.patient.name} has been sent to {order.radiologyGroup}.
+                Order #{order.id} for {`${order.patient_first_name || ''} ${order.patient_last_name || ''}`.trim() || 'Patient'} has been sent to {order.radiology_organization?.name || order.radiologyGroup || 'the radiology facility'}.
                 They will contact the patient directly for scheduling.
               </p>
               <div className="flex space-x-4">
@@ -358,11 +450,11 @@ const AdminOrderFinalization: React.FC<AdminOrderFinalizationProps> = ({ navigat
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle>Order #{order.id} - {order.modality}</CardTitle>
-                  <CardDescription>Created on {new Date(order.createdAt).toLocaleDateString()}</CardDescription>
+                  <CardTitle>Order #{order.id || order.order_number} - {order.modality || 'N/A'}</CardTitle>
+                  <CardDescription>Created on {new Date(order.created_at || order.createdAt).toLocaleDateString()}</CardDescription>
                 </div>
                 <Badge variant="outline" className="bg-amber-50 border-amber-200 text-amber-700">
-                  Needs Completion
+                  Pending Admin
                 </Badge>
               </div>
             </CardHeader>
@@ -370,18 +462,18 @@ const AdminOrderFinalization: React.FC<AdminOrderFinalizationProps> = ({ navigat
               <div className="grid grid-cols-3 gap-4">
                 <div>
                   <p className="text-sm font-medium mb-1">Patient</p>
-                  <p className="text-slate-600">{order.patient.name}</p>
-                  <p className="text-xs text-slate-400">DOB: {order.patient.dob}</p>
-                  <p className="text-xs text-slate-400">MRN: {order.patient.mrn}</p>
+                  <p className="text-slate-600">{`${order.patient_first_name || ''} ${order.patient_last_name || ''}`}</p>
+                  <p className="text-xs text-slate-400">DOB: {order.patient_dob || 'N/A'}</p>
+                  <p className="text-xs text-slate-400">MRN: {order.patient_mrn || 'N/A'}</p>
                 </div>
                 <div>
                   <p className="text-sm font-medium mb-1">Ordering Physician</p>
-                  <p className="text-slate-600">Dr. TEST_Sarah MOCK_Johnson</p>
-                  <p className="text-xs text-slate-400">MOCK Internal Medicine (TEST)</p>
+                  <p className="text-slate-600">{order.referring_physician_name || 'N/A'}</p>
+                  <p className="text-xs text-slate-400">{order.specialty || ''}</p>
                 </div>
                 <div>
                   <p className="text-sm font-medium mb-1">Radiology Group</p>
-                  <p className="text-slate-600">{order.radiologyGroup}</p>
+                  <p className="text-slate-600">{order.radiology_organization?.name || order.radiologyGroup || 'Not assigned'}</p>
                 </div>
               </div>
               
@@ -391,12 +483,7 @@ const AdminOrderFinalization: React.FC<AdminOrderFinalizationProps> = ({ navigat
                   <div>
                     <p className="text-sm font-medium text-blue-800 mb-1">Clinical Indication</p>
                     <p className="text-sm text-blue-700">
-                      [MOCK DATA] 45-year-old female with fictional right knee pain persisting for over 3 months.
-                      TEST patient reports pain with weight bearing and difficulty climbing stairs.
-                      SAMPLE: Not responsive to NSAIDs and physical therapy.
-                      FAKE X-ray from 2024 showed mild degenerative changes.
-                      TEST Request: MRI knee to evaluate for meniscal tear and ligament integrity.
-                      THIS IS FAKE CLINICAL DATA FOR TESTING PURPOSES ONLY.
+                      {order.clinical_indication || order.dictation || '[No clinical indication provided]'}
                     </p>
                   </div>
                 </div>
@@ -958,7 +1045,7 @@ Referring Provider: Dr. TEST_Sarah MOCK_Johnson
                       
                       <DocumentManager 
                         orderId={order.id} 
-                        patientId={Number(order.patient.id)} 
+                        patientId={Number(order.patient_id || order.patient?.id || 0)} 
                       />
                     </div>
                   </div>
