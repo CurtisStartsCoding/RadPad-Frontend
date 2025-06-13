@@ -423,7 +423,15 @@ const Dashboard = ({ navigateTo }: DashboardProps) => {
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <CardTitle>Recent Orders</CardTitle>
-                <Button variant="outline" size="sm" className="h-8">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8"
+                  onClick={() => {
+                    navigateTo(AppPage.OrderList);
+                    window.location.href = '/orders';
+                  }}
+                >
                   <ListFilter className="h-4 w-4 mr-1" />
                   View All
                 </Button>
@@ -521,7 +529,15 @@ const Dashboard = ({ navigateTo }: DashboardProps) => {
             <CardFooter className="border-t bg-slate-50 px-6 py-3">
               <div className="flex items-center justify-between w-full">
                 <p className="text-xs text-slate-500">Showing {recentOrders?.length || 0} of {ordersResponse?.pagination.total || analytics?.stats.total_orders || 0} orders</p>
-                <Button variant="outline" size="sm" className="h-8">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8"
+                  onClick={() => {
+                    navigateTo(AppPage.OrderList);
+                    window.location.href = '/orders';
+                  }}
+                >
                   View All Orders
                 </Button>
               </div>
@@ -544,7 +560,14 @@ const Dashboard = ({ navigateTo }: DashboardProps) => {
                   <PlusCircle className="h-6 w-6 mb-2" />
                   <span>New Order</span>
                 </Button>
-                <Button variant="outline" className="h-auto flex flex-col items-center justify-center py-6 px-4">
+                <Button
+                  variant="outline"
+                  className="h-auto flex flex-col items-center justify-center py-6 px-4"
+                  onClick={() => {
+                    navigateTo(AppPage.OrderList);
+                    window.location.href = '/orders';
+                  }}
+                >
                   <ListFilter className="h-6 w-6 mb-2" />
                   <span>View Orders</span>
                 </Button>
