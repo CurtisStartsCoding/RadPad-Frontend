@@ -49,12 +49,13 @@ interface ApiRadiologyOrder {
 const RadiologyQueue = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFilter, setSelectedFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
   
   // Fetch orders from the API
   const { data, isLoading, error } = useQuery<{orders: ApiRadiologyOrder[]} | ApiRadiologyOrder[]>({
-    queryKey: ['/api/radiology/orders'],
+    queryKey: ['/api/radiology/orders', statusFilter],
     queryFn: async () => {
-      const response = await apiRequest('GET', '/api/radiology/orders', undefined);
+      const response = await apiRequest('GET', `/api/radiology/orders?status=${statusFilter}`, undefined);
       if (!response.ok) {
         throw new Error('Failed to fetch radiology orders');
       }
@@ -67,16 +68,22 @@ const RadiologyQueue = () => {
   // Handle both response formats - either direct array or object with orders property
   const orders = Array.isArray(data) ? data : data?.orders || [];
   
-  // Filter orders by status for radiology queue
+  // Filter orders by status and modality for radiology queue
   const filteredOrders = orders.filter(order => {
+    // First filter by selected status
+    if (statusFilter !== "all" && order.status !== statusFilter) {
+      return false;
+    }
+    
+    // Then filter by modality
     if (selectedFilter === "all") {
-      return order.status === 'pending_radiology';
+      return true;
     } else if (selectedFilter === "mri") {
-      return order.status === 'pending_radiology' && order.modality && order.modality.toLowerCase().includes('mri');
+      return order.modality && order.modality.toLowerCase().includes('mri');
     } else if (selectedFilter === "ct") {
-      return order.status === 'pending_radiology' && order.modality && order.modality.toLowerCase().includes('ct');
+      return order.modality && order.modality.toLowerCase().includes('ct');
     } else if (selectedFilter === "xray") {
-      return order.status === 'pending_radiology' && order.modality && order.modality.toLowerCase().includes('x-ray');
+      return order.modality && order.modality.toLowerCase().includes('x-ray');
     }
     return false;
   }) || [];
@@ -134,12 +141,33 @@ const RadiologyQueue = () => {
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="all" className="space-y-4">
-            <TabsList>
-              <TabsTrigger value="all">All Orders ({filteredOrders.length})</TabsTrigger>
-              <TabsTrigger value="mri">MRI ({filteredOrders.filter(o => o.modality && o.modality.toLowerCase().includes('mri')).length})</TabsTrigger>
-              <TabsTrigger value="ct">CT ({filteredOrders.filter(o => o.modality && o.modality.toLowerCase().includes('ct')).length})</TabsTrigger>
-              <TabsTrigger value="xray">X-Ray ({filteredOrders.filter(o => o.modality && o.modality.toLowerCase().includes('x-ray')).length})</TabsTrigger>
-            </TabsList>
+            <div className="flex flex-col space-y-4">
+              <TabsList>
+                <TabsTrigger value="all">All Orders ({filteredOrders.length})</TabsTrigger>
+                <TabsTrigger value="mri">MRI ({filteredOrders.filter(o => o.modality && o.modality.toLowerCase().includes('mri')).length})</TabsTrigger>
+                <TabsTrigger value="ct">CT ({filteredOrders.filter(o => o.modality && o.modality.toLowerCase().includes('ct')).length})</TabsTrigger>
+                <TabsTrigger value="xray">X-Ray ({filteredOrders.filter(o => o.modality && o.modality.toLowerCase().includes('x-ray')).length})</TabsTrigger>
+              </TabsList>
+              
+              <div className="flex items-center space-x-2">
+                <span className="text-sm font-medium">Status:</span>
+                <Select
+                  value={statusFilter}
+                  onValueChange={setStatusFilter}
+                >
+                  <SelectTrigger className="w-44">
+                    <SelectValue placeholder="Filter by status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Statuses</SelectItem>
+                    <SelectItem value="pending_radiology">Pending</SelectItem>
+                    <SelectItem value="scheduled">Scheduled</SelectItem>
+                    <SelectItem value="completed">Completed</SelectItem>
+                    <SelectItem value="cancelled">Cancelled</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
             
             <div className="flex justify-between items-center">
               <div className="relative w-72">
