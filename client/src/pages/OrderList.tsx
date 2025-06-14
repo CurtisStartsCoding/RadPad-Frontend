@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   Table,
@@ -70,8 +70,10 @@ interface OrdersApiResponse {
 
 const OrderList = () => {
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   const [selectedFilter, setSelectedFilter] = useState("all");
   const [_, setLocation] = useLocation();
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
   
   // Handle navigation to new order page
   const handleNewOrderClick = () => {
@@ -80,11 +82,57 @@ const OrderList = () => {
     setLocation(newOrderPath);
   };
   
+  // Effect to handle debounced search
+  useEffect(() => {
+    // Clear any existing timer
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+    
+    // Only set up debounce timer if search query is at least 3 characters
+    if (searchQuery.length >= 3) {
+      // Set a new timer for 2 seconds
+      debounceTimerRef.current = setTimeout(() => {
+        setDebouncedSearchQuery(searchQuery);
+      }, 2000);
+    } else if (searchQuery.length === 0 && debouncedSearchQuery !== "") {
+      // If search is cleared, update immediately
+      setDebouncedSearchQuery("");
+    }
+    
+    // Cleanup function to clear the timer if component unmounts or searchQuery changes
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, [searchQuery]);
+  
   // Fetch orders from the API
-  const { data, isLoading, error } = useQuery<OrdersApiResponse>({
-    queryKey: ['/api/orders'],
+  const { data, isLoading, error, refetch } = useQuery<OrdersApiResponse>({
+    queryKey: ['/api/orders', debouncedSearchQuery, selectedFilter],
     queryFn: async () => {
-      const response = await apiRequest('GET', '/api/orders', undefined);
+      // Build the query parameters
+      let endpoint = '/api/orders';
+      const params = new URLSearchParams();
+      
+      // Add search query if provided and at least 3 characters
+      if (debouncedSearchQuery && debouncedSearchQuery.length >= 3) {
+        params.append('search', debouncedSearchQuery);
+      }
+      
+      // Add filter if not "all"
+      if (selectedFilter !== "all") {
+        params.append('status', selectedFilter);
+      }
+      
+      // Append query parameters if any exist
+      if (params.toString()) {
+        endpoint += `?${params.toString()}`;
+      }
+      
+      console.log(`Fetching orders with endpoint: ${endpoint}`);
+      const response = await apiRequest('GET', endpoint, undefined);
       if (!response.ok) {
         throw new Error('Failed to fetch orders');
       }
@@ -113,20 +161,23 @@ const OrderList = () => {
     return false;
   });
   
-  // Further filter by search query
-  const searchFilteredOrders = filteredOrders.filter(order => {
-    if (!order) return false;
-    
-    const patientName = `${order.patient_first_name || ''} ${order.patient_last_name || ''}`.trim();
-    
-    const searchLower = searchQuery.toLowerCase();
-    return (
-      (patientName.toLowerCase() || '').includes(searchLower) ||
-      (order.patient_mrn?.toLowerCase() || '').includes(searchLower) ||
-      (order.modality?.toLowerCase() || '').includes(searchLower) ||
-      (order.radiology_organization_name?.toLowerCase() || '').includes(searchLower)
-    );
-  });
+  // Use the filtered orders directly from the API if debounced search query is provided
+  // Otherwise, filter client-side
+  const searchFilteredOrders = debouncedSearchQuery && debouncedSearchQuery.length >= 3
+    ? filteredOrders
+    : filteredOrders.filter(order => {
+        if (!order) return false;
+        
+        const patientName = `${order.patient_first_name || ''} ${order.patient_last_name || ''}`.trim();
+        
+        const searchLower = debouncedSearchQuery.toLowerCase() || searchQuery.toLowerCase();
+        return (
+          (patientName.toLowerCase() || '').includes(searchLower) ||
+          (order.patient_mrn?.toLowerCase() || '').includes(searchLower) ||
+          (order.modality?.toLowerCase() || '').includes(searchLower) ||
+          (order.radiology_organization_name?.toLowerCase() || '').includes(searchLower)
+        );
+      });
   
   // Format date for display
   const formatDate = (dateString: string) => {
@@ -237,6 +288,29 @@ const OrderList = () => {
                   className="pl-9"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      // Prevent default form submission behavior
+                      e.preventDefault();
+                      
+                      // Only trigger search if at least 3 characters
+                      if (searchQuery.length >= 3) {
+                        // Clear any existing timer
+                        if (debounceTimerRef.current) {
+                          clearTimeout(debounceTimerRef.current);
+                        }
+                        
+                        // Update debounced query immediately
+                        setDebouncedSearchQuery(searchQuery);
+                      } else if (searchQuery.length === 0) {
+                        // If search is cleared, update immediately
+                        setDebouncedSearchQuery("");
+                      } else {
+                        // Show a message that at least 3 characters are required
+                        console.log("Please enter at least 3 characters to search");
+                      }
+                    }
+                  }}
                 />
               </div>
               
@@ -244,7 +318,11 @@ const OrderList = () => {
                 <Filter className="h-4 w-4 text-slate-400" />
                 <Select
                   value={selectedFilter}
-                  onValueChange={setSelectedFilter}
+                  onValueChange={(value) => {
+                    setSelectedFilter(value);
+                    // Refetch orders when filter changes
+                    refetch();
+                  }}
                 >
                   <SelectTrigger className="w-44">
                     <SelectValue placeholder="Filter by status" />
