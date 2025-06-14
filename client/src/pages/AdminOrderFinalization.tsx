@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { AppPage } from "@/App";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useLocation } from "wouter";
 import { 
@@ -58,6 +58,7 @@ const AdminOrderFinalization: React.FC<AdminOrderFinalizationProps> = ({ navigat
   const [isSending, setIsSending] = useState(false);
   const [orderSent, setOrderSent] = useState(false);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   
   // Get order ID from sessionStorage
   const orderId = sessionStorage.getItem('currentOrderId');
@@ -73,9 +74,22 @@ const AdminOrderFinalization: React.FC<AdminOrderFinalizationProps> = ({ navigat
       }
       const result = await response.json();
       console.log('Order data fetched:', result);
+      console.log('Patient fields in response:', {
+        patient_first_name: result.patient_first_name,
+        patient_last_name: result.patient_last_name,
+        patient_dob: result.patient_dob,
+        patient_date_of_birth: result.patient_date_of_birth,
+        patient_city: result.patient_city,
+        patient_state: result.patient_state,
+        patient_zip_code: result.patient_zip_code,
+        insurance_name: result.insurance_name,
+        insurance_group_number: result.insurance_group_number
+      });
+      // TODO: Backend needs to return patient/insurance data with order
       return result.data || result; // Handle both {data: order} and direct order response
     },
     enabled: !!orderId,
+    staleTime: 0, // Always fetch fresh data when returning to order
   });
   
   // Initialize order state with fetched data or mock data
@@ -89,10 +103,24 @@ const AdminOrderFinalization: React.FC<AdminOrderFinalizationProps> = ({ navigat
     if (orderData) {
       setOrder(orderData);
       // Also update patient info with real data
+      // Format date to YYYY-MM-DD if it exists
+      let formattedDob = '';
+      // Check both possible field names
+      const dobValue = orderData.patient_date_of_birth || orderData.patient_dob;
+      if (dobValue) {
+        // Handle various date formats
+        const date = new Date(dobValue);
+        if (!isNaN(date.getTime())) {
+          formattedDob = date.toISOString().split('T')[0];
+        } else {
+          formattedDob = dobValue; // Use as-is if parsing fails
+        }
+      }
+      
       setPatientInfo({
         firstName: orderData.patient_first_name || '',
         lastName: orderData.patient_last_name || '',
-        dateOfBirth: orderData.patient_dob || '',
+        dateOfBirth: formattedDob,
         gender: orderData.patient_gender || '',
         addressLine1: orderData.patient_address_line1 || '',
         addressLine2: orderData.patient_address_line2 || '',
@@ -117,6 +145,22 @@ const AdminOrderFinalization: React.FC<AdminOrderFinalizationProps> = ({ navigat
         secondaryPolicyNumber: '',
         secondaryGroupNumber: ''
       });
+      // Update supplemental info if available
+      if (orderData.supplemental_text || orderData.supplemental_info || orderData.supplemental_emr_content) {
+        setSupplementalInfo({
+          text: orderData.supplemental_text || orderData.supplemental_info || orderData.supplemental_emr_content || ''
+        });
+      }
+      // Update order details if available
+      if (orderData.priority || orderData.special_instructions) {
+        setOrderDetails(prev => ({
+          ...prev,
+          priority: orderData.priority || prev.priority,
+          instructions: orderData.special_instructions || prev.instructions,
+          // TODO: Map target_facility_id back to location name
+          // scheduling_timeframe is not stored in DB
+        }));
+      }
     }
   }, [orderData]);
   
@@ -169,17 +213,17 @@ const AdminOrderFinalization: React.FC<AdminOrderFinalizationProps> = ({ navigat
   
   // Order details state
   const [orderDetails, setOrderDetails] = useState({
-    orderNumber: `TEST-ROP-${new Date().toISOString().slice(2,4)}${new Date().toISOString().slice(5,7)}${new Date().toISOString().slice(8,10)}-MOCK`,
+    orderNumber: orderData?.order_number || `TEST-ROP-${new Date().toISOString().slice(2,4)}${new Date().toISOString().slice(5,7)}${new Date().toISOString().slice(8,10)}-MOCK`,
     location: "MOCK Imaging Center – TEST Campus",
-    scheduling: "Within 14 days (SAMPLE)",
-    priority: "Routine (TEST)",
-    primaryIcd10: "M25.561-MOCK",
-    primaryDescription: "FAKE Pain in right knee (TEST)",
-    secondaryIcd10: "M17.11-MOCK",
-    secondaryDescription: "SAMPLE Unilateral primary osteoarthritis, right knee (TEST)",
-    cptCode: "73721-TEST",
-    cptDescription: "MOCK MRI knee without contrast (SAMPLE)",
-    instructions: "✓ MOCK: No contraindications to contrast.\n✓ TEST: No known drug allergies.\n→ SAMPLE: Patient reports claustrophobia; sedation may be required.\n→ THIS IS FAKE DATA FOR TESTING PURPOSES ONLY."
+    scheduling: "Within 14 days",
+    priority: "routine",
+    primaryIcd10: orderData?.final_icd10_codes?.[0] || "M25.561-MOCK",
+    primaryDescription: orderData?.final_icd10_code_descriptions?.[0] || "FAKE Pain in right knee (TEST)",
+    secondaryIcd10: orderData?.final_icd10_codes?.[1] || "M17.11-MOCK",
+    secondaryDescription: orderData?.final_icd10_code_descriptions?.[1] || "SAMPLE Unilateral primary osteoarthritis, right knee (TEST)",
+    cptCode: orderData?.final_cpt_code || "73721-TEST",
+    cptDescription: orderData?.final_cpt_code_description || "MOCK MRI knee without contrast (SAMPLE)",
+    instructions: ""
   });
   
   // Referring physician state
@@ -260,7 +304,7 @@ const AdminOrderFinalization: React.FC<AdminOrderFinalizationProps> = ({ navigat
   };
 
   // Parse EMR text
-  const handleParseEmr = () => {
+  const handleParseEmr = async () => {
     if (!emrText.trim()) {
       toast({
         title: "Error",
@@ -271,54 +315,67 @@ const AdminOrderFinalization: React.FC<AdminOrderFinalizationProps> = ({ navigat
     }
 
     setIsParsing(true);
-    // Simulate API call to parse EMR text
-    setTimeout(() => {
-      // Mock successful parsing
-      setPatientInfo({
-        ...patientInfo,
-        firstName: "MOCK_Margaret",
-        lastName: "TEST_Thompson",
-        dateOfBirth: "1975-08-15",
-        gender: "female",
-        addressLine1: "456 FAKE Park Avenue",
-        addressLine2: "TEST Apt 7B",
-        city: "MOCK New York",
-        state: "ZZ",
-        zipCode: "00000",
-        phoneNumber: "(555) MOCK-TEST",
-        email: "fake.patient@mockdata.test",
-        mrn: "MOCK-PT789012-TEST"
-      });
-      
-      setInsuranceInfo({
-        ...insuranceInfo,
-        insurerName: "MOCK Aetna Health Insurance (TEST)",
-        planName: "FAKE Aetna Choice POS II (SAMPLE)",
-        policyNumber: "TEST-AET12345678-MOCK",
-        groupNumber: "MOCK-GRP-98765-TEST",
-        policyHolderName: "MOCK_Margaret TEST_Thompson",
-        policyHolderRelationship: "self",
-        policyHolderDateOfBirth: "1975-08-15",
-        secondaryInsurerName: "MOCK Medicare Part B (TEST)",
-        secondaryPlanName: "FAKE Original Medicare (SAMPLE)",
-        secondaryPolicyNumber: "TEST-MED87654321-MOCK",
-        secondaryGroupNumber: "MOCK-MEDGRP-54321-TEST"
-      });
-      
-      setIsParsing(false);
-      setParsingComplete(true);
-      setParsingStatus({
-        patient: true,
-        insurance: true,
-        message: "Successfully extracted patient and insurance information from EMR text."
+    try {
+      // Call the real API to parse EMR text
+      const response = await apiRequest('POST', `/api/admin/orders/${orderId}/paste-summary`, {
+        pastedText: emrText
       });
 
+      if (response.ok) {
+        const result = await response.json();
+        
+        // Update patient info with parsed data
+        if (result.parsedData?.patientInfo) {
+          const parsed = result.parsedData.patientInfo;
+          setPatientInfo(prev => ({
+            ...prev,
+            addressLine1: parsed.address || prev.addressLine1,
+            city: parsed.city || prev.city,
+            state: parsed.state || prev.state,
+            zipCode: parsed.zipCode || prev.zipCode,
+            phoneNumber: parsed.phone || prev.phoneNumber,
+            email: parsed.email || prev.email
+          }));
+        }
+        
+        // Update insurance info with parsed data
+        if (result.parsedData?.insuranceInfo) {
+          const parsed = result.parsedData.insuranceInfo;
+          setInsuranceInfo(prev => ({
+            ...prev,
+            insurerName: parsed.insurerName || prev.insurerName,
+            policyNumber: parsed.policyNumber || prev.policyNumber,
+            groupNumber: parsed.groupNumber || prev.groupNumber,
+            policyHolderName: parsed.policyHolderName || prev.policyHolderName,
+            policyHolderRelationship: parsed.relationship || prev.policyHolderRelationship
+          }));
+        }
+        
+        setIsParsing(false);
+        setParsingComplete(true);
+        setParsingStatus({
+          patient: true,
+          insurance: true,
+          message: result.message || "Successfully extracted patient and insurance information from EMR text."
+        });
+
+        toast({
+          title: "Success",
+          description: "Patient and insurance information extracted successfully",
+          variant: "default",
+        });
+      } else {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to parse EMR text");
+      }
+    } catch (error) {
+      setIsParsing(false);
       toast({
-        title: "Success",
-        description: "Patient and insurance information extracted successfully",
-        variant: "default",
+        title: "Error",
+        description: error.message || "Failed to parse EMR text",
+        variant: "destructive",
       });
-    }, 2000);
+    }
   };
 
   // Handle navigation to next tab
@@ -360,28 +417,47 @@ const AdminOrderFinalization: React.FC<AdminOrderFinalizationProps> = ({ navigat
     setIsSending(true);
     
     try {
-      // First, save patient information
-      const savePatientResponse = await apiRequest('PUT', `/api/admin/orders/${orderId}/patient-info`, {
-        first_name: patientInfo.firstName,
-        last_name: patientInfo.lastName,
-        middle_name: '',
-        date_of_birth: patientInfo.dateOfBirth,
-        gender: patientInfo.gender,
-        address_line1: patientInfo.addressLine1,
-        address_line2: patientInfo.addressLine2,
-        city: patientInfo.city,
-        state: patientInfo.state,
-        zip_code: patientInfo.zipCode,
-        phone_number: patientInfo.phoneNumber,
-        email: patientInfo.email,
-        mrn: patientInfo.mrn
-      });
+      // Use the unified endpoint to save all data at once
+      const updateData = {
+        patient: {
+          firstName: patientInfo.firstName,
+          lastName: patientInfo.lastName,
+          middleName: '',
+          dateOfBirth: patientInfo.dateOfBirth,
+          gender: patientInfo.gender,
+          addressLine1: patientInfo.addressLine1,
+          addressLine2: patientInfo.addressLine2,
+          city: patientInfo.city,
+          state: patientInfo.state,
+          zipCode: patientInfo.zipCode,
+          phoneNumber: patientInfo.phoneNumber,
+          email: patientInfo.email,
+          mrn: patientInfo.mrn
+        }
+      };
 
-      if (!savePatientResponse.ok) {
-        const error = await savePatientResponse.json();
+      // Add insurance if provided
+      if (insuranceInfo.insurerName || insuranceInfo.policyNumber) {
+        updateData.insurance = {
+          insurerName: insuranceInfo.insurerName,
+          policyNumber: insuranceInfo.policyNumber,
+          groupNumber: insuranceInfo.groupNumber,
+          planType: insuranceInfo.planName,
+          policyHolderName: insuranceInfo.policyHolderName,
+          policyHolderRelationship: insuranceInfo.policyHolderRelationship,
+          policyHolderDateOfBirth: insuranceInfo.policyHolderDateOfBirth,
+          isPrimary: true
+        };
+      }
+
+      // Save all data using unified endpoint
+      const saveResponse = await apiRequest('PUT', `/api/admin/orders/${orderId}`, updateData);
+
+      if (!saveResponse.ok) {
+        const error = await saveResponse.json();
         toast({
           title: "Error",
-          description: error.message || "Failed to save patient information",
+          description: error.message || "Failed to save order information",
           variant: "destructive",
         });
         setIsSending(false);
@@ -689,8 +765,10 @@ Referring Provider: Dr. TEST_Sarah MOCK_Johnson
                         <Input 
                           id="dateOfBirth" 
                           name="dateOfBirth" 
+                          type="date"
                           value={patientInfo.dateOfBirth} 
                           onChange={handlePatientInfoChange}
+                          placeholder="YYYY-MM-DD"
                         />
                       </div>
                       <div>
@@ -794,54 +872,70 @@ Referring Provider: Dr. TEST_Sarah MOCK_Johnson
                   </div>
                   
                   <div className="flex justify-between mt-6">
-                    <Button 
-                      variant="outline"
-                      onClick={async () => {
-                        try {
-                          const response = await apiRequest('PUT', `/api/admin/orders/${orderId}/patient-info`, {
-                            first_name: patientInfo.firstName,
-                            last_name: patientInfo.lastName,
-                            middle_name: '',
-                            date_of_birth: patientInfo.dateOfBirth,
-                            gender: patientInfo.gender,
-                            address_line1: patientInfo.addressLine1,
-                            address_line2: patientInfo.addressLine2,
-                            city: patientInfo.city,
-                            state: patientInfo.state,
-                            zip_code: patientInfo.zipCode,
-                            phone_number: patientInfo.phoneNumber,
-                            email: patientInfo.email,
-                            mrn: patientInfo.mrn
-                          });
-                          
-                          if (response.ok) {
-                            toast({
-                              title: "Success",
-                              description: "Patient information saved successfully",
-                              variant: "default",
-                            });
-                          } else {
-                            const error = await response.json();
+                    <Button variant="outline" onClick={handlePreviousTab}>
+                      Back
+                    </Button>
+                    <div className="flex gap-2">
+                      <Button 
+                        variant="outline"
+                        onClick={async () => {
+                          try {
+                            // Use the unified endpoint with camelCase fields
+                            const payload = {
+                              patient: {
+                                firstName: patientInfo.firstName,
+                                lastName: patientInfo.lastName,
+                                middleName: '',
+                                dateOfBirth: patientInfo.dateOfBirth,
+                                gender: patientInfo.gender,
+                                addressLine1: patientInfo.addressLine1,
+                                addressLine2: patientInfo.addressLine2,
+                                city: patientInfo.city,
+                                state: patientInfo.state,
+                                zipCode: patientInfo.zipCode,
+                                phoneNumber: patientInfo.phoneNumber,
+                                email: patientInfo.email,
+                                mrn: patientInfo.mrn
+                              }
+                            };
+                            
+                            console.log('Sending patient data to unified endpoint:', payload);
+                            console.log('Date of birth value:', patientInfo.dateOfBirth);
+                            
+                            const response = await apiRequest('PUT', `/api/admin/orders/${orderId}`, payload);
+                            
+                            if (response.ok) {
+                              const result = await response.json();
+                              console.log('Save patient response:', result);
+                              toast({
+                                title: "Success",
+                                description: "Patient information saved successfully",
+                                variant: "default",
+                              });
+                            } else {
+                              const error = await response.json();
+                              console.error('Save patient error:', error);
+                              toast({
+                                title: "Error",
+                                description: error.message || "Failed to save patient information",
+                                variant: "destructive",
+                              });
+                            }
+                          } catch (error) {
                             toast({
                               title: "Error",
-                              description: error.message || "Failed to save patient information",
+                              description: "Failed to save patient information",
                               variant: "destructive",
                             });
                           }
-                        } catch (error) {
-                          toast({
-                            title: "Error",
-                            description: "Failed to save patient information",
-                            variant: "destructive",
-                          });
-                        }
-                      }}
-                    >
-                      Save Patient Info
-                    </Button>
-                    <Button onClick={handleNextTab}>
-                      Continue to Insurance
-                    </Button>
+                        }}
+                      >
+                        Save Patient Info
+                      </Button>
+                      <Button onClick={handleNextTab}>
+                        Continue to Insurance
+                      </Button>
+                    </div>
                   </div>
                 </TabsContent>
                 
@@ -996,9 +1090,52 @@ Referring Provider: Dr. TEST_Sarah MOCK_Johnson
                     <Button variant="outline" onClick={handlePreviousTab}>
                       Back
                     </Button>
-                    <Button onClick={handleNextTab}>
-                      Continue to Order Details
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button 
+                        variant="outline"
+                        onClick={async () => {
+                          try {
+                            // Use the old insurance-info endpoint that was working
+                            const response = await apiRequest('PUT', `/api/admin/orders/${orderId}/insurance-info`, {
+                              insurerName: insuranceInfo.insurerName,
+                              policyNumber: insuranceInfo.policyNumber,
+                              groupNumber: insuranceInfo.groupNumber,
+                              planType: insuranceInfo.planName,
+                              policyHolderName: insuranceInfo.policyHolderName,
+                              policyHolderRelationship: insuranceInfo.policyHolderRelationship,
+                              policyHolderDateOfBirth: insuranceInfo.policyHolderDateOfBirth,
+                              isPrimary: true
+                            });
+                            
+                            if (response.ok) {
+                              toast({
+                                title: "Success",
+                                description: "Insurance information saved successfully",
+                                variant: "default",
+                              });
+                            } else {
+                              const error = await response.json();
+                              toast({
+                                title: "Error",
+                                description: error.message || "Failed to save insurance information",
+                                variant: "destructive",
+                              });
+                            }
+                          } catch (error) {
+                            toast({
+                              title: "Error",
+                              description: "Failed to save insurance information",
+                              variant: "destructive",
+                            });
+                          }
+                        }}
+                      >
+                        Save Insurance Info
+                      </Button>
+                      <Button onClick={handleNextTab}>
+                        Continue to Order Details
+                      </Button>
+                    </div>
                   </div>
                 </TabsContent>
                 
@@ -1054,9 +1191,9 @@ Referring Provider: Dr. TEST_Sarah MOCK_Johnson
                               <SelectValue placeholder="Select priority" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="Routine">Routine</SelectItem>
-                              <SelectItem value="Urgent">Urgent</SelectItem>
-                              <SelectItem value="STAT">STAT</SelectItem>
+                              <SelectItem value="routine">Routine</SelectItem>
+                              <SelectItem value="urgent">Urgent</SelectItem>
+                              <SelectItem value="stat">STAT</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
@@ -1128,9 +1265,54 @@ Referring Provider: Dr. TEST_Sarah MOCK_Johnson
                     <Button variant="outline" onClick={handlePreviousTab}>
                       Back
                     </Button>
-                    <Button onClick={handleNextTab}>
-                      Review Order
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button 
+                        variant="outline"
+                        onClick={async () => {
+                          try {
+                            // First save the supplemental text
+                            const supplementalResponse = await apiRequest('POST', `/api/admin/orders/${orderId}/paste-supplemental`, {
+                              pastedText: supplementalInfo.text
+                            });
+                            
+                            if (!supplementalResponse.ok) {
+                              const error = await supplementalResponse.json();
+                              throw new Error(error.message || "Failed to save supplemental information");
+                            }
+                            
+                            // Save order details using the new endpoint
+                            const detailsResponse = await apiRequest('PUT', `/api/admin/orders/${orderId}/order-details`, {
+                              priority: orderDetails.priority,
+                              target_facility_id: 1, // TODO: This should be mapped from location name to ID
+                              special_instructions: orderDetails.instructions,
+                              scheduling_timeframe: orderDetails.scheduling
+                            });
+                            
+                            if (detailsResponse.ok) {
+                              toast({
+                                title: "Success",
+                                description: "All order details saved successfully",
+                                variant: "default",
+                              });
+                            } else {
+                              const error = await detailsResponse.json();
+                              throw new Error(error.message || "Failed to save order details");
+                            }
+                          } catch (error) {
+                            toast({
+                              title: "Error",
+                              description: "Failed to save order details",
+                              variant: "destructive",
+                            });
+                          }
+                        }}
+                      >
+                        Save Order Details
+                      </Button>
+                      <Button onClick={handleNextTab}>
+                        Review Order
+                      </Button>
+                    </div>
                   </div>
                   
                 </TabsContent>
