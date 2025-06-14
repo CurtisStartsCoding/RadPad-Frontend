@@ -322,6 +322,8 @@ const NewOrder = ({ userRole = UserRole.Physician }: NewOrderProps) => {
     setOrderStep('dictation');
     setDictationText("");
     setValidationResult(null);
+    // Reset patient information to initial state
+    setPatient(temporaryPatient);
   };
 
   // Handle clear dictation text
