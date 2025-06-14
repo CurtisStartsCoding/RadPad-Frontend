@@ -1095,17 +1095,21 @@ Referring Provider: Dr. TEST_Sarah MOCK_Johnson
                         variant="outline"
                         onClick={async () => {
                           try {
-                            // Use the old insurance-info endpoint that was working
-                            const response = await apiRequest('PUT', `/api/admin/orders/${orderId}/insurance-info`, {
-                              insurerName: insuranceInfo.insurerName,
-                              policyNumber: insuranceInfo.policyNumber,
-                              groupNumber: insuranceInfo.groupNumber,
-                              planType: insuranceInfo.planName,
-                              policyHolderName: insuranceInfo.policyHolderName,
-                              policyHolderRelationship: insuranceInfo.policyHolderRelationship,
-                              policyHolderDateOfBirth: insuranceInfo.policyHolderDateOfBirth,
-                              isPrimary: true
-                            });
+                            // Use the unified endpoint with proper structure
+                            const payload = {
+                              insurance: {
+                                insurerName: insuranceInfo.insurerName,
+                                policyNumber: insuranceInfo.policyNumber,
+                                groupNumber: insuranceInfo.groupNumber,
+                                planType: insuranceInfo.planName,
+                                policyHolderName: insuranceInfo.policyHolderName,
+                                policyHolderRelationship: insuranceInfo.policyHolderRelationship,
+                                policyHolderDateOfBirth: insuranceInfo.policyHolderDateOfBirth,
+                                isPrimary: true
+                              }
+                            };
+                            
+                            const response = await apiRequest('PUT', `/api/admin/orders/${orderId}`, payload);
                             
                             if (response.ok) {
                               toast({
@@ -1270,23 +1274,19 @@ Referring Provider: Dr. TEST_Sarah MOCK_Johnson
                         variant="outline"
                         onClick={async () => {
                           try {
-                            // First save the supplemental text
-                            const supplementalResponse = await apiRequest('POST', `/api/admin/orders/${orderId}/paste-supplemental`, {
-                              pastedText: supplementalInfo.text
-                            });
+                            // Save order details and supplemental text using the unified endpoint
+                            const detailsPayload = {
+                              orderDetails: {
+                                priority: orderDetails.priority,
+                                targetFacilityId: 1, // TODO: This should be mapped from location name to ID
+                                specialInstructions: orderDetails.instructions,
+                                schedulingTimeframe: orderDetails.scheduling
+                              },
+                              // Also save supplemental text with unified endpoint
+                              supplementalText: supplementalInfo.text
+                            };
                             
-                            if (!supplementalResponse.ok) {
-                              const error = await supplementalResponse.json();
-                              throw new Error(error.message || "Failed to save supplemental information");
-                            }
-                            
-                            // Save order details using the new endpoint
-                            const detailsResponse = await apiRequest('PUT', `/api/admin/orders/${orderId}/order-details`, {
-                              priority: orderDetails.priority,
-                              target_facility_id: 1, // TODO: This should be mapped from location name to ID
-                              special_instructions: orderDetails.instructions,
-                              scheduling_timeframe: orderDetails.scheduling
-                            });
+                            const detailsResponse = await apiRequest('PUT', `/api/admin/orders/${orderId}`, detailsPayload);
                             
                             if (detailsResponse.ok) {
                               toast({

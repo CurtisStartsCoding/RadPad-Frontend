@@ -105,3 +105,26 @@ Test scripts are located in `test-scripts/` directory. These test various API en
 3. All form validation should use Zod schemas
 4. UI components from shadcn/ui are in `client/src/components/ui/`
 5. Check `AWS API Docs/` for detailed API endpoint documentation
+
+## Commit Message Format
+
+All commits MUST follow this format:
+```
+type(scope): description
+```
+
+Examples:
+- `feat(admin): implement send to radiology API`
+- `fix(auth): resolve login redirect issue`
+- `docs(frontend): update API integration guide`
+- `refactor(orders): simplify validation logic`
+- `test(billing): add credit usage tests`
+
+Common types:
+- `feat`: New feature
+- `fix`: Bug fix
+- `docs`: Documentation changes
+- `refactor`: Code refactoring
+- `test`: Test additions/changes
+- `chore`: Maintenance tasks
+- `style`: Code style changes
