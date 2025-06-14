@@ -8,6 +8,15 @@ import {
   TableHeader,
   TableRow
 } from "@/components/ui/table";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -72,6 +81,7 @@ const OrderList = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   const [selectedFilter, setSelectedFilter] = useState("all");
+  const [currentPage, setCurrentPage] = useState(1);
   const [_, setLocation] = useLocation();
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
   
@@ -93,10 +103,13 @@ const OrderList = () => {
     if (searchQuery.length >= 3) {
       // Set a new timer for 2 seconds
       debounceTimerRef.current = setTimeout(() => {
+        // Reset to page 1 when search query changes
+        setCurrentPage(1);
         setDebouncedSearchQuery(searchQuery);
       }, 2000);
     } else if (searchQuery.length === 0 && debouncedSearchQuery !== "") {
-      // If search is cleared, update immediately
+      // If search is cleared, update immediately and reset to page 1
+      setCurrentPage(1);
       setDebouncedSearchQuery("");
     }
     
@@ -110,7 +123,7 @@ const OrderList = () => {
   
   // Fetch orders from the API
   const { data, isLoading, error, refetch } = useQuery<OrdersApiResponse>({
-    queryKey: ['/api/orders', debouncedSearchQuery, selectedFilter],
+    queryKey: ['/api/orders', debouncedSearchQuery, selectedFilter, currentPage],
     queryFn: async () => {
       // Build the query parameters
       let endpoint = '/api/orders';
@@ -125,6 +138,9 @@ const OrderList = () => {
       if (selectedFilter !== "all") {
         params.append('status', selectedFilter);
       }
+      
+      // Add pagination
+      params.append('page', currentPage.toString());
       
       // Append query parameters if any exist
       if (params.toString()) {
@@ -261,6 +277,100 @@ const OrderList = () => {
         return null;
     }
   };
+  
+  // Handle page change
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    // Scroll to top of the table when changing pages
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+  
+  // Generate pagination items
+  const renderPaginationItems = () => {
+    if (!data?.pagination) return null;
+    
+    const { total, page, limit, pages } = data.pagination;
+    const currentPage = page;
+    const totalPages = pages;
+    
+    // If no pages or only one page, don't show pagination
+    if (totalPages <= 1) return null;
+    
+    const items = [];
+    
+    // Previous button
+    items.push(
+      <PaginationItem key="prev">
+        <PaginationPrevious
+          onClick={() => handlePageChange(currentPage - 1)}
+          className={currentPage <= 1 ? "pointer-events-none opacity-50" : ""}
+        />
+      </PaginationItem>
+    );
+    
+    // First page
+    items.push(
+      <PaginationItem key={1}>
+        <PaginationLink
+          isActive={currentPage === 1}
+          onClick={() => handlePageChange(1)}
+        >
+          1
+        </PaginationLink>
+      </PaginationItem>
+    );
+    
+    // Ellipsis after first page
+    if (currentPage > 3) {
+      items.push(<PaginationItem key="ellipsis1"><PaginationEllipsis /></PaginationItem>);
+    }
+    
+    // Pages around current page
+    for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) {
+      if (i === 1 || i === totalPages) continue; // Skip first and last page as they're always shown
+      items.push(
+        <PaginationItem key={i}>
+          <PaginationLink
+            isActive={currentPage === i}
+            onClick={() => handlePageChange(i)}
+          >
+            {i}
+          </PaginationLink>
+        </PaginationItem>
+      );
+    }
+    
+    // Ellipsis before last page
+    if (currentPage < totalPages - 2) {
+      items.push(<PaginationItem key="ellipsis2"><PaginationEllipsis /></PaginationItem>);
+    }
+    
+    // Last page (if more than one page)
+    if (totalPages > 1) {
+      items.push(
+        <PaginationItem key={totalPages}>
+          <PaginationLink
+            isActive={currentPage === totalPages}
+            onClick={() => handlePageChange(totalPages)}
+          >
+            {totalPages}
+          </PaginationLink>
+        </PaginationItem>
+      );
+    }
+    
+    // Next button
+    items.push(
+      <PaginationItem key="next">
+        <PaginationNext
+          onClick={() => handlePageChange(currentPage + 1)}
+          className={currentPage >= totalPages ? "pointer-events-none opacity-50" : ""}
+        />
+      </PaginationItem>
+    );
+    
+    return items;
+  };
 
   return (
     <div className="p-6">
@@ -300,7 +410,8 @@ const OrderList = () => {
                           clearTimeout(debounceTimerRef.current);
                         }
                         
-                        // Update debounced query immediately
+                        // Reset to page 1 and update debounced query immediately
+                        setCurrentPage(1);
                         setDebouncedSearchQuery(searchQuery);
                       } else if (searchQuery.length === 0) {
                         // If search is cleared, update immediately
@@ -320,6 +431,8 @@ const OrderList = () => {
                   value={selectedFilter}
                   onValueChange={(value) => {
                     setSelectedFilter(value);
+                    // Reset to page 1 when filter changes
+                    setCurrentPage(1);
                     // Refetch orders when filter changes
                     refetch();
                   }}
@@ -337,6 +450,15 @@ const OrderList = () => {
                 </Select>
               </div>
             </div>
+            
+            {/* Top Pagination */}
+            {data?.pagination && data.pagination.pages > 1 && (
+              <Pagination className="my-4">
+                <PaginationContent>
+                  {renderPaginationItems()}
+                </PaginationContent>
+              </Pagination>
+            )}
             
             {isLoading ? (
               <div className="flex justify-center items-center py-12">
@@ -402,6 +524,22 @@ const OrderList = () => {
                   )}
                 </TableBody>
               </Table>
+            )}
+            
+            {/* Bottom Pagination */}
+            {data?.pagination && data.pagination.pages > 1 && (
+              <Pagination className="my-4">
+                <PaginationContent>
+                  {renderPaginationItems()}
+                </PaginationContent>
+              </Pagination>
+            )}
+            
+            {/* Pagination Summary */}
+            {data?.pagination && (
+              <div className="text-sm text-slate-500 text-center mt-2">
+                Showing page {data.pagination.page} of {data.pagination.pages} ({data.pagination.total} total orders)
+              </div>
             )}
           </div>
         </CardContent>
