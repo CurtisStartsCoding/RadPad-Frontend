@@ -84,6 +84,9 @@ my_profile_content.txt
 # Temporary files
 scratch/
 
+# Claude Code local settings
+.claude/
+
 # Lock files (optional, uncomment if you want to exclude)
 # package-lock.json
 # yarn.lock
@@ -92,3 +95,4 @@ scratch/
 # DO NOT ignore these important files
 !client/src/pages/TrialValidation.tsx
 !client/src/components/order/DictationForm.tsx
+.claude/settings.local.json
