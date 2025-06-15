@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Home, LogOut, Settings, FileText, Building2, User, CreditCard, Users, Stethoscope, ListChecks, Map } from "lucide-react";
+import { Home, LogOut, Settings, FileText, Building2, User, CreditCard, Users, Stethoscope, ListChecks, Map, Link } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AppPage } from "@/App";
 import { UserRole, hasAccess } from "@/lib/roles";
@@ -189,6 +189,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
       { key: "org-profile", page: AppPage.OrgProfile, icon: <Building2 className="h-4 w-4 mr-3 text-gray-500" />, label: "Organization" },
       { key: "locations", page: AppPage.Locations, icon: <Map className="h-4 w-4 mr-3 text-gray-500" />, label: "Locations" },
       { key: "users", page: AppPage.Users, icon: <Users className="h-4 w-4 mr-3 text-gray-500" />, label: "Users" },
+      { key: "connections", page: AppPage.Connections, icon: <Link className="h-4 w-4 mr-3 text-gray-500" />, label: "Connections" },
       { key: "billing", page: AppPage.Billing, icon: <CreditCard className="h-4 w-4 mr-3 text-gray-500" />, label: "Billing & Credits" },
       
       { key: "profile", page: AppPage.Profile, icon: <User className="h-4 w-4 mr-3 text-gray-500" />, label: "My Profile", alwaysShow: true },

@@ -93,6 +93,7 @@ All API configuration is in `client/src/lib/config.ts`.
 3. **Order Workflow**: Creation → Validation → Admin Finalization → Radiology
 4. **Trial Mode**: Special sandbox environment for testing without real data
 5. **Organization Structure**: Users belong to organizations with locations
+6. **Connections**: Organizations must establish connections before exchanging orders
 
 ## Testing
 
@@ -105,20 +106,23 @@ Test scripts are located in `test-scripts/` directory. These test various API en
 3. All form validation should use Zod schemas
 4. UI components from shadcn/ui are in `client/src/components/ui/`
 5. Check `AWS API Docs/` for detailed API endpoint documentation
+6. Comprehensive frontend documentation is in the backend repo at `final-documentation/frontend/`
 
 ## Commit Message Format
 
 All commits MUST follow this format:
 ```
-type(scope): description
+type: description
 ```
 
 Examples:
-- `feat(admin): implement send to radiology API`
-- `fix(auth): resolve login redirect issue`
-- `docs(frontend): update API integration guide`
-- `refactor(orders): simplify validation logic`
-- `test(billing): add credit usage tests`
+- `feat: implement send to radiology API`
+- `fix: resolve login redirect issue`
+- `docs: update API integration guide`
+- `refactor: simplify validation logic`
+- `test: add credit usage tests`
+- `chore: update dependencies`
+- `style: format code with prettier`
 
 Common types:
 - `feat`: New feature

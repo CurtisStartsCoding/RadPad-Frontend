@@ -4,24 +4,29 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import PageHeader from "@/components/layout/PageHeader";
 import { PlusCircle, Search, Building2, Link2, CheckCircle2, Clock, XCircle, Loader2 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
-// Define the Connection type based on API response
+// Define the Connection type based on actual API response
 interface ApiConnection {
   id: number;
-  name: string;
-  type: 'radiology' | 'referring';
+  partnerOrgId: number;
+  partnerOrgName: string;
+  partnerOrgType: 'radiology_group' | 'referring_practice';
   status: 'active' | 'pending' | 'rejected';
-  connected_at?: string;
-  requested_at?: string;
-  direction?: 'incoming' | 'outgoing';
+  isInitiator: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 const Connections = () => {
   const [searchQuery, setSearchQuery] = useState("");
+  const [showRequestDialog, setShowRequestDialog] = useState(false);
+  const [selectedOrgId, setSelectedOrgId] = useState<number | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
@@ -34,9 +39,24 @@ const Connections = () => {
         throw new Error('Failed to fetch connections');
       }
       const data = await response.json();
-      return data;
+      // Handle the response format - API returns {connections: [...]}
+      return data.connections || data;
     },
     staleTime: 60000, // 1 minute
+  });
+  
+  // Fetch available organizations for connection requests
+  const { data: availableOrgs } = useQuery({
+    queryKey: ['/api/organizations', 'radiology'],
+    queryFn: async () => {
+      const response = await apiRequest('GET', '/api/organizations?type=radiology_group', undefined);
+      if (!response.ok) {
+        throw new Error('Failed to fetch organizations');
+      }
+      const data = await response.json();
+      return data.data || [];
+    },
+    enabled: showRequestDialog,
   });
   
   // Approve connection mutation
@@ -114,17 +134,48 @@ const Connections = () => {
     },
   });
   
+  // Request connection mutation
+  const requestConnectionMutation = useMutation({
+    mutationFn: async (organizationId: number) => {
+      const response = await apiRequest('POST', '/api/connections', {
+        targetOrgId: organizationId,
+        notes: 'Partnership request for services'
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to request connection');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Connection requested",
+        description: "Your connection request has been sent",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/connections'] });
+      setShowRequestDialog(false);
+      setSelectedOrgId(null);
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : 'Failed to request connection',
+        variant: "destructive",
+      });
+    },
+  });
+  
   // Filter connections based on status
   const activeConnections = connections?.filter(conn => conn.status === 'active') || [];
   const pendingConnections = connections?.filter(conn => conn.status === 'pending') || [];
   
   // Filter connections based on search query
   const filteredActiveConnections = searchQuery
-    ? activeConnections.filter(conn => conn.name.toLowerCase().includes(searchQuery.toLowerCase()))
+    ? activeConnections.filter(conn => conn.partnerOrgName.toLowerCase().includes(searchQuery.toLowerCase()))
     : activeConnections;
     
   const filteredPendingConnections = searchQuery
-    ? pendingConnections.filter(conn => conn.name.toLowerCase().includes(searchQuery.toLowerCase()))
+    ? pendingConnections.filter(conn => conn.partnerOrgName.toLowerCase().includes(searchQuery.toLowerCase()))
     : pendingConnections;
   
   return (
@@ -133,7 +184,10 @@ const Connections = () => {
         title="Connections" 
         description="Manage connections with other organizations"
       >
-        <Button className="inline-flex items-center">
+        <Button 
+          className="inline-flex items-center"
+          onClick={() => setShowRequestDialog(true)}
+        >
           <PlusCircle className="h-4 w-4 mr-1.5" />
           Request Connection
         </Button>
@@ -180,6 +234,7 @@ const Connections = () => {
                     <tr className="bg-slate-50">
                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Organization</th>
                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Type</th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Connection ID</th>
                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Connected Since</th>
                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Actions</th>
                     </tr>
@@ -187,7 +242,7 @@ const Connections = () => {
                   <tbody className="bg-white divide-y divide-slate-200">
                     {filteredActiveConnections.length === 0 ? (
                       <tr>
-                        <td colSpan={4} className="px-6 py-8 text-center text-sm text-slate-500">
+                        <td colSpan={5} className="px-6 py-8 text-center text-sm text-slate-500">
                           No active connections found
                         </td>
                       </tr>
@@ -200,17 +255,21 @@ const Connections = () => {
                                 <Building2 className="h-6 w-6 text-primary" />
                               </div>
                               <div className="ml-3">
-                                <div className="text-sm font-medium text-slate-900">{connection.name}</div>
+                                <div className="text-sm font-medium text-slate-900">{connection.partnerOrgName}</div>
+                                <div className="text-xs text-slate-500">Org ID: {connection.partnerOrgId}</div>
                               </div>
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <span className="px-2.5 py-0.5 inline-flex text-xs leading-5 font-medium rounded-full bg-blue-100 text-blue-800">
-                              {connection.type === 'radiology' ? 'Radiology Group' : 'Referring Practice'}
+                              {connection.partnerOrgType === 'radiology_group' ? 'Radiology Group' : 'Referring Practice'}
                             </span>
                           </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className="text-sm font-mono text-slate-600">{connection.id}</span>
+                          </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
-                            {connection.connected_at ? new Date(connection.connected_at).toLocaleDateString() : 'N/A'}
+                            {connection.createdAt ? new Date(connection.createdAt).toLocaleDateString() : 'N/A'}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm">
                             <div className="flex space-x-2">
@@ -262,6 +321,7 @@ const Connections = () => {
                     <tr className="bg-slate-50">
                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Organization</th>
                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Type</th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Connection ID</th>
                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Direction</th>
                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Requested On</th>
                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Actions</th>
@@ -270,7 +330,7 @@ const Connections = () => {
                   <tbody className="bg-white divide-y divide-slate-200">
                     {filteredPendingConnections.length === 0 ? (
                       <tr>
-                        <td colSpan={5} className="px-6 py-8 text-center text-sm text-slate-500">
+                        <td colSpan={6} className="px-6 py-8 text-center text-sm text-slate-500">
                           No pending connection requests found
                         </td>
                       </tr>
@@ -283,27 +343,31 @@ const Connections = () => {
                                 <Building2 className="h-6 w-6 text-slate-500" />
                               </div>
                               <div className="ml-3">
-                                <div className="text-sm font-medium text-slate-900">{connection.name}</div>
+                                <div className="text-sm font-medium text-slate-900">{connection.partnerOrgName}</div>
+                                <div className="text-xs text-slate-500">Org ID: {connection.partnerOrgId}</div>
                               </div>
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <span className="px-2.5 py-0.5 inline-flex text-xs leading-5 font-medium rounded-full bg-blue-100 text-blue-800">
-                              {connection.type === 'radiology' ? 'Radiology Group' : 'Referring Practice'}
+                              {connection.partnerOrgType === 'radiology_group' ? 'Radiology Group' : 'Referring Practice'}
                             </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className="text-sm font-mono text-slate-600">{connection.id}</span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <span className="inline-flex items-center text-sm">
                               <Link2 className="h-4 w-4 text-slate-400 mr-1.5" />
-                              {connection.direction === 'incoming' ? 'Incoming Request' : 'Outgoing Request'}
+                              {connection.isInitiator ? 'Outgoing Request' : 'Incoming Request'}
                             </span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
-                            {connection.requested_at ? new Date(connection.requested_at).toLocaleDateString() : 'N/A'}
+                            {connection.createdAt ? new Date(connection.createdAt).toLocaleDateString() : 'N/A'}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm">
                             <div className="flex space-x-2">
-                              {connection.direction === 'incoming' ? (
+                              {!connection.isInitiator ? (
                                 <>
                                   <Button
                                     variant="outline"
@@ -368,6 +432,71 @@ const Connections = () => {
           </TabsContent>
         </Tabs>
       </Card>
+      
+      {/* Request Connection Dialog */}
+      <Dialog open={showRequestDialog} onOpenChange={setShowRequestDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Request Connection</DialogTitle>
+            <DialogDescription>
+              Select a radiology organization to connect with
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Organization</label>
+              <Select
+                value={selectedOrgId?.toString() || ""}
+                onValueChange={(value) => setSelectedOrgId(parseInt(value))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a radiology organization" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableOrgs?.map((org: any) => (
+                    <SelectItem key={org.id} value={org.id.toString()}>
+                      {org.name} (ID: {org.id})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            {selectedOrgId && (
+              <div className="text-sm text-muted-foreground">
+                You are about to request a connection with the selected organization.
+                They will need to approve your request before you can exchange orders.
+              </div>
+            )}
+          </div>
+          
+          <div className="flex justify-end space-x-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowRequestDialog(false);
+                setSelectedOrgId(null);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => selectedOrgId && requestConnectionMutation.mutate(selectedOrgId)}
+              disabled={!selectedOrgId || requestConnectionMutation.isPending}
+            >
+              {requestConnectionMutation.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Sending...
+                </>
+              ) : (
+                'Send Request'
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
