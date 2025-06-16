@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   Table,
@@ -48,14 +48,62 @@ interface ApiRadiologyOrder {
 
 const RadiologyQueue = () => {
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   const [selectedFilter, setSelectedFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Effect to handle debounced search
+  useEffect(() => {
+    // Clear any existing timer
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+    
+    // Only set up debounce timer if search query is at least 3 characters
+    if (searchQuery.length >= 3) {
+      // Set a new timer for 2 seconds
+      debounceTimerRef.current = setTimeout(() => {
+        setDebouncedSearchQuery(searchQuery);
+      }, 2000);
+    } else if (searchQuery.length === 0 && debouncedSearchQuery !== "") {
+      // If search is cleared, update immediately
+      setDebouncedSearchQuery("");
+    }
+    
+    // Cleanup function to clear the timer if component unmounts or searchQuery changes
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, [searchQuery]);
   
   // Fetch orders from the API
   const { data, isLoading, error } = useQuery<{orders: ApiRadiologyOrder[]} | ApiRadiologyOrder[]>({
-    queryKey: ['/api/radiology/orders', statusFilter],
+    queryKey: ['/api/radiology/orders', statusFilter, debouncedSearchQuery],
     queryFn: async () => {
-      const response = await apiRequest('GET', `/api/radiology/orders?status=${statusFilter}`, undefined);
+      // Build the query parameters
+      let endpoint = `/api/radiology/orders`;
+      const params = new URLSearchParams();
+      
+      // Add status filter if not "all"
+      if (statusFilter !== "all") {
+        params.append('status', statusFilter);
+      }
+      
+      // Add search query if provided and at least 3 characters
+      if (debouncedSearchQuery && debouncedSearchQuery.length >= 3) {
+        params.append('search', debouncedSearchQuery);
+      }
+      
+      // Append query parameters if any exist
+      if (params.toString()) {
+        endpoint += `?${params.toString()}`;
+      }
+      
+      console.log(`Fetching radiology orders with endpoint: ${endpoint}`);
+      const response = await apiRequest('GET', endpoint, undefined);
       if (!response.ok) {
         throw new Error('Failed to fetch radiology orders');
       }
@@ -88,16 +136,19 @@ const RadiologyQueue = () => {
     return false;
   }) || [];
   
-  // Further filter by search query
-  const searchFilteredOrders = filteredOrders.filter(order => {
-    const searchLower = searchQuery.toLowerCase();
-    return (
-      (order.patient_name && order.patient_name.toLowerCase().includes(searchLower)) ||
-      (order.patient_mrn && order.patient_mrn.toLowerCase().includes(searchLower)) ||
-      (order.modality && order.modality.toLowerCase().includes(searchLower)) ||
-      searchLower === ''  // Always include all orders when search is empty
-    );
-  });
+  // Further filter by search query if not using API search
+  const searchFilteredOrders = debouncedSearchQuery && debouncedSearchQuery.length >= 3
+    ? filteredOrders
+    : filteredOrders.filter(order => {
+        const searchLower = searchQuery.toLowerCase();
+        if (searchLower === '') return true; // Always include all orders when search is empty
+        
+        return (
+          (order.patient_name && order.patient_name.toLowerCase().includes(searchLower)) ||
+          (order.patient_mrn && order.patient_mrn.toLowerCase().includes(searchLower)) ||
+          (order.modality && order.modality.toLowerCase().includes(searchLower))
+        );
+      });
   
   // Format date for display
   const formatDate = (dateString: string) => {
@@ -177,6 +228,29 @@ const RadiologyQueue = () => {
                   className="pl-9"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      // Prevent default form submission behavior
+                      e.preventDefault();
+                      
+                      // Only trigger search if at least 3 characters
+                      if (searchQuery.length >= 3) {
+                        // Clear any existing timer
+                        if (debounceTimerRef.current) {
+                          clearTimeout(debounceTimerRef.current);
+                        }
+                        
+                        // Update debounced query immediately
+                        setDebouncedSearchQuery(searchQuery);
+                      } else if (searchQuery.length === 0) {
+                        // If search is cleared, update immediately
+                        setDebouncedSearchQuery("");
+                      } else {
+                        // Show a message that at least 3 characters are required
+                        console.log("Please enter at least 3 characters to search");
+                      }
+                    }
+                  }}
                 />
               </div>
               
