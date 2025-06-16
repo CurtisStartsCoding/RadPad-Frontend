@@ -1,5 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AppPage } from "@/App";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { useLocation } from "wouter";
 import { 
   Card, 
   CardContent, 
@@ -50,17 +53,116 @@ interface AdminOrderFinalizationProps {
 }
 
 const AdminOrderFinalization: React.FC<AdminOrderFinalizationProps> = ({ navigateTo }) => {
+  const [, setLocation] = useLocation();
   const [currentTab, setCurrentTab] = useState("patient");
   const [isSending, setIsSending] = useState(false);
   const [orderSent, setOrderSent] = useState(false);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   
-  // Mock order data based on ID (in a real app, this would be fetched from API)
-  // Just use first order for mock, but override modality for this example
-  const [order, setOrder] = useState({
+  // Get order ID from sessionStorage
+  const orderId = sessionStorage.getItem('currentOrderId');
+  
+  // Fetch order data from API
+  const { data: orderData, isLoading, error } = useQuery({
+    queryKey: ['/api/orders', orderId],
+    queryFn: async () => {
+      if (!orderId) throw new Error('No order ID found');
+      const response = await apiRequest('GET', `/api/orders/${orderId}`, undefined);
+      if (!response.ok) {
+        throw new Error('Failed to fetch order');
+      }
+      const result = await response.json();
+      console.log('Order data fetched:', result);
+      console.log('Patient fields in response:', {
+        patient_first_name: result.patient_first_name,
+        patient_last_name: result.patient_last_name,
+        patient_dob: result.patient_dob,
+        patient_date_of_birth: result.patient_date_of_birth,
+        patient_city: result.patient_city,
+        patient_state: result.patient_state,
+        patient_zip_code: result.patient_zip_code,
+        insurance_name: result.insurance_name,
+        insurance_group_number: result.insurance_group_number
+      });
+      // TODO: Backend needs to return patient/insurance data with order
+      return result.data || result; // Handle both {data: order} and direct order response
+    },
+    enabled: !!orderId,
+    staleTime: 0, // Always fetch fresh data when returning to order
+  });
+  
+  // Initialize order state with fetched data or mock data
+  const [order, setOrder] = useState(orderData || {
     ...allOrders[0], 
     modality: "MOCK-MRI Knee (Test)"
   });
+  
+  // Update order state when data is loaded
+  useEffect(() => {
+    if (orderData) {
+      setOrder(orderData);
+      // Also update patient info with real data
+      // Format date to YYYY-MM-DD if it exists
+      let formattedDob = '';
+      // Check both possible field names
+      const dobValue = orderData.patient_date_of_birth || orderData.patient_dob;
+      if (dobValue) {
+        // Handle various date formats
+        const date = new Date(dobValue);
+        if (!isNaN(date.getTime())) {
+          formattedDob = date.toISOString().split('T')[0];
+        } else {
+          formattedDob = dobValue; // Use as-is if parsing fails
+        }
+      }
+      
+      setPatientInfo({
+        firstName: orderData.patient_first_name || '',
+        lastName: orderData.patient_last_name || '',
+        dateOfBirth: formattedDob,
+        gender: orderData.patient_gender || '',
+        addressLine1: orderData.patient_address_line1 || '',
+        addressLine2: orderData.patient_address_line2 || '',
+        city: orderData.patient_city || '',
+        state: orderData.patient_state || '',
+        zipCode: orderData.patient_zip_code || '',
+        phoneNumber: orderData.patient_phone_number || '',
+        email: orderData.patient_email || '',
+        mrn: orderData.patient_mrn || ''
+      });
+      // Also update insurance info with real data
+      setInsuranceInfo({
+        insurerName: orderData.insurance_name || '',
+        planName: orderData.insurance_plan_name || '',
+        policyNumber: orderData.insurance_policy_number || '',
+        groupNumber: orderData.insurance_group_number || '',
+        policyHolderName: `${orderData.patient_first_name || ''} ${orderData.patient_last_name || ''}`,
+        policyHolderRelationship: orderData.insurance_policy_holder_relationship || 'self',
+        policyHolderDateOfBirth: orderData.insurance_policy_holder_dob || orderData.patient_dob || '',
+        secondaryInsurerName: '',
+        secondaryPlanName: '',
+        secondaryPolicyNumber: '',
+        secondaryGroupNumber: ''
+      });
+      // Update supplemental info if available
+      if (orderData.supplemental_text || orderData.supplemental_info || orderData.supplemental_emr_content) {
+        setSupplementalInfo({
+          text: orderData.supplemental_text || orderData.supplemental_info || orderData.supplemental_emr_content || ''
+        });
+      }
+      // Update order details if available
+      if (orderData.priority || orderData.special_instructions) {
+        setOrderDetails(prev => ({
+          ...prev,
+          priority: orderData.priority || prev.priority,
+          instructions: orderData.special_instructions || prev.instructions,
+          // TODO: Map target_facility_id back to location name
+          // scheduling_timeframe is not stored in DB
+        }));
+      }
+    }
+  }, [orderData]);
   
   // Function to update radiology group
   const setRadiologyGroup = (group: string) => {
@@ -70,31 +172,31 @@ const AdminOrderFinalization: React.FC<AdminOrderFinalizationProps> = ({ navigat
     });
   };
   
-  // Patient information state
+  // Patient information state - use actual data if available
   const [patientInfo, setPatientInfo] = useState({
-    firstName: "TEST_" + (order.patient.name.split(' ')[0] || ''),
-    lastName: "MOCK_" + (order.patient.name.split(' ')[1] || ''),
-    dateOfBirth: order.patient.dob,
-    gender: "female",
-    addressLine1: "123 FAKE Street",
-    addressLine2: "MOCK Suite 456",
-    city: "TESTVILLE",
-    state: "ZZ",
-    zipCode: "00000",
-    phoneNumber: "(555) MOCK-DATA",
-    email: "fake.patient@mockdata.test",
-    mrn: "MOCK-" + order.patient.mrn
+    firstName: orderData?.patient_first_name || "TEST_" + (order.patient?.name?.split(' ')[0] || ''),
+    lastName: orderData?.patient_last_name || "MOCK_" + (order.patient?.name?.split(' ')[1] || ''),
+    dateOfBirth: orderData?.patient_dob || order.patient?.dob || '',
+    gender: orderData?.patient_gender || "female",
+    addressLine1: orderData?.patient_address_line1 || "123 FAKE Street",
+    addressLine2: orderData?.patient_address_line2 || "MOCK Suite 456",
+    city: orderData?.patient_city || "TESTVILLE",
+    state: orderData?.patient_state || "ZZ",
+    zipCode: orderData?.patient_zip_code || "00000",
+    phoneNumber: orderData?.patient_phone_number || "(555) MOCK-DATA",
+    email: orderData?.patient_email || "fake.patient@mockdata.test",
+    mrn: orderData?.patient_mrn || "MOCK-" + (order.patient?.mrn || '')
   });
   
   // Insurance information state
   const [insuranceInfo, setInsuranceInfo] = useState({
-    insurerName: "MOCK-Insurance Company (TEST)",
-    planName: "FAKE-Care PPO SAMPLE",
-    policyNumber: "TEST-POLICY-123456789",
-    groupNumber: "MOCK-GRP-12345",
-    policyHolderName: "TEST_" + order.patient.name,
-    policyHolderRelationship: "self",
-    policyHolderDateOfBirth: order.patient.dob,
+    insurerName: orderData?.insurance_name || "MOCK-Insurance Company (TEST)",
+    planName: orderData?.insurance_plan_name || "FAKE-Care PPO SAMPLE",
+    policyNumber: orderData?.insurance_policy_number || "TEST-POLICY-123456789",
+    groupNumber: orderData?.insurance_group_number || "MOCK-GRP-12345",
+    policyHolderName: orderData ? `${orderData.patient_first_name || ''} ${orderData.patient_last_name || ''}` : "TEST_Patient",
+    policyHolderRelationship: orderData?.insurance_policy_holder_relationship || "self",
+    policyHolderDateOfBirth: orderData?.insurance_policy_holder_dob || orderData?.patient_dob || '',
     secondaryInsurerName: "",
     secondaryPlanName: "",
     secondaryPolicyNumber: "",
@@ -111,17 +213,17 @@ const AdminOrderFinalization: React.FC<AdminOrderFinalizationProps> = ({ navigat
   
   // Order details state
   const [orderDetails, setOrderDetails] = useState({
-    orderNumber: `TEST-ROP-${new Date().toISOString().slice(2,4)}${new Date().toISOString().slice(5,7)}${new Date().toISOString().slice(8,10)}-MOCK`,
+    orderNumber: orderData?.order_number || `TEST-ROP-${new Date().toISOString().slice(2,4)}${new Date().toISOString().slice(5,7)}${new Date().toISOString().slice(8,10)}-MOCK`,
     location: "MOCK Imaging Center – TEST Campus",
-    scheduling: "Within 14 days (SAMPLE)",
-    priority: "Routine (TEST)",
-    primaryIcd10: "M25.561-MOCK",
-    primaryDescription: "FAKE Pain in right knee (TEST)",
-    secondaryIcd10: "M17.11-MOCK",
-    secondaryDescription: "SAMPLE Unilateral primary osteoarthritis, right knee (TEST)",
-    cptCode: "73721-TEST",
-    cptDescription: "MOCK MRI knee without contrast (SAMPLE)",
-    instructions: "✓ MOCK: No contraindications to contrast.\n✓ TEST: No known drug allergies.\n→ SAMPLE: Patient reports claustrophobia; sedation may be required.\n→ THIS IS FAKE DATA FOR TESTING PURPOSES ONLY."
+    scheduling: "Within 14 days",
+    priority: "routine",
+    primaryIcd10: orderData?.final_icd10_codes?.[0] || "M25.561-MOCK",
+    primaryDescription: orderData?.final_icd10_code_descriptions?.[0] || "FAKE Pain in right knee (TEST)",
+    secondaryIcd10: orderData?.final_icd10_codes?.[1] || "M17.11-MOCK",
+    secondaryDescription: orderData?.final_icd10_code_descriptions?.[1] || "SAMPLE Unilateral primary osteoarthritis, right knee (TEST)",
+    cptCode: orderData?.final_cpt_code || "73721-TEST",
+    cptDescription: orderData?.final_cpt_code_description || "MOCK MRI knee without contrast (SAMPLE)",
+    instructions: ""
   });
   
   // Referring physician state
@@ -202,7 +304,7 @@ const AdminOrderFinalization: React.FC<AdminOrderFinalizationProps> = ({ navigat
   };
 
   // Parse EMR text
-  const handleParseEmr = () => {
+  const handleParseEmr = async () => {
     if (!emrText.trim()) {
       toast({
         title: "Error",
@@ -213,54 +315,67 @@ const AdminOrderFinalization: React.FC<AdminOrderFinalizationProps> = ({ navigat
     }
 
     setIsParsing(true);
-    // Simulate API call to parse EMR text
-    setTimeout(() => {
-      // Mock successful parsing
-      setPatientInfo({
-        ...patientInfo,
-        firstName: "MOCK_Margaret",
-        lastName: "TEST_Thompson",
-        dateOfBirth: "1975-08-15",
-        gender: "female",
-        addressLine1: "456 FAKE Park Avenue",
-        addressLine2: "TEST Apt 7B",
-        city: "MOCK New York",
-        state: "ZZ",
-        zipCode: "00000",
-        phoneNumber: "(555) MOCK-TEST",
-        email: "fake.patient@mockdata.test",
-        mrn: "MOCK-PT789012-TEST"
-      });
-      
-      setInsuranceInfo({
-        ...insuranceInfo,
-        insurerName: "MOCK Aetna Health Insurance (TEST)",
-        planName: "FAKE Aetna Choice POS II (SAMPLE)",
-        policyNumber: "TEST-AET12345678-MOCK",
-        groupNumber: "MOCK-GRP-98765-TEST",
-        policyHolderName: "MOCK_Margaret TEST_Thompson",
-        policyHolderRelationship: "self",
-        policyHolderDateOfBirth: "1975-08-15",
-        secondaryInsurerName: "MOCK Medicare Part B (TEST)",
-        secondaryPlanName: "FAKE Original Medicare (SAMPLE)",
-        secondaryPolicyNumber: "TEST-MED87654321-MOCK",
-        secondaryGroupNumber: "MOCK-MEDGRP-54321-TEST"
-      });
-      
-      setIsParsing(false);
-      setParsingComplete(true);
-      setParsingStatus({
-        patient: true,
-        insurance: true,
-        message: "Successfully extracted patient and insurance information from EMR text."
+    try {
+      // Call the real API to parse EMR text
+      const response = await apiRequest('POST', `/api/admin/orders/${orderId}/paste-summary`, {
+        pastedText: emrText
       });
 
+      if (response.ok) {
+        const result = await response.json();
+        
+        // Update patient info with parsed data
+        if (result.parsedData?.patientInfo) {
+          const parsed = result.parsedData.patientInfo;
+          setPatientInfo(prev => ({
+            ...prev,
+            addressLine1: parsed.address || prev.addressLine1,
+            city: parsed.city || prev.city,
+            state: parsed.state || prev.state,
+            zipCode: parsed.zipCode || prev.zipCode,
+            phoneNumber: parsed.phone || prev.phoneNumber,
+            email: parsed.email || prev.email
+          }));
+        }
+        
+        // Update insurance info with parsed data
+        if (result.parsedData?.insuranceInfo) {
+          const parsed = result.parsedData.insuranceInfo;
+          setInsuranceInfo(prev => ({
+            ...prev,
+            insurerName: parsed.insurerName || prev.insurerName,
+            policyNumber: parsed.policyNumber || prev.policyNumber,
+            groupNumber: parsed.groupNumber || prev.groupNumber,
+            policyHolderName: parsed.policyHolderName || prev.policyHolderName,
+            policyHolderRelationship: parsed.relationship || prev.policyHolderRelationship
+          }));
+        }
+        
+        setIsParsing(false);
+        setParsingComplete(true);
+        setParsingStatus({
+          patient: true,
+          insurance: true,
+          message: result.message || "Successfully extracted patient and insurance information from EMR text."
+        });
+
+        toast({
+          title: "Success",
+          description: "Patient and insurance information extracted successfully",
+          variant: "default",
+        });
+      } else {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to parse EMR text");
+      }
+    } catch (error) {
+      setIsParsing(false);
       toast({
-        title: "Success",
-        description: "Patient and insurance information extracted successfully",
-        variant: "default",
+        title: "Error",
+        description: error.message || "Failed to parse EMR text",
+        variant: "destructive",
       });
-    }, 2000);
+    }
   };
 
   // Handle navigation to next tab
@@ -294,27 +409,136 @@ const AdminOrderFinalization: React.FC<AdminOrderFinalizationProps> = ({ navigat
   };
   
   // Handle send to radiology
-  const handleSendToRadiology = () => {
+  const handleSendToRadiology = async () => {
+    // For now, we'll use a hardcoded radiology organization ID
+    // In a future update, we'll get this from a dropdown selection
+    const radiologyOrganizationId = 2; // This is what the backend tests use
+    
     setIsSending(true);
     
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      // Use the unified endpoint to save all data at once
+      const updateData = {
+        patient: {
+          firstName: patientInfo.firstName,
+          lastName: patientInfo.lastName,
+          middleName: '',
+          dateOfBirth: patientInfo.dateOfBirth,
+          gender: patientInfo.gender,
+          addressLine1: patientInfo.addressLine1,
+          addressLine2: patientInfo.addressLine2,
+          city: patientInfo.city,
+          state: patientInfo.state,
+          zipCode: patientInfo.zipCode,
+          phoneNumber: patientInfo.phoneNumber,
+          email: patientInfo.email,
+          mrn: patientInfo.mrn
+        }
+      };
+
+      // Add insurance if provided
+      if (insuranceInfo.insurerName || insuranceInfo.policyNumber) {
+        updateData.insurance = {
+          insurerName: insuranceInfo.insurerName,
+          policyNumber: insuranceInfo.policyNumber,
+          groupNumber: insuranceInfo.groupNumber,
+          planType: insuranceInfo.planName,
+          policyHolderName: insuranceInfo.policyHolderName,
+          policyHolderRelationship: insuranceInfo.policyHolderRelationship,
+          policyHolderDateOfBirth: insuranceInfo.policyHolderDateOfBirth,
+          isPrimary: true
+        };
+      }
+
+      // Save all data using unified endpoint
+      const saveResponse = await apiRequest('PUT', `/api/admin/orders/${orderId}`, updateData);
+
+      if (!saveResponse.ok) {
+        const error = await saveResponse.json();
+        toast({
+          title: "Error",
+          description: error.message || "Failed to save order information",
+          variant: "destructive",
+        });
+        setIsSending(false);
+        return;
+      }
+
+      // Then send to radiology
+      const response = await apiRequest('POST', `/api/admin/orders/${orderId}/send-to-radiology`, {
+        radiologyOrganizationId: radiologyOrganizationId
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        toast({
+          title: "Error",
+          description: error.message || "Failed to send order to radiology",
+          variant: "destructive",
+        });
+        setIsSending(false);
+        return;
+      }
+
+      const result = await response.json();
+      
       setIsSending(false);
       setOrderSent(true);
       
       toast({
         title: "Order sent to radiology",
-        description: "Order #" + order.id + " has been successfully sent to " + order.radiologyGroup,
+        description: `Order #${order.id} has been successfully sent to radiology.${result.remainingCredits !== undefined ? ` Credits remaining: ${result.remainingCredits}` : ''}`,
         variant: "default",
       });
-    }, 1500);
+    } catch (error) {
+      setIsSending(false);
+      toast({
+        title: "Error",
+        description: "Failed to send order to radiology. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
   
   // Handle go back to queue
   const handleBackToQueue = () => {
-    navigateTo && navigateTo(AppPage.AdminQueue);
+    setLocation('/admin-queue');
   };
   
+  // Handle loading state
+  if (isLoading) {
+    return (
+      <div className="p-6">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Loading order details...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Handle error state
+  if (error || !order) {
+    return (
+      <div className="p-6">
+        <Alert variant="destructive">
+          <AlertTitle>Error Loading Order</AlertTitle>
+          <AlertDescription>
+            {error?.message || 'Unable to load order details. Please try again.'}
+          </AlertDescription>
+        </Alert>
+        <Button
+          className="mt-4"
+          onClick={handleBackToQueue}
+        >
+          Back to Queue
+        </Button>
+      </div>
+    );
+  }
+
   return (
     <div className="p-6">
       <PageHeader
@@ -341,7 +565,7 @@ const AdminOrderFinalization: React.FC<AdminOrderFinalizationProps> = ({ navigat
               </div>
               <h2 className="text-xl font-medium mb-2">Order Successfully Sent</h2>
               <p className="text-center text-slate-500 max-w-md mb-6">
-                Order #{order.id} for {order.patient.name} has been sent to {order.radiologyGroup}.
+                Order #{order.id} for {`${order.patient_first_name || ''} ${order.patient_last_name || ''}`.trim() || 'Patient'} has been sent to {order.radiology_organization?.name || order.radiologyGroup || 'the radiology facility'}.
                 They will contact the patient directly for scheduling.
               </p>
               <div className="flex space-x-4">
@@ -358,11 +582,11 @@ const AdminOrderFinalization: React.FC<AdminOrderFinalizationProps> = ({ navigat
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle>Order #{order.id} - {order.modality}</CardTitle>
-                  <CardDescription>Created on {new Date(order.createdAt).toLocaleDateString()}</CardDescription>
+                  <CardTitle>Order #{order.id || order.order_number} - {order.modality || 'N/A'}</CardTitle>
+                  <CardDescription>Created on {new Date(order.created_at || order.createdAt).toLocaleDateString()}</CardDescription>
                 </div>
                 <Badge variant="outline" className="bg-amber-50 border-amber-200 text-amber-700">
-                  Needs Completion
+                  Pending Admin
                 </Badge>
               </div>
             </CardHeader>
@@ -370,18 +594,18 @@ const AdminOrderFinalization: React.FC<AdminOrderFinalizationProps> = ({ navigat
               <div className="grid grid-cols-3 gap-4">
                 <div>
                   <p className="text-sm font-medium mb-1">Patient</p>
-                  <p className="text-slate-600">{order.patient.name}</p>
-                  <p className="text-xs text-slate-400">DOB: {order.patient.dob}</p>
-                  <p className="text-xs text-slate-400">MRN: {order.patient.mrn}</p>
+                  <p className="text-slate-600">{`${order.patient_first_name || ''} ${order.patient_last_name || ''}`}</p>
+                  <p className="text-xs text-slate-400">DOB: {order.patient_dob || 'N/A'}</p>
+                  <p className="text-xs text-slate-400">MRN: {order.patient_mrn || 'N/A'}</p>
                 </div>
                 <div>
                   <p className="text-sm font-medium mb-1">Ordering Physician</p>
-                  <p className="text-slate-600">Dr. TEST_Sarah MOCK_Johnson</p>
-                  <p className="text-xs text-slate-400">MOCK Internal Medicine (TEST)</p>
+                  <p className="text-slate-600">{order.referring_physician_name || 'N/A'}</p>
+                  <p className="text-xs text-slate-400">{order.specialty || ''}</p>
                 </div>
                 <div>
                   <p className="text-sm font-medium mb-1">Radiology Group</p>
-                  <p className="text-slate-600">{order.radiologyGroup}</p>
+                  <p className="text-slate-600">{order.radiology_organization?.name || order.radiologyGroup || 'Not assigned'}</p>
                 </div>
               </div>
               
@@ -391,12 +615,7 @@ const AdminOrderFinalization: React.FC<AdminOrderFinalizationProps> = ({ navigat
                   <div>
                     <p className="text-sm font-medium text-blue-800 mb-1">Clinical Indication</p>
                     <p className="text-sm text-blue-700">
-                      [MOCK DATA] 45-year-old female with fictional right knee pain persisting for over 3 months.
-                      TEST patient reports pain with weight bearing and difficulty climbing stairs.
-                      SAMPLE: Not responsive to NSAIDs and physical therapy.
-                      FAKE X-ray from 2024 showed mild degenerative changes.
-                      TEST Request: MRI knee to evaluate for meniscal tear and ligament integrity.
-                      THIS IS FAKE CLINICAL DATA FOR TESTING PURPOSES ONLY.
+                      {order.clinical_indication || order.dictation || '[No clinical indication provided]'}
                     </p>
                   </div>
                 </div>
@@ -546,8 +765,10 @@ Referring Provider: Dr. TEST_Sarah MOCK_Johnson
                         <Input 
                           id="dateOfBirth" 
                           name="dateOfBirth" 
+                          type="date"
                           value={patientInfo.dateOfBirth} 
                           onChange={handlePatientInfoChange}
+                          placeholder="YYYY-MM-DD"
                         />
                       </div>
                       <div>
@@ -650,10 +871,71 @@ Referring Provider: Dr. TEST_Sarah MOCK_Johnson
                     </div>
                   </div>
                   
-                  <div className="flex justify-end mt-6">
-                    <Button onClick={handleNextTab}>
-                      Continue to Insurance
+                  <div className="flex justify-between mt-6">
+                    <Button variant="outline" onClick={handlePreviousTab}>
+                      Back
                     </Button>
+                    <div className="flex gap-2">
+                      <Button 
+                        variant="outline"
+                        onClick={async () => {
+                          try {
+                            // Use the unified endpoint with camelCase fields
+                            const payload = {
+                              patient: {
+                                firstName: patientInfo.firstName,
+                                lastName: patientInfo.lastName,
+                                middleName: '',
+                                dateOfBirth: patientInfo.dateOfBirth,
+                                gender: patientInfo.gender,
+                                addressLine1: patientInfo.addressLine1,
+                                addressLine2: patientInfo.addressLine2,
+                                city: patientInfo.city,
+                                state: patientInfo.state,
+                                zipCode: patientInfo.zipCode,
+                                phoneNumber: patientInfo.phoneNumber,
+                                email: patientInfo.email,
+                                mrn: patientInfo.mrn
+                              }
+                            };
+                            
+                            console.log('Sending patient data to unified endpoint:', payload);
+                            console.log('Date of birth value:', patientInfo.dateOfBirth);
+                            
+                            const response = await apiRequest('PUT', `/api/admin/orders/${orderId}`, payload);
+                            
+                            if (response.ok) {
+                              const result = await response.json();
+                              console.log('Save patient response:', result);
+                              toast({
+                                title: "Success",
+                                description: "Patient information saved successfully",
+                                variant: "default",
+                              });
+                            } else {
+                              const error = await response.json();
+                              console.error('Save patient error:', error);
+                              toast({
+                                title: "Error",
+                                description: error.message || "Failed to save patient information",
+                                variant: "destructive",
+                              });
+                            }
+                          } catch (error) {
+                            toast({
+                              title: "Error",
+                              description: "Failed to save patient information",
+                              variant: "destructive",
+                            });
+                          }
+                        }}
+                      >
+                        Save Patient Info
+                      </Button>
+                      <Button onClick={handleNextTab}>
+                        Continue to Insurance
+                      </Button>
+                    </div>
                   </div>
                 </TabsContent>
                 
@@ -808,9 +1090,52 @@ Referring Provider: Dr. TEST_Sarah MOCK_Johnson
                     <Button variant="outline" onClick={handlePreviousTab}>
                       Back
                     </Button>
-                    <Button onClick={handleNextTab}>
-                      Continue to Order Details
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button 
+                        variant="outline"
+                        onClick={async () => {
+                          try {
+                            // Use the old insurance-info endpoint that was working
+                            const response = await apiRequest('PUT', `/api/admin/orders/${orderId}/insurance-info`, {
+                              insurerName: insuranceInfo.insurerName,
+                              policyNumber: insuranceInfo.policyNumber,
+                              groupNumber: insuranceInfo.groupNumber,
+                              planType: insuranceInfo.planName,
+                              policyHolderName: insuranceInfo.policyHolderName,
+                              policyHolderRelationship: insuranceInfo.policyHolderRelationship,
+                              policyHolderDateOfBirth: insuranceInfo.policyHolderDateOfBirth,
+                              isPrimary: true
+                            });
+                            
+                            if (response.ok) {
+                              toast({
+                                title: "Success",
+                                description: "Insurance information saved successfully",
+                                variant: "default",
+                              });
+                            } else {
+                              const error = await response.json();
+                              toast({
+                                title: "Error",
+                                description: error.message || "Failed to save insurance information",
+                                variant: "destructive",
+                              });
+                            }
+                          } catch (error) {
+                            toast({
+                              title: "Error",
+                              description: "Failed to save insurance information",
+                              variant: "destructive",
+                            });
+                          }
+                        }}
+                      >
+                        Save Insurance Info
+                      </Button>
+                      <Button onClick={handleNextTab}>
+                        Continue to Order Details
+                      </Button>
+                    </div>
                   </div>
                 </TabsContent>
                 
@@ -866,9 +1191,9 @@ Referring Provider: Dr. TEST_Sarah MOCK_Johnson
                               <SelectValue placeholder="Select priority" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="Routine">Routine</SelectItem>
-                              <SelectItem value="Urgent">Urgent</SelectItem>
-                              <SelectItem value="STAT">STAT</SelectItem>
+                              <SelectItem value="routine">Routine</SelectItem>
+                              <SelectItem value="urgent">Urgent</SelectItem>
+                              <SelectItem value="stat">STAT</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
@@ -940,9 +1265,54 @@ Referring Provider: Dr. TEST_Sarah MOCK_Johnson
                     <Button variant="outline" onClick={handlePreviousTab}>
                       Back
                     </Button>
-                    <Button onClick={handleNextTab}>
-                      Review Order
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button 
+                        variant="outline"
+                        onClick={async () => {
+                          try {
+                            // First save the supplemental text
+                            const supplementalResponse = await apiRequest('POST', `/api/admin/orders/${orderId}/paste-supplemental`, {
+                              pastedText: supplementalInfo.text
+                            });
+                            
+                            if (!supplementalResponse.ok) {
+                              const error = await supplementalResponse.json();
+                              throw new Error(error.message || "Failed to save supplemental information");
+                            }
+                            
+                            // Save order details using the new endpoint
+                            const detailsResponse = await apiRequest('PUT', `/api/admin/orders/${orderId}/order-details`, {
+                              priority: orderDetails.priority,
+                              target_facility_id: 1, // TODO: This should be mapped from location name to ID
+                              special_instructions: orderDetails.instructions,
+                              scheduling_timeframe: orderDetails.scheduling
+                            });
+                            
+                            if (detailsResponse.ok) {
+                              toast({
+                                title: "Success",
+                                description: "All order details saved successfully",
+                                variant: "default",
+                              });
+                            } else {
+                              const error = await detailsResponse.json();
+                              throw new Error(error.message || "Failed to save order details");
+                            }
+                          } catch (error) {
+                            toast({
+                              title: "Error",
+                              description: "Failed to save order details",
+                              variant: "destructive",
+                            });
+                          }
+                        }}
+                      >
+                        Save Order Details
+                      </Button>
+                      <Button onClick={handleNextTab}>
+                        Review Order
+                      </Button>
+                    </div>
                   </div>
                   
                 </TabsContent>
@@ -958,7 +1328,7 @@ Referring Provider: Dr. TEST_Sarah MOCK_Johnson
                       
                       <DocumentManager 
                         orderId={order.id} 
-                        patientId={Number(order.patient.id)} 
+                        patientId={Number(order.patient_id || order.patient?.id || 0)} 
                       />
                     </div>
                   </div>

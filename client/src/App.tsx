@@ -372,6 +372,24 @@ function App() {
               <AuthPage />
             )}
           </Route>
+          <Route path="/admin-order-finalization">
+            {shouldBeAuthenticated ? (
+              <div className="h-screen flex flex-col">
+                <div className="w-full flex-1 overflow-auto">
+                  <AppHeader
+                    title={getPageTitle(AppPage.AdminOrderFinalization)}
+                    subtitle={getPageSubtitle(AppPage.AdminOrderFinalization)}
+                    onNavigate={handleNavigate}
+                  />
+                  <main className="h-full">
+                    <AdminOrderFinalization navigateTo={(page) => setCurrentPage(page)} />
+                  </main>
+                </div>
+              </div>
+            ) : (
+              <AuthPage />
+            )}
+          </Route>
           <Route path="/radiology-queue">
             {shouldBeAuthenticated ? (
               <div className="h-screen flex flex-col">
