@@ -108,6 +108,34 @@ Test scripts are located in `test-scripts/` directory. These test various API en
 5. Check `AWS API Docs/` for detailed API endpoint documentation
 6. Comprehensive frontend documentation is in the backend repo at `final-documentation/frontend/`
 
+## CRITICAL: API Documentation
+
+**ALWAYS read the API documentation BEFORE implementing any feature:**
+
+1. **Backend Documentation Location**: `/mnt/c/Dropbox/Apps/ROP Roo Backend Finalization/final-documentation/`
+   - `api/` - Endpoint documentation with request/response formats
+   - `frontend/` - Frontend-specific implementation guides
+   - `backend/` - Backend implementation details
+
+2. **Common API Response Formats**:
+   - Success with data: `{success: true, data: [...]}`
+   - Success with nested object: `{success: true, data: {items: [...]}}`
+   - Direct array response: `[...]`
+   - Error response: `{success: false, message: "Error details"}`
+
+3. **Before Making Assumptions**:
+   - Check the console logs for actual API responses
+   - Read the specific endpoint documentation
+   - Look at the response headers and body structure
+   - Don't assume field names (e.g., `locations` vs `data`)
+
+4. **Key Documentation Files to Check**:
+   - `api/organization-management.md` - Organization endpoints
+   - `api/location-management.md` - Location endpoints  
+   - `api/connection-management.md` - Connection endpoints
+   - `api/admin-staff.md` - Admin staff permissions
+   - `api/endpoint-access-matrix.md` - Role-based access
+
 ## Commit Message Format
 
 All commits MUST follow this format:
@@ -132,3 +160,48 @@ Common types:
 - `test`: Test additions/changes
 - `chore`: Maintenance tasks
 - `style`: Code style changes
+
+## CRITICAL: Pre-Commit Requirements
+
+**NEVER commit code without completing ALL of these steps:**
+
+1. **Test the changes**: Run the development server and manually verify the feature works
+   ```bash
+   npm run dev
+   ```
+
+2. **Run ESLint**: Fix all linting errors
+   ```bash
+   npm run lint
+   # or to auto-fix:
+   npm run lint -- --fix
+   ```
+
+3. **Run TypeScript check**: Ensure no type errors
+   ```bash
+   npm run check
+   ```
+
+4. **Build the project**: Verify production build succeeds
+   ```bash
+   npm run build
+   ```
+
+5. **Review all changes**: Check git diff carefully
+   ```bash
+   git diff
+   ```
+
+Only after ALL checks pass should you stage and commit changes. If any step fails, fix the issues before proceeding.
+
+## Documentation-First Development
+
+**NEVER start coding without reading the documentation:**
+
+1. When implementing a new feature, FIRST check if it's documented
+2. Read API endpoint documentation to understand request/response formats
+3. Check example responses in the documentation
+4. Verify the actual API response in browser console matches documentation
+5. Only then start implementing the feature
+
+This prevents wasting time on incorrect assumptions about API behavior.

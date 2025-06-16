@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { AppPage } from "@/App";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -54,12 +54,38 @@ interface AdminOrderFinalizationProps {
 }
 
 const AdminOrderFinalization: React.FC<AdminOrderFinalizationProps> = ({ navigateTo }) => {
+  console.log('\n🎯 AdminOrderFinalization component loaded at', new Date().toLocaleTimeString());
   const [, setLocation] = useLocation();
   const [currentTab, setCurrentTab] = useState("patient");
   const [isSending, setIsSending] = useState(false);
   const [orderSent, setOrderSent] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  
+  // Get current user info from query cache or storage
+  const userFromCache = queryClient.getQueryData(['user']);
+  const userFromStorage = localStorage.getItem('rad_order_pad_user_data');
+  
+  // Also check all localStorage keys to debug
+  console.log('🔵 All localStorage keys:', Object.keys(localStorage).filter(k => k.includes('rad_order_pad')));
+  
+  // Try to get user from auth context or session
+  const sessionData = queryClient.getQueryData(['session']) as any;
+  const currentUser = userFromCache || (userFromStorage ? JSON.parse(userFromStorage) : null) || sessionData?.user;
+  
+  console.log('🔵 USER DATA SOURCES:');
+  console.log('  - From cache:', userFromCache);
+  console.log('  - From localStorage:', userFromStorage);
+  console.log('  - From session:', sessionData);
+  console.log('  - Final currentUser:', currentUser);
+  
+  console.log('🔵 CURRENT USER DEBUG:', {
+    userId: currentUser?.id,
+    userName: `${currentUser?.firstName || currentUser?.first_name} ${currentUser?.lastName || currentUser?.last_name}`,
+    role: currentUser?.role,
+    organizationId: currentUser?.organizationId || currentUser?.organization_id,
+    email: currentUser?.email
+  });
   
   // Get order ID from sessionStorage
   const orderId = sessionStorage.getItem('currentOrderId');
@@ -93,23 +119,143 @@ const AdminOrderFinalization: React.FC<AdminOrderFinalizationProps> = ({ navigat
     staleTime: 0, // Always fetch fresh data when returning to order
   });
   
+  // Fetch connections - Stage 1: Just test if admin_staff can access this
+  const { data: connectionsData, isLoading: connectionsLoading, error: connectionsError } = useQuery({
+    queryKey: ['/api/connections'],
+    queryFn: async () => {
+      console.log('🔧 Fetching connections for admin_staff...');
+      const response = await apiRequest('GET', '/api/connections', undefined);
+      console.log('🔧 Connections response status:', response.status);
+      
+      if (!response.ok) {
+        console.error('❌ Failed to fetch connections:', response.status);
+        throw new Error('Failed to fetch connections');
+      }
+      
+      const data = await response.json();
+      console.log('✅ Connections data received:', data);
+      
+      // Handle both response formats: {connections: [...]} and direct array
+      if (Array.isArray(data)) {
+        return { connections: data };
+      }
+      return data;
+    },
+    enabled: !!orderId,
+    retry: 1
+  });
+  
+  // Debug logging for connections state
+  console.log('🔧 Connections state:', {
+    loading: connectionsLoading,
+    error: connectionsError,
+    data: connectionsData
+  });
+  
+  // COMPREHENSIVE DEBUG SECTION
+  useEffect(() => {
+    console.log('\n========== ADMIN ORDER FINALIZATION DEBUG ==========');
+    console.log('📍 CURRENT USER:', {
+      id: currentUser?.id,
+      name: `${currentUser?.firstName || currentUser?.first_name} ${currentUser?.lastName || currentUser?.last_name}`,
+      role: currentUser?.role,
+      organizationId: currentUser?.organizationId || currentUser?.organization_id,
+      organizationName: currentUser?.organizationName || 'Not available'
+    });
+    
+    if (connectionsData?.connections) {
+      console.log('\n🔗 CONNECTIONS SUMMARY:');
+      console.log(`Total connections: ${connectionsData.connections.length}`);
+      console.log(`Active connections: ${connectionsData.connections.filter((c: any) => c.status === 'active').length}`);
+      console.log(`Pending connections: ${connectionsData.connections.filter((c: any) => c.status === 'pending').length}`);
+      
+      console.log('\n🔗 CONNECTION DETAILS:');
+      connectionsData.connections.forEach((conn: any, index: number) => {
+        console.log(`\nConnection ${index + 1}:`);
+        console.log(`  - Partner: ${conn.partnerOrgName} (ID: ${conn.partnerOrgId})`);
+        console.log(`  - Status: ${conn.status}`);
+        console.log(`  - Direction: ${conn.isInitiator ? 'Outgoing' : 'Incoming'}`);
+        console.log(`  - Created: ${new Date(conn.createdAt).toLocaleDateString()}`);
+      });
+    } else if (connectionsLoading) {
+      console.log('\n⏳ CONNECTIONS: Loading...');
+    } else if (connectionsError) {
+      console.log('\n❌ CONNECTIONS ERROR:', connectionsError);
+    } else {
+      console.log('\n❓ CONNECTIONS: No data yet');
+    }
+    
+    console.log('\n🎯 CURRENT ORDER:', {
+      orderId: orderId,
+      orderNumber: orderData?.order_number,
+      status: orderData?.status
+    });
+    
+    console.log('========== END DEBUG ==========\n');
+  }, [currentUser, connectionsData, connectionsLoading, connectionsError, orderId, orderData]);
+  
+  // Stage 2: Let's see what's inside the connections
+  if (connectionsData?.connections) {
+    console.log('🔧 Raw connections array:', connectionsData.connections);
+    console.log('🔧 First connection structure:', connectionsData.connections[0]);
+    
+    // Stage 3: Filter for active connections only
+    const activeConnections = connectionsData.connections.filter((conn: any) => conn.status === 'active');
+    console.log('🔧 Active connections only:', activeConnections);
+    console.log('🔧 Number of active connections:', activeConnections.length);
+    
+    // Stage 4: Show the active connection details
+    if (activeConnections.length > 0) {
+      console.log('🔧 Active connection details:', activeConnections[0]);
+      console.log('🔧 Partner Org ID:', activeConnections[0].partnerOrgId);
+      console.log('🔧 Partner Org Name:', activeConnections[0].partnerOrgName);
+    }
+  }
+  
   // Initialize order state with fetched data or mock data
   const [order, setOrder] = useState(orderData || {
     ...allOrders[0], 
-    modality: "MOCK-MRI Knee (Test)"
+    modality: "MOCK-MRI Knee (Test)",
+    radiologyGroup: "" // Add this field for the dropdown
   });
   
-  // Available radiology organizations (hardcoded for now since admin_staff can access connections)
-  const availableRadiologyOrgs = [
-    { id: 2, name: "City Imaging Center" },
-    { id: 3, name: "Regional Radiology Group" },
-    { id: 4, name: "Advanced Imaging Solutions" }
-  ];
+  // Stage 5: Use real connections data instead of hardcoded
+  const availableRadiologyOrgs = useMemo(() => {
+    console.log('📊 Computing availableRadiologyOrgs...');
+    console.log('📊 connectionsData:', connectionsData);
+    console.log('📊 connectionsData?.connections:', connectionsData?.connections);
+    
+    // Handle the case where connectionsData might be the array directly
+    const connections = connectionsData?.connections || (Array.isArray(connectionsData) ? connectionsData : null);
+    
+    if (!connections || connections.length === 0) {
+      console.log('📊 No connections data, returning empty array');
+      return [];
+    }
+    
+    // Filter active connections and map to expected format
+    const activeConnections = connections
+      .filter((conn: any) => {
+        console.log(`📊 Checking connection: ${conn.partnerOrgName} - Status: ${conn.status}`);
+        return conn.status === 'active';
+      })
+      .map((conn: any) => ({
+        id: conn.partnerOrgId,
+        name: conn.partnerOrgName
+      }));
+    
+    console.log('🔧 Available radiology orgs for dropdown:', activeConnections);
+    console.log('🔧 Number of orgs available:', activeConnections.length);
+    return activeConnections;
+  }, [connectionsData]);
   
   // Update order state when data is loaded
   useEffect(() => {
     if (orderData) {
-      setOrder(orderData);
+      setOrder({
+        ...orderData,
+        radiologyGroup: "" // Ensure radiologyGroup field exists
+      });
       // Also update patient info with real data
       // Format date to YYYY-MM-DD if it exists
       let formattedDob = '';
@@ -179,9 +325,15 @@ const AdminOrderFinalization: React.FC<AdminOrderFinalizationProps> = ({ navigat
       radiologyGroup: group
     });
     // Find and set the org ID
-    const selectedOrg = availableRadiologyOrgs.find(org => org.name === group);
+    const selectedOrg = availableRadiologyOrgs.find((org: any) => org.name === group);
     if (selectedOrg) {
       setSelectedRadiologyOrgId(selectedOrg.id);
+      // Reset facility selection when changing radiology org
+      setSelectedFacilityId(null);
+      setOrderDetails(prev => ({
+        ...prev,
+        location: ''
+      }));
     }
   };
   
@@ -242,6 +394,62 @@ const AdminOrderFinalization: React.FC<AdminOrderFinalizationProps> = ({ navigat
   
   // Track selected radiology organization
   const [selectedRadiologyOrgId, setSelectedRadiologyOrgId] = useState<number | null>(null);
+  const [selectedFacilityId, setSelectedFacilityId] = useState<number | null>(null);
+  
+  // Fetch locations for selected radiology organization
+  const { data: locationsData, isLoading: locationsLoading } = useQuery({
+    queryKey: ['/api/organizations', selectedRadiologyOrgId, 'locations'],
+    queryFn: async () => {
+      if (!selectedRadiologyOrgId) return null;
+      
+      console.log('🏢 Fetching locations for radiology org:', selectedRadiologyOrgId);
+      const response = await apiRequest('GET', `/api/organizations/${selectedRadiologyOrgId}/locations`, undefined);
+      
+      if (!response.ok) {
+        console.error('❌ Failed to fetch locations:', response.status);
+        throw new Error('Failed to fetch locations');
+      }
+      
+      const data = await response.json();
+      console.log('✅ Locations data received:', data);
+      return data;
+    },
+    enabled: !!selectedRadiologyOrgId,
+    retry: 1
+  });
+  
+  // Get available locations from the selected radiology organization
+  const availableFacilities = useMemo(() => {
+    console.log('🏢 Computing availableFacilities...');
+    console.log('🏢 locationsData:', locationsData);
+    
+    // Handle different API response formats
+    const locations = locationsData?.locations || locationsData?.data || locationsData;
+    
+    if (!locations || !Array.isArray(locations)) {
+      console.log('🏢 No locations array found');
+      return [];
+    }
+    
+    console.log('🏢 Raw locations array:', locations);
+    
+    const activeLocations = locations
+      .filter((loc: any) => {
+        // Handle different field names (is_active vs isActive)
+        const isActive = loc.is_active !== undefined ? loc.is_active : loc.isActive !== false;
+        console.log(`🏢 Location ${loc.name || loc.address_line1}: active=${isActive}`);
+        return isActive;
+      })
+      .map((loc: any) => ({
+        id: loc.id,
+        name: loc.name || `${loc.address_line1}, ${loc.city}`,
+        fullAddress: `${loc.address_line1}${loc.address_line2 ? ', ' + loc.address_line2 : ''}, ${loc.city}, ${loc.state} ${loc.zip_code}`
+      }));
+    
+    console.log('🏢 Available facilities for dropdown:', activeLocations);
+    console.log('🏢 Number of facilities:', activeLocations.length);
+    return activeLocations;
+  }, [locationsData]);
   
   // Referring physician state
   const [referringPhysician, setReferringPhysician] = useState({
@@ -437,6 +645,16 @@ const AdminOrderFinalization: React.FC<AdminOrderFinalizationProps> = ({ navigat
       return;
     }
     
+    // Check if facility location is selected
+    if (!selectedFacilityId) {
+      toast({
+        title: "Error",
+        description: "Please select a facility location",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     const radiologyOrganizationId = selectedRadiologyOrgId;
     
     setIsSending(true);
@@ -582,6 +800,50 @@ const AdminOrderFinalization: React.FC<AdminOrderFinalizationProps> = ({ navigat
           </Button>
         }
       />
+      
+      {/* DEBUG INFO BOX - Remove this in production */}
+      <Card className="mb-4 bg-blue-50 border-blue-200">
+        <CardHeader className="py-3">
+          <CardTitle className="text-sm">🔍 Debug Information</CardTitle>
+        </CardHeader>
+        <CardContent className="py-3">
+          <div className="grid grid-cols-2 gap-4 text-xs">
+            <div>
+              <strong>Current User:</strong>
+              <ul className="ml-4 mt-1">
+                <li>Name: {currentUser?.firstName || currentUser?.first_name} {currentUser?.lastName || currentUser?.last_name}</li>
+                <li>Role: {currentUser?.role}</li>
+                <li>Org ID: {currentUser?.organizationId || currentUser?.organization_id}</li>
+                <li>Email: {currentUser?.email}</li>
+              </ul>
+            </div>
+            <div>
+              <strong>Connections:</strong>
+              {connectionsLoading ? (
+                <p className="ml-4 mt-1">Loading...</p>
+              ) : connectionsError ? (
+                <p className="ml-4 mt-1 text-red-600">Error loading connections</p>
+              ) : connectionsData?.connections ? (
+                <ul className="ml-4 mt-1">
+                  <li>Total: {connectionsData.connections.length}</li>
+                  <li>Active: {connectionsData.connections.filter((c: any) => c.status === 'active').length}</li>
+                  <li>Pending: {connectionsData.connections.filter((c: any) => c.status === 'pending').length}</li>
+                  {connectionsData.connections
+                    .filter((c: any) => c.status === 'active')
+                    .slice(0, 3)
+                    .map((c: any, i: number) => (
+                      <li key={i} className="mt-1">
+                        → {c.partnerOrgName} (ID: {c.partnerOrgId})
+                      </li>
+                    ))}
+                </ul>
+              ) : (
+                <p className="ml-4 mt-1">No connections data</p>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
       
       {orderSent ? (
         <Card>
@@ -1209,37 +1471,71 @@ Referring Provider: Dr. TEST_Sarah MOCK_Johnson
                         <div>
                           <Label htmlFor="radiologyGroup">Radiology Group</Label>
                           <Select 
-                            value={order.radiologyGroup} 
-                            onValueChange={(value) => setRadiologyGroup(value)}
+                            value={order.radiologyGroup || ""} 
+                            onValueChange={(value) => {
+                              console.log('🎯 Selected radiology group:', value);
+                              setRadiologyGroup(value);
+                            }}
                           >
                             <SelectTrigger id="radiologyGroup">
                               <SelectValue placeholder="Select radiology group" />
                             </SelectTrigger>
                             <SelectContent>
-                              {availableRadiologyOrgs.map((org) => (
-                                <SelectItem key={org.id} value={org.name}>
-                                  {org.name}
-                                </SelectItem>
-                              ))}
+                              {availableRadiologyOrgs.length === 0 ? (
+                                <div className="p-2 text-sm text-muted-foreground">
+                                  No active connections available
+                                </div>
+                              ) : (
+                                availableRadiologyOrgs.map((org: any) => (
+                                  <SelectItem key={org.id} value={org.name}>
+                                    {org.name} (ID: {org.id})
+                                  </SelectItem>
+                                ))
+                              )}
                             </SelectContent>
                           </Select>
                         </div>
                         <div>
                           <Label htmlFor="location">Facility Location</Label>
-                          <Select 
-                            value={orderDetails.location} 
-                            onValueChange={(value) => setOrderDetails({...orderDetails, location: value})}
-                          >
-                            <SelectTrigger id="location">
-                              <SelectValue placeholder="Select facility location" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="Advanced Imaging Center – East Campus">Advanced Imaging Center – East Campus</SelectItem>
-                              <SelectItem value="Medical Arts Building – Downtown">Medical Arts Building – Downtown</SelectItem>
-                              <SelectItem value="North County Imaging Center">North County Imaging Center</SelectItem>
-                              <SelectItem value="West Side Medical Plaza">West Side Medical Plaza</SelectItem>
-                            </SelectContent>
-                          </Select>
+                          {!selectedRadiologyOrgId ? (
+                            <div className="text-sm text-muted-foreground mt-2">
+                              Please select a radiology group first
+                            </div>
+                          ) : locationsLoading ? (
+                            <div className="text-sm text-muted-foreground mt-2">
+                              Loading facilities...
+                            </div>
+                          ) : availableFacilities.length === 0 ? (
+                            <div className="text-sm text-muted-foreground mt-2">
+                              No facilities available for this organization
+                            </div>
+                          ) : (
+                            <Select 
+                              value={selectedFacilityId?.toString() || ""} 
+                              onValueChange={(value) => {
+                                const facilityId = parseInt(value);
+                                setSelectedFacilityId(facilityId);
+                                const facility = availableFacilities.find((f: any) => f.id === facilityId);
+                                if (facility) {
+                                  setOrderDetails({
+                                    ...orderDetails,
+                                    location: facility.name
+                                  });
+                                }
+                              }}
+                            >
+                              <SelectTrigger id="location">
+                                <SelectValue placeholder="Select facility location" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {availableFacilities.map((facility: any) => (
+                                  <SelectItem key={facility.id} value={facility.id.toString()}>
+                                    {facility.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          )}
                         </div>
                       </div>
                       
@@ -1337,7 +1633,7 @@ Referring Provider: Dr. TEST_Sarah MOCK_Johnson
                             const detailsPayload = {
                               orderDetails: {
                                 priority: orderDetails.priority,
-                                targetFacilityId: selectedRadiologyOrgId || null, // Use selected radiology organization
+                                targetFacilityId: selectedFacilityId || null, // Use selected radiology organization
                                 specialInstructions: orderDetails.instructions,
                                 schedulingTimeframe: orderDetails.scheduling
                               },
