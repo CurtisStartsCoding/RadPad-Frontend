@@ -42,6 +42,7 @@ import {
   AlertDescription,
   AlertTitle
 } from "@/components/ui/alert";
+import { Checkbox } from "@/components/ui/checkbox";
 import { InfoIcon, FileText, ArrowLeft, CheckCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { allOrders } from "@/lib/mock-data";
@@ -97,6 +98,13 @@ const AdminOrderFinalization: React.FC<AdminOrderFinalizationProps> = ({ navigat
     ...allOrders[0], 
     modality: "MOCK-MRI Knee (Test)"
   });
+  
+  // Available radiology organizations (hardcoded for now since admin_staff can access connections)
+  const availableRadiologyOrgs = [
+    { id: 2, name: "City Imaging Center" },
+    { id: 3, name: "Regional Radiology Group" },
+    { id: 4, name: "Advanced Imaging Solutions" }
+  ];
   
   // Update order state when data is loaded
   useEffect(() => {
@@ -170,6 +178,11 @@ const AdminOrderFinalization: React.FC<AdminOrderFinalizationProps> = ({ navigat
       ...order,
       radiologyGroup: group
     });
+    // Find and set the org ID
+    const selectedOrg = availableRadiologyOrgs.find(org => org.name === group);
+    if (selectedOrg) {
+      setSelectedRadiologyOrgId(selectedOrg.id);
+    }
   };
   
   // Patient information state - use actual data if available
@@ -189,6 +202,7 @@ const AdminOrderFinalization: React.FC<AdminOrderFinalizationProps> = ({ navigat
   });
   
   // Insurance information state
+  const [hasInsurance, setHasInsurance] = useState(true); // Default to true, can be changed by user
   const [insuranceInfo, setInsuranceInfo] = useState({
     insurerName: orderData?.insurance_name || "MOCK-Insurance Company (TEST)",
     planName: orderData?.insurance_plan_name || "FAKE-Care PPO SAMPLE",
@@ -225,6 +239,9 @@ const AdminOrderFinalization: React.FC<AdminOrderFinalizationProps> = ({ navigat
     cptDescription: orderData?.final_cpt_code_description || "MOCK MRI knee without contrast (SAMPLE)",
     instructions: ""
   });
+  
+  // Track selected radiology organization
+  const [selectedRadiologyOrgId, setSelectedRadiologyOrgId] = useState<number | null>(null);
   
   // Referring physician state
   const [referringPhysician, setReferringPhysician] = useState({
@@ -372,7 +389,7 @@ const AdminOrderFinalization: React.FC<AdminOrderFinalizationProps> = ({ navigat
       setIsParsing(false);
       toast({
         title: "Error",
-        description: error.message || "Failed to parse EMR text",
+        description: error instanceof Error ? error.message : "Failed to parse EMR text",
         variant: "destructive",
       });
     }
@@ -410,15 +427,23 @@ const AdminOrderFinalization: React.FC<AdminOrderFinalizationProps> = ({ navigat
   
   // Handle send to radiology
   const handleSendToRadiology = async () => {
-    // For now, we'll use a hardcoded radiology organization ID
-    // In a future update, we'll get this from a dropdown selection
-    const radiologyOrganizationId = 2; // This is what the backend tests use
+    // Check if radiology organization is selected
+    if (!selectedRadiologyOrgId) {
+      toast({
+        title: "Error",
+        description: "Please select a radiology organization",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    const radiologyOrganizationId = selectedRadiologyOrgId;
     
     setIsSending(true);
     
     try {
       // Use the unified endpoint to save all data at once
-      const updateData = {
+      const updateData: any = {
         patient: {
           firstName: patientInfo.firstName,
           lastName: patientInfo.lastName,
@@ -436,8 +461,10 @@ const AdminOrderFinalization: React.FC<AdminOrderFinalizationProps> = ({ navigat
         }
       };
 
-      // Add insurance if provided
-      if (insuranceInfo.insurerName || insuranceInfo.policyNumber) {
+      // Add insurance based on user selection
+      updateData.hasInsurance = hasInsurance;
+      
+      if (hasInsurance && (insuranceInfo.insurerName || insuranceInfo.policyNumber)) {
         updateData.insurance = {
           insurerName: insuranceInfo.insurerName,
           policyNumber: insuranceInfo.policyNumber,
@@ -941,9 +968,33 @@ Referring Provider: Dr. TEST_Sarah MOCK_Johnson
                 
                 <TabsContent value="insurance">
                   <div className="space-y-4">
-                    <h3 className="text-lg font-medium">Primary Insurance</h3>
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-medium">Insurance Information</h3>
+                      <div className="flex items-center space-x-2">
+                        <Checkbox 
+                          id="hasInsurance" 
+                          checked={hasInsurance}
+                          onCheckedChange={(checked) => setHasInsurance(checked as boolean)}
+                        />
+                        <Label htmlFor="hasInsurance" className="cursor-pointer">
+                          Patient has insurance
+                        </Label>
+                      </div>
+                    </div>
                     
-                    <div className="grid grid-cols-2 gap-4">
+                    {!hasInsurance ? (
+                      <Alert>
+                        <InfoIcon className="h-4 w-4" />
+                        <AlertTitle>No Insurance</AlertTitle>
+                        <AlertDescription>
+                          This patient is uninsured/cash-pay. No insurance information will be saved.
+                        </AlertDescription>
+                      </Alert>
+                    ) : (
+                      <>
+                        <h3 className="text-lg font-medium">Primary Insurance</h3>
+                        
+                        <div className="grid grid-cols-2 gap-4">
                       <div>
                         <Label htmlFor="insurerName">Insurance Company</Label>
                         <Input 
@@ -1084,6 +1135,8 @@ Referring Provider: Dr. TEST_Sarah MOCK_Johnson
                         </>
                       )}
                     </div>
+                      </>
+                    )}
                   </div>
                   
                   <div className="flex justify-between mt-6">
@@ -1096,8 +1149,13 @@ Referring Provider: Dr. TEST_Sarah MOCK_Johnson
                         onClick={async () => {
                           try {
                             // Use the unified endpoint with proper structure
-                            const payload = {
-                              insurance: {
+                            const payload: any = {
+                              hasInsurance: hasInsurance
+                            };
+                            
+                            // Only include insurance data if patient has insurance
+                            if (hasInsurance) {
+                              payload.insurance = {
                                 insurerName: insuranceInfo.insurerName,
                                 policyNumber: insuranceInfo.policyNumber,
                                 groupNumber: insuranceInfo.groupNumber,
@@ -1106,8 +1164,8 @@ Referring Provider: Dr. TEST_Sarah MOCK_Johnson
                                 policyHolderRelationship: insuranceInfo.policyHolderRelationship,
                                 policyHolderDateOfBirth: insuranceInfo.policyHolderDateOfBirth,
                                 isPrimary: true
-                              }
-                            };
+                              };
+                            }
                             
                             const response = await apiRequest('PUT', `/api/admin/orders/${orderId}`, payload);
                             
@@ -1158,10 +1216,11 @@ Referring Provider: Dr. TEST_Sarah MOCK_Johnson
                               <SelectValue placeholder="Select radiology group" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="University Radiology Partners">University Radiology Partners</SelectItem>
-                              <SelectItem value="Metro Imaging Associates">Metro Imaging Associates</SelectItem>
-                              <SelectItem value="East Coast Diagnostic Imaging">East Coast Diagnostic Imaging</SelectItem>
-                              <SelectItem value="Premier Radiology Group">Premier Radiology Group</SelectItem>
+                              {availableRadiologyOrgs.map((org) => (
+                                <SelectItem key={org.id} value={org.name}>
+                                  {org.name}
+                                </SelectItem>
+                              ))}
                             </SelectContent>
                           </Select>
                         </div>
@@ -1278,7 +1337,7 @@ Referring Provider: Dr. TEST_Sarah MOCK_Johnson
                             const detailsPayload = {
                               orderDetails: {
                                 priority: orderDetails.priority,
-                                targetFacilityId: 1, // TODO: This should be mapped from location name to ID
+                                targetFacilityId: selectedRadiologyOrgId || null, // Use selected radiology organization
                                 specialInstructions: orderDetails.instructions,
                                 schedulingTimeframe: orderDetails.scheduling
                               },
