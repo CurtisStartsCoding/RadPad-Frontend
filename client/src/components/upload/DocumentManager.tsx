@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Search, Filter, Download, Eye, Trash2 } from 'lucide-react';
+import { Search, Filter, Download, Eye, Trash2, RefreshCw } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import FileUpload from './FileUpload';
+import { FileUploadService } from '@/lib/fileUploadService';
+import { useToast } from '@/hooks/use-toast';
 
 interface DocumentCategory {
   id: string;
@@ -14,12 +16,12 @@ interface DocumentCategory {
 
 interface Document {
   id: number;
-  name: string;
-  type: string;
-  size: string;
-  category: string;
-  uploadDate: string;
-  thumbnail?: string;
+  fileName: string;
+  fileKey: string;
+  fileSize: number;
+  contentType: string;
+  uploadedAt: string;
+  documentType?: string;
 }
 
 interface DocumentManagerProps {
@@ -35,71 +37,85 @@ export default function DocumentManager({
 }: DocumentManagerProps) {
   const [activeTab, setActiveTab] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [documents, setDocuments] = useState<Document[]>([]);
+  const [isDownloading, setIsDownloading] = useState<number | null>(null);
+  const { toast } = useToast();
 
-  // Mock categories for the demo
-  const categories: DocumentCategory[] = [
-    { id: 'all', name: 'All Documents', count: 12 },
-    { id: 'insurance', name: 'Insurance', count: 4 },
-    { id: 'referrals', name: 'Referrals', count: 2 },
-    { id: 'reports', name: 'Radiology Reports', count: 3 },
-    { id: 'clinical', name: 'Clinical Notes', count: 3 }
-  ];
-
-  // Mock documents for the demo
-  const documents: Document[] = [
-    {
-      id: 1,
-      name: 'Insurance Card Front.jpg',
-      type: 'image/jpeg',
-      size: '1.2 MB',
-      category: 'insurance',
-      uploadDate: 'May 1, 2025'
-    },
-    {
-      id: 2,
-      name: 'Insurance Card Back.jpg',
-      type: 'image/jpeg',
-      size: '0.9 MB',
-      category: 'insurance',
-      uploadDate: 'May 1, 2025'
-    },
-    {
-      id: 3,
-      name: 'Prior Authorization.pdf',
-      type: 'application/pdf',
-      size: '2.4 MB',
-      category: 'insurance',
-      uploadDate: 'Apr 28, 2025'
-    },
-    {
-      id: 4,
-      name: 'Physician Referral.pdf',
-      type: 'application/pdf',
-      size: '1.8 MB',
-      category: 'referrals',
-      uploadDate: 'Apr 25, 2025'
-    },
-    {
-      id: 5,
-      name: 'Previous MRI Report.pdf',
-      type: 'application/pdf',
-      size: '3.2 MB',
-      category: 'reports',
-      uploadDate: 'Mar 15, 2025'
+  // Load documents on mount and when orderId changes
+  useEffect(() => {
+    if (orderId) {
+      loadDocuments();
     }
+  }, [orderId]);
+
+  const loadDocuments = () => {
+    if (orderId) {
+      const docs = FileUploadService.getDocumentsFromLocalStorage(orderId);
+      setDocuments(docs);
+    }
+  };
+
+  // Categories based on actual documents
+  const categories: DocumentCategory[] = [
+    { id: 'all', name: 'All Documents', count: documents.length },
+    { id: 'insurance', name: 'Insurance', count: documents.filter(d => d.documentType === 'insurance').length },
+    { id: 'referrals', name: 'Referrals', count: documents.filter(d => d.documentType === 'referral').length },
+    { id: 'reports', name: 'Reports', count: documents.filter(d => d.documentType === 'report').length },
+    { id: 'general', name: 'Other', count: documents.filter(d => !d.documentType || d.documentType === 'general').length }
   ];
 
   // Filter documents based on active tab and search query
-  const filteredDocuments = documents.filter(doc => 
-    (activeTab === 'all' || doc.category === activeTab) &&
-    (searchQuery === '' || doc.name.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+  const filteredDocuments = documents.filter(doc => {
+    const matchesTab = activeTab === 'all' || 
+      (activeTab === 'insurance' && doc.documentType === 'insurance') ||
+      (activeTab === 'referrals' && doc.documentType === 'referral') ||
+      (activeTab === 'reports' && doc.documentType === 'report') ||
+      (activeTab === 'general' && (!doc.documentType || doc.documentType === 'general'));
+    
+    const matchesSearch = searchQuery === '' || 
+      doc.fileName.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    return matchesTab && matchesSearch;
+  });
 
   // File type icon mapping
   const getFileTypeIcon = (type: string) => {
     if (type.startsWith('image/')) return '🖼️';
     if (type === 'application/pdf') return '📄';
     return '📎';
+  };
+
+  // Handle download
+  const handleDownload = async (document: Document) => {
+    try {
+      setIsDownloading(document.id);
+      const downloadUrl = await FileUploadService.getDownloadUrl(document.id);
+      window.open(downloadUrl, '_blank');
+      toast({
+        title: "Download started",
+        description: `Downloading ${document.fileName}`
+      });
+    } catch (error) {
+      toast({
+        title: "Download failed",
+        description: error instanceof Error ? error.message : "Failed to download",
+        variant: "destructive"
+      });
+    } finally {
+      setIsDownloading(null);
+    }
+  };
+
+  // Remove document from view (localStorage only)
+  const handleRemove = (documentId: number) => {
+    if (orderId) {
+      FileUploadService.removeDocumentFromLocalStorage(orderId, documentId);
+      loadDocuments();
+      toast({
+        title: "Document removed",
+        description: "Document removed from view"
+      });
+    }
   };
 
   return (
@@ -153,24 +169,35 @@ export default function DocumentManager({
                             <tr key={doc.id} className="bg-white border-b">
                               <td className="px-4 py-3 font-medium text-gray-900 whitespace-nowrap">
                                 <div className="flex items-center">
-                                  <span className="mr-2">{getFileTypeIcon(doc.type)}</span>
-                                  {doc.name}
+                                  <span className="mr-2">{getFileTypeIcon(doc.contentType)}</span>
+                                  {doc.fileName}
                                 </div>
                               </td>
                               <td className="px-4 py-3">
-                                {doc.type.replace('application/', '').replace('image/', '')}
+                                {doc.contentType.replace('application/', '').replace('image/', '')}
                               </td>
-                              <td className="px-4 py-3">{doc.size}</td>
-                              <td className="px-4 py-3">{doc.uploadDate}</td>
+                              <td className="px-4 py-3">{FileUploadService.getFileSizeString(doc.fileSize)}</td>
+                              <td className="px-4 py-3">{new Date(doc.uploadedAt).toLocaleDateString()}</td>
                               <td className="px-4 py-3">
                                 <div className="flex space-x-2">
-                                  <Button variant="ghost" size="icon">
-                                    <Eye className="h-4 w-4" />
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon"
+                                    onClick={() => handleDownload(doc)}
+                                    disabled={isDownloading === doc.id}
+                                  >
+                                    {isDownloading === doc.id ? (
+                                      <RefreshCw className="h-4 w-4 animate-spin" />
+                                    ) : (
+                                      <Download className="h-4 w-4" />
+                                    )}
                                   </Button>
-                                  <Button variant="ghost" size="icon">
-                                    <Download className="h-4 w-4" />
-                                  </Button>
-                                  <Button variant="ghost" size="icon" className="text-red-500">
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    className="text-red-500"
+                                    onClick={() => handleRemove(doc.id)}
+                                  >
                                     <Trash2 className="h-4 w-4" />
                                   </Button>
                                 </div>
@@ -193,16 +220,26 @@ export default function DocumentManager({
           </Tabs>
         </CardContent>
         <CardFooter className="flex justify-between">
-          <Button variant="outline" className="flex gap-2">
-            <Filter className="h-4 w-4" />
-            Filter
+          <div className="text-sm text-muted-foreground">
+            {documents.length} document{documents.length !== 1 ? 's' : ''} uploaded
+          </div>
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={loadDocuments}
+          >
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Refresh
           </Button>
-          <Button>Download All</Button>
         </CardFooter>
       </Card>
 
       {/* Upload Section */}
-      <FileUpload />
+      <FileUpload 
+        orderId={orderId || 0} 
+        patientId={patientId || 0}
+        onUploadComplete={loadDocuments}
+      />
     </div>
   );
 }

@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { ProcessedDictation } from '@/lib/types';
-import { Patient } from '@/lib/mock-data';
+import { ProcessedDictation, Patient } from '@/lib/types';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,8 +38,8 @@ const SignatureForm = ({
   // Check if patient has required minimum info (name and DOB)
   const hasRequiredPatientInfo = Boolean(
     patient && 
-    patient.name !== "Unknown Patient" && 
-    patient.dob !== "Unknown"
+    patient.name !== "No Patient Identified" && 
+    patient.dob !== ""
   );
 
   // Handle signature drawing with both mouse and touch events

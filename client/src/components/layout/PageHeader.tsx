@@ -9,7 +9,7 @@ interface PageHeaderProps {
 
 const PageHeader: React.FC<PageHeaderProps> = ({ title, description, children, backButton }) => {
   return (
-    <div className="mb-6 flex justify-between items-center">
+    <div className="mb-6 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
       <div className="flex items-center">
         {backButton && <div className="mr-3">{backButton}</div>}
         <div>
@@ -17,7 +17,7 @@ const PageHeader: React.FC<PageHeaderProps> = ({ title, description, children, b
           {description && <p className="text-slate-500">{description}</p>}
         </div>
       </div>
-      {children}
+      {children && <div className="flex">{children}</div>}
     </div>
   );
 };

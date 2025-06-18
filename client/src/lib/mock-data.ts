@@ -178,11 +178,3 @@ export const connections: Connection[] = [
   { id: 5, name: 'MOCK Referring Center', type: 'referring', status: 'pending' }
 ];
 
-export const temporaryPatient: Patient = {
-  id: 0,
-  name: 'TEST_UNKNOWN_PATIENT',
-  dob: 'UNKNOWN',
-  gender: 'unknown',
-  mrn: 'TEST-TEMP-MRN-' + Math.floor(1000 + Math.random() * 9000).toString(),
-  isTemporary: true
-};

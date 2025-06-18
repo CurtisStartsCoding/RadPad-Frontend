@@ -10,14 +10,21 @@ import {
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
+import { FileUploadService } from '@/lib/fileUploadService';
+import { useToast } from '@/hooks/use-toast';
 
 interface FileUploadProps {
   title?: string;
   description?: string;
   className?: string;
+  orderId: number;
+  patientId: number;
+  onUploadComplete?: () => void;
 }
 
-interface MockFile {
+interface UploadFile {
+  id: string;
+  file: File;
   name: string;
   size: string;
   type: string;
@@ -29,24 +36,14 @@ interface MockFile {
 export default function FileUpload({
   title = "Upload Documents",
   description = "Drag and drop files or paste from clipboard",
-  className
+  className,
+  orderId,
+  patientId,
+  onUploadComplete
 }: FileUploadProps) {
   const [isDragging, setIsDragging] = useState(false);
-  const [mockFiles, setMockFiles] = useState<MockFile[]>([
-    { 
-      name: 'patient-insurance-card.jpg', 
-      size: '1.2 MB', 
-      type: 'image/jpeg', 
-      status: 'success'
-    },
-    { 
-      name: 'referral-form.pdf', 
-      size: '825 KB', 
-      type: 'application/pdf', 
-      status: 'uploading', 
-      progress: 60 
-    }
-  ]);
+  const [uploadFiles, setUploadFiles] = useState<UploadFile[]>([]);
+  const { toast } = useToast();
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   
@@ -73,66 +70,107 @@ export default function FileUpload({
     e.stopPropagation();
     setIsDragging(false);
     
-    // In mockup, just add a fake file when something is dropped
-    setMockFiles(prev => [
-      ...prev, 
-      { 
-        name: 'dropped-file-' + Math.floor(Math.random() * 1000) + '.pdf', 
-        size: Math.floor(Math.random() * 5) + '.' + Math.floor(Math.random() * 9) + ' MB', 
-        type: 'application/pdf', 
-        status: 'uploading',
-        progress: 0
-      }
-    ]);
-    
-    // Simulate progress and completion for mockup purposes
-    simulateUpload();
+    const files = e.dataTransfer.files;
+    if (files && files.length > 0) {
+      handleFiles(files);
+    }
   };
   
-  // Simulate file upload progress
-  const simulateUpload = () => {
-    const index = mockFiles.length;
+  // Handle files from drop or input
+  const handleFiles = async (fileList: FileList) => {
+    const files = Array.from(fileList);
     
-    let progress = 0;
-    const interval = setInterval(() => {
-      progress += 10;
-      if (progress <= 100) {
-        setMockFiles(prev => {
-          const updated = [...prev];
-          if (updated[index]) {
-            updated[index] = { ...updated[index], progress, status: 'uploading' };
-          }
-          return updated;
+    for (const file of files) {
+      // Validate file type
+      if (!FileUploadService.isValidFileType(file)) {
+        toast({
+          title: "Invalid file type",
+          description: `${file.name} is not a supported file type`,
+          variant: "destructive"
         });
-      } else {
-        clearInterval(interval);
-        setMockFiles(prev => {
-          const updated = [...prev];
-          if (updated[index]) {
-            updated[index] = { ...updated[index], status: 'success' };
-          }
-          return updated;
-        });
+        continue;
       }
-    }, 300);
+      
+      // Validate file size
+      if (!FileUploadService.isValidFileSize(file)) {
+        const maxSize = file.type === 'application/pdf' ? '20MB' : '5MB';
+        toast({
+          title: "File too large",
+          description: `${file.name} exceeds the ${maxSize} limit`,
+          variant: "destructive"
+        });
+        continue;
+      }
+      
+      // Add to upload list
+      const uploadFile: UploadFile = {
+        id: `${Date.now()}-${Math.random()}`,
+        file,
+        name: file.name,
+        size: FileUploadService.getFileSizeString(file.size),
+        type: file.type,
+        status: 'uploading',
+        progress: 0
+      };
+      
+      setUploadFiles(prev => [...prev, uploadFile]);
+      
+      // Start upload
+      uploadFileToS3(uploadFile);
+    }
+  };
+  
+  // Upload file to S3
+  const uploadFileToS3 = async (uploadFile: UploadFile) => {
+    try {
+      const document = await FileUploadService.uploadFile(
+        uploadFile.file,
+        orderId,
+        patientId,
+        'general',
+        (progress) => {
+          setUploadFiles(prev => prev.map(f => 
+            f.id === uploadFile.id ? { ...f, progress } : f
+          ));
+        }
+      );
+      
+      // Save to localStorage
+      FileUploadService.saveDocumentToLocalStorage(orderId, document);
+      
+      // Mark as success
+      setUploadFiles(prev => prev.map(f => 
+        f.id === uploadFile.id ? { ...f, status: 'success' } : f
+      ));
+      
+      // Notify parent
+      if (onUploadComplete) {
+        onUploadComplete();
+      }
+      
+      // Remove after 3 seconds
+      setTimeout(() => {
+        setUploadFiles(prev => prev.filter(f => f.id !== uploadFile.id));
+      }, 3000);
+      
+    } catch (error) {
+      console.error('Upload error:', error);
+      setUploadFiles(prev => prev.map(f => 
+        f.id === uploadFile.id ? { 
+          ...f, 
+          status: 'error', 
+          message: error instanceof Error ? error.message : 'Upload failed' 
+        } : f
+      ));
+    }
   };
   
   // Handle file input change
-  const handleFileInputChange = () => {
-    // In mockup, just add a fake file when the button is clicked
-    setMockFiles(prev => [
-      ...prev, 
-      { 
-        name: 'selected-file-' + Math.floor(Math.random() * 1000) + '.jpg', 
-        size: Math.floor(Math.random() * 2) + '.' + Math.floor(Math.random() * 9) + ' MB', 
-        type: 'image/jpeg', 
-        status: 'uploading',
-        progress: 0
-      }
-    ]);
-    
-    // Simulate progress and completion for mockup purposes
-    simulateUpload();
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      handleFiles(files);
+    }
   };
   
   // Trigger file input click
@@ -143,8 +181,8 @@ export default function FileUpload({
   };
   
   // Remove a file from the list
-  const removeFile = (index: number) => {
-    setMockFiles(prev => prev.filter((_, i) => i !== index));
+  const removeFile = (id: string) => {
+    setUploadFiles(prev => prev.filter(f => f.id !== id));
   };
   
   // File type icon mapping
@@ -162,9 +200,11 @@ export default function FileUpload({
     <div className={`space-y-4 ${className}`}>
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-medium text-gray-900">{title}</h3>
-        <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-          {mockFiles.length} file{mockFiles.length !== 1 ? 's' : ''}
-        </Badge>
+        {uploadFiles.length > 0 && (
+          <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+            {uploadFiles.length} file{uploadFiles.length !== 1 ? 's' : ''}
+          </Badge>
+        )}
       </div>
       
       {/* Drop zone */}
@@ -191,7 +231,7 @@ export default function FileUpload({
           </div>
           
           <p className="text-xs text-gray-500">
-            JPG, PNG, or PDF up to 10MB
+            JPG, PNG, GIF, PDF, DOC, DOCX (PDF: 20MB max, Others: 5MB max)
           </p>
           
           <p className="text-xs text-gray-500 mt-1">
@@ -206,16 +246,17 @@ export default function FileUpload({
         type="file"
         className="hidden"
         onChange={handleFileInputChange}
-        accept="image/jpeg,image/png,application/pdf"
+        accept="image/jpeg,image/png,image/gif,application/pdf,text/plain,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        multiple
       />
       
       {/* File list */}
-      {mockFiles.length > 0 && (
+      {uploadFiles.length > 0 && (
         <div className="space-y-2">
           <div className="space-y-2 max-h-[300px] overflow-y-auto">
-            {mockFiles.map((file, index) => (
+            {uploadFiles.map((file) => (
               <div 
-                key={index} 
+                key={file.id} 
                 className="flex items-center p-3 border rounded-md bg-white"
               >
                 <div className="mr-3">
@@ -233,13 +274,15 @@ export default function FileUpload({
                       </p>
                     </div>
                     
-                    <button 
-                      type="button"
-                      onClick={() => removeFile(index)}
-                      className="text-gray-400 hover:text-gray-500"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
+                    {file.status !== 'success' && (
+                      <button 
+                        type="button"
+                        onClick={() => removeFile(file.id)}
+                        className="text-gray-400 hover:text-gray-500"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    )}
                   </div>
                   
                   {file.status === 'uploading' && (
