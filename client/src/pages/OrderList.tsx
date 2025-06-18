@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "@/lib/useAuth";
+import { UserRole } from "@/lib/roles";
 import {
   Table,
   TableBody,
@@ -64,6 +66,7 @@ interface ApiOrder {
   radiology_organization_name?: string;
   clinical_indication?: string;
   original_dictation?: string;
+  referring_physician_name?: string;
 }
 
 // Define the API response structure
@@ -84,6 +87,7 @@ const OrderList = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [_, setLocation] = useLocation();
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const { user } = useAuth();
   
   // Handle navigation to new order page
   const handleNewOrderClick = () => {
@@ -285,6 +289,24 @@ const OrderList = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
   
+  // Helper function to determine the number of columns based on user role
+  const getColSpan = () => {
+    if (!user) return 7; // Default fallback
+    
+    switch (user.role) {
+      case UserRole.Physician:
+        return 5; // Patient, Date, Time, Modality, View
+      case UserRole.AdminReferring:
+        return 7; // Patient, MRN, Date, Modality, Radiology Group, Status, Actions
+      case UserRole.Radiologist:
+      case UserRole.Scheduler:
+      case UserRole.AdminRadiology:
+        return 7; // Patient, MRN, Date, Time, Modality, Referring Physician, Actions
+      default:
+        return 7; // Default fallback
+    }
+  };
+  
   // Generate pagination items
   const renderPaginationItems = () => {
     if (!data?.pagination) return null;
@@ -476,49 +498,130 @@ const OrderList = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    {/* Patient column - shown for all roles */}
                     <TableHead className="w-[180px]">
                       <Button variant="ghost" className="flex items-center text-slate-600 font-medium p-0 h-auto">
                         Patient
                         <ArrowUpDown className="ml-1 h-3 w-3" />
                       </Button>
                     </TableHead>
-                    <TableHead>MRN</TableHead>
+                    
+                    {/* MRN column - not shown for physician role */}
+                    {user?.role !== UserRole.Physician && (
+                      <TableHead>MRN</TableHead>
+                    )}
+                    
+                    {/* Date column - shown for all roles */}
                     <TableHead>
                       <Button variant="ghost" className="flex items-center text-slate-600 font-medium p-0 h-auto">
                         Date
                         <ArrowUpDown className="ml-1 h-3 w-3" />
                       </Button>
                     </TableHead>
+                    
+                    {/* Time column - shown for physician, radiologist, scheduler, admin_radiology roles */}
+                    {(user?.role === UserRole.Physician ||
+                      user?.role === UserRole.Radiologist ||
+                      user?.role === UserRole.Scheduler ||
+                      user?.role === UserRole.AdminRadiology) && (
+                      <TableHead>Time</TableHead>
+                    )}
+                    
+                    {/* Modality column - shown for all roles */}
                     <TableHead>Modality</TableHead>
-                    <TableHead>Radiology Group</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                    
+                    {/* Radiology Group column - shown only for admin_referring role */}
+                    {user?.role === UserRole.AdminReferring && (
+                      <TableHead>Radiology Group</TableHead>
+                    )}
+                    
+                    {/* Referring Physician column - shown for radiologist, scheduler, admin_radiology roles */}
+                    {(user?.role === UserRole.Radiologist ||
+                      user?.role === UserRole.Scheduler ||
+                      user?.role === UserRole.AdminRadiology) && (
+                      <TableHead>Referring Physician</TableHead>
+                    )}
+                    
+                    {/* Status column - shown for physician and admin_referring roles */}
+                    {(user?.role === UserRole.Physician ||
+                      user?.role === UserRole.AdminReferring) && (
+                      <TableHead>Status</TableHead>
+                    )}
+                    
+                    {/* Actions/View column - shown for all roles but with different labels */}
+                    <TableHead className="text-right">
+                      {user?.role === UserRole.Physician ? 'View' : 'Actions'}
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {searchFilteredOrders.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center py-8 text-slate-500">
+                      <TableCell colSpan={getColSpan()} className="text-center py-8 text-slate-500">
                         No orders found matching your search criteria
                       </TableCell>
                     </TableRow>
                   ) : (
                     searchFilteredOrders.map((order) => (
                       <TableRow key={order.id}>
+                        {/* Patient column - shown for all roles */}
                         <TableCell className="font-medium">
                           {`${order.patient_first_name || ''} ${order.patient_last_name || ''}`.trim() || 'Unknown'}
                         </TableCell>
-                        <TableCell className="font-mono text-xs">{order.patient_mrn || 'N/A'}</TableCell>
+                        
+                        {/* MRN column - not shown for physician role */}
+                        {user?.role !== UserRole.Physician && (
+                          <TableCell className="font-mono text-xs">{order.patient_mrn || 'N/A'}</TableCell>
+                        )}
+                        
+                        {/* Date column - shown for all roles */}
                         <TableCell>
                           <div className="flex items-center">
                             <Calendar className="h-3.5 w-3.5 mr-1.5 text-slate-500" />
                             {order.created_at ? formatDate(order.created_at) : 'N/A'}
                           </div>
                         </TableCell>
+                        
+                        {/* Time column - shown for physician, radiologist, scheduler, admin_radiology roles */}
+                        {(user?.role === UserRole.Physician ||
+                          user?.role === UserRole.Radiologist ||
+                          user?.role === UserRole.Scheduler ||
+                          user?.role === UserRole.AdminRadiology) && (
+                          <TableCell>
+                            <div className="flex items-center">
+                              <Clock className="h-3.5 w-3.5 mr-1.5 text-slate-500" />
+                              {order.created_at ? formatTime(order.created_at) : 'N/A'}
+                            </div>
+                          </TableCell>
+                        )}
+                        
+                        {/* Modality column - shown for all roles */}
                         <TableCell>{order.modality || 'N/A'}</TableCell>
-                        <TableCell>{order.radiology_organization_name || 'N/A'}</TableCell>
-                        <TableCell>{getStatusBadge(order.status)}</TableCell>
-                        <TableCell>{getActionButtons(order.status)}</TableCell>
+                        
+                        {/* Radiology Group column - shown only for admin_referring role */}
+                        {user?.role === UserRole.AdminReferring && (
+                          <TableCell>{order.radiology_organization_name || 'N/A'}</TableCell>
+                        )}
+                        
+                        {/* Referring Physician column - shown for radiologist, scheduler, admin_radiology roles */}
+                        {(user?.role === UserRole.Radiologist ||
+                          user?.role === UserRole.Scheduler ||
+                          user?.role === UserRole.AdminRadiology) && (
+                          <TableCell>
+                            {order.referring_physician_name || 'N/A'}
+                          </TableCell>
+                        )}
+                        
+                        {/* Status column - shown for physician and admin_referring roles */}
+                        {(user?.role === UserRole.Physician ||
+                          user?.role === UserRole.AdminReferring) && (
+                          <TableCell>{getStatusBadge(order.status)}</TableCell>
+                        )}
+                        
+                        {/* Actions/View column - shown for all roles */}
+                        <TableCell>
+                          {getActionButtons(order.status)}
+                        </TableCell>
                       </TableRow>
                     ))
                   )}
