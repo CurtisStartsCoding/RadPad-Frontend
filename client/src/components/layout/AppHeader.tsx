@@ -247,8 +247,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
   return (
     <header className={cn("bg-white border-b border-gray-100 flex items-center justify-between py-2.5 px-4", className)}>
       <div>
-        <h1 className="text-blue-900 font-medium text-base">{title}</h1>
-        {subtitle && <p className="text-sm text-gray-600 mt-0.5">{subtitle}</p>}
+        <h1 className="text-blue-900 font-bold text-2xl">RadOrderPad</h1>
       </div>
       
       <button

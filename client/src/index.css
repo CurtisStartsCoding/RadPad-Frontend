@@ -74,6 +74,30 @@
   body {
     @apply font-sans antialiased bg-slate-100 text-slate-800;
   }
+  
+  /* Custom scrollbar styles for a more app-like experience */
+  ::-webkit-scrollbar {
+    width: 3px;
+    height: 3px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    @apply bg-gray-300 rounded-full;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-gray-400;
+  }
+  
+  /* Firefox scrollbar */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #d1d5db transparent;
+  }
 }
 
 @layer components {

@@ -477,17 +477,10 @@ const NewOrder = ({ userRole = UserRole.Physician }: NewOrderProps) => {
       <PageHeader
         title={`Radiology Order - ${patient.name}`}
       >
-        <div className="flex items-center space-x-2">
-          <div className="flex items-center">
-            <span className="h-2 w-2 bg-blue-600 rounded-full mr-1"></span>
-            <span className="h-2 w-2 bg-gray-300 rounded-full mr-1"></span>
-            <span className="h-2 w-2 bg-gray-300 rounded-full"></span>
-          </div>
-          <Button variant="ghost" size="icon" className="h-10 w-10">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M12 21.35L10.55 20.03C5.4 15.36 2 12.28 2 8.5C2 5.42 4.42 3 7.5 3C9.24 3 10.91 3.81 12 5.09C13.09 3.81 14.76 3 16.5 3C19.58 3 22 5.42 22 8.5C22 12.28 18.6 15.36 13.45 20.04L12 21.35Z" fill="none" stroke="currentColor" strokeWidth="2" />
-            </svg>
-          </Button>
+        <div className="bg-blue-50 text-blue-600 border border-blue-200 px-3 py-1 rounded-full text-xs font-medium">
+          {orderStep === 'dictation' && "Step 1 of 3: Dictation"}
+          {orderStep === 'validation' && "Step 2 of 3: Review"}
+          {orderStep === 'signature' && "Step 3 of 3: Sign Order"}
         </div>
       </PageHeader>
       
@@ -511,12 +504,6 @@ const NewOrder = ({ userRole = UserRole.Physician }: NewOrderProps) => {
             </CardHeader>
           </Card>
         )}
-      
-        <div className="text-sm font-medium text-blue-600 mb-6">
-          {orderStep === 'dictation' && "Step 1 of 3: Dictation"}
-          {orderStep === 'validation' && "Step 2 of 3: Review"}
-          {orderStep === 'signature' && "Step 3 of 3: Sign Order"}
-        </div>
         
         {/* Patient Information - Only show if not trial user */}
         {!isTrialUser && (
