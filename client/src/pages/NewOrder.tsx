@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef } from "react";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/lib/useAuth";
+import { Patient } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { temporaryPatient } from "@/lib/mock-data";
 import PatientInfoCard from "@/components/order/PatientInfoCard";
 import ValidationView from "@/components/order/ValidationView";
 import PatientIdentificationDialog from "@/components/order/PatientIdentificationDialog";
@@ -29,7 +29,20 @@ const NewOrder = ({ userRole = UserRole.Physician }: NewOrderProps) => {
   const [characterCount, setCharacterCount] = useState(0);
   const [remainingCredits, setRemainingCredits] = useState(5);
   const [isPatientDialogOpen, setIsPatientDialogOpen] = useState(false);
-  const [patient, setPatient] = useState(temporaryPatient);
+  const [patient, setPatient] = useState<Patient>({
+    id: 0,
+    name: 'No Patient Identified',
+    dob: '',
+    mrn: '',
+    pidn: '',
+    radiologyGroupId: null,
+    referringPracticeId: null,
+    externalPatientId: null,
+    encryptedData: '',
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    gender: ''
+  });
   const [submittedOrderId, setSubmittedOrderId] = useState<number | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
@@ -123,6 +136,7 @@ const NewOrder = ({ userRole = UserRole.Physician }: NewOrderProps) => {
       return;
     }
     
+    
     if (!dictationText || dictationText.trim().length < 10) {
       setValidationFeedback("Please provide more detailed dictation before submitting");
       return;
@@ -165,20 +179,10 @@ const NewOrder = ({ userRole = UserRole.Physician }: NewOrderProps) => {
           isOverrideValidation: attemptCount > 0
         };
       } else {
-        // Full payload for regular endpoint
+        // Full payload for regular endpoint - same as trial, just dictation
         requestPayload = {
           dictationText,
-          isOverrideValidation: attemptCount > 0,
-          patientInfo: {
-            id: 1,
-            firstName: patient.name.split(' ')[0] || 'Test',
-            lastName: patient.name.split(' ').slice(1).join(' ') || 'Patient',
-            dateOfBirth: patient.dob !== 'Unknown' ? patient.dob : '1980-01-01',
-            gender: 'male',
-            phoneNumber: '555-123-4567',
-            email: 'test.patient@example.com'
-          },
-          radiologyOrganizationId: 1
+          isOverrideValidation: attemptCount > 0
         };
       }
       
@@ -471,7 +475,7 @@ const NewOrder = ({ userRole = UserRole.Physician }: NewOrderProps) => {
   return (
     <div className="p-6">
       <PageHeader
-        title={`Radiology Order - ${patient.name === "Unknown Patient" ? "Unknown Patient" : patient.name}`}
+        title={`Radiology Order - ${patient.name}`}
       >
         <div className="flex items-center space-x-2">
           <div className="flex items-center">
@@ -508,7 +512,7 @@ const NewOrder = ({ userRole = UserRole.Physician }: NewOrderProps) => {
           </Card>
         )}
       
-        <div className="text-sm font-medium text-blue-600 mb-4">
+        <div className="text-sm font-medium text-blue-600 mb-6">
           {orderStep === 'dictation' && "Step 1 of 3: Dictation"}
           {orderStep === 'validation' && "Step 2 of 3: Review"}
           {orderStep === 'signature' && "Step 3 of 3: Sign Order"}
@@ -677,13 +681,6 @@ const NewOrder = ({ userRole = UserRole.Physician }: NewOrderProps) => {
         {orderStep === 'validation' && validationResult && (
           <Card>
             <CardContent className="p-6">
-              <Alert className="mb-6">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>
-                  Please review the clinical information and validation results before signing the order.
-                </AlertDescription>
-              </Alert>
-              
               <ValidationView 
                 dictationText={dictationText} 
                 validationResult={validationResult}

@@ -54,7 +54,7 @@ const ValidationView: React.FC<ValidationViewProps> = ({
   const procedureCodes = validationResult.suggestedCodes?.filter(code => code.type === 'CPT') || [];
 
   return (
-    <Card className="bg-white mt-6">
+    <Card className="bg-white">
       <CardHeader className="pb-0">
         <CardTitle className="text-lg font-medium flex items-center">
           <ClipboardCheck className="h-5 w-5 mr-2 text-primary" />
@@ -118,7 +118,7 @@ const ValidationView: React.FC<ValidationViewProps> = ({
                       {diagnosisCodes.map((code, index) => (
                         <li key={index} className="text-sm">
                           <div className="flex items-center gap-2">
-                            <span className="font-mono text-primary font-medium">{code.code}</span>
+                            <span className="font-mono text-primary font-bold">{code.code}</span>
                             {code.isPrimary && (
                               <Badge className="bg-green-100 text-green-800 hover:bg-green-200 text-xs">
                                 Primary
@@ -143,7 +143,7 @@ const ValidationView: React.FC<ValidationViewProps> = ({
                       {procedureCodes.map((code, index) => (
                         <li key={index} className="text-sm">
                           <div className="flex items-center gap-2">
-                            <span className="font-mono text-primary font-medium">{code.code}</span>
+                            <span className="font-mono text-primary font-bold">{code.code}</span>
                             {code.isPrimary && (
                               <Badge className="bg-green-100 text-green-800 hover:bg-green-200 text-xs">
                                 Primary
