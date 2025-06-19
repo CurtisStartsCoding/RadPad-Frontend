@@ -24,6 +24,7 @@ import { Search, Filter, Calendar, Clock, ArrowUpDown, FileText, CheckCircle2, C
 import { apiRequest } from "@/lib/queryClient";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import PageHeader from "@/components/layout/PageHeader";
+import DebugUserInfo from "@/components/debug/DebugUserInfo";
 
 // Define the Order type based on actual API response
 interface ApiRadiologyOrder {
@@ -185,6 +186,8 @@ const RadiologyQueue = () => {
           View Schedule
         </Button>
       </PageHeader>
+      
+      <DebugUserInfo />
       
       <Card>
         <CardHeader className="pb-3">
