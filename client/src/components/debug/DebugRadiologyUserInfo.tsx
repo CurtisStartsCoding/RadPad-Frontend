@@ -25,7 +25,7 @@ interface Connection {
   createdAt: string;
 }
 
-const DebugUserInfo: React.FC = () => {
+const DebugRadiologyUserInfo: React.FC = () => {
   const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [organization, setOrganization] = useState<Organization | null>(null);
@@ -282,4 +282,4 @@ const DebugUserInfo: React.FC = () => {
   );
 };
 
-export default DebugUserInfo;
+export default DebugRadiologyUserInfo;

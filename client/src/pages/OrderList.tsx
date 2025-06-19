@@ -49,7 +49,7 @@ import { apiRequest } from "@/lib/queryClient";
 import PageHeader from "@/components/layout/PageHeader";
 import { getNewOrderPath } from "@/lib/navigation";
 import { useLocation } from "wouter";
-import OrderDebugInfo from "@/components/debug/OrderDebugInfo";
+import OrderDebugInfo from "@/components/debug/DebugOrderUserInfo";
 
 // Define the Order type based on API response
 interface ApiOrder {
