@@ -273,6 +273,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
     onSuccess: (data: LoginResponse & { _isTrial?: boolean }) => {
       console.log('Login response:', data);
       
+      // Store the login response for DebugLoginInfo component
+      localStorage.setItem('rad_order_pad_login_response', JSON.stringify(data));
+      
       // Handle the API response format
       if (data.token && data.user) {
         // Convert snake_case to camelCase for user fields
@@ -360,6 +363,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
     try {
       const result = await loginMutation.mutateAsync({ email, password });
       
+      // Store the login response for DebugLoginInfo component
+      // This ensures it's stored even when login is called directly
+      localStorage.setItem('rad_order_pad_login_response', JSON.stringify(result));
+      
       if (user) {
         console.log("** useAuth login - user case: ", {user})
         return user;
@@ -404,18 +411,24 @@ export function AuthProvider({ children }: AuthProviderProps) {
       // Clear user data from localStorage
       localStorage.removeItem('rad_order_pad_user_data');
       
+      // Clear debug information
+      localStorage.removeItem('rad_order_pad_login_response');
+      
       // Clear all user-related queries
       await queryClient.clear();
     } catch (error) {
       console.error('Logout error:', error);
       // Don't throw the error, just clear tokens and user state
       clearToken();
-      localStorage.removeItem('rad_order_pad_user_data');
       
       // Remove user data and trial-related items
       localStorage.removeItem('rad_order_pad_user_data');
       localStorage.removeItem('rad_order_pad_trial_info');
       localStorage.removeItem('rad_order_pad_trial_validations_remaining');
+      
+      // Clear debug information
+      localStorage.removeItem('rad_order_pad_login_response');
+      
       setUser(null);
       await queryClient.clear();
     }

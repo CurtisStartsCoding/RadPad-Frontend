@@ -1,12 +1,13 @@
 import { useState } from "react";
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
+import {
+  Card,
+  CardContent,
+  CardDescription,
   CardFooter,
   CardHeader,
   CardTitle
 } from "@/components/ui/card";
+import DebugLoginInfo from "@/components/debug/DebugLoginInfo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -238,6 +239,7 @@ const MyProfile = () => {
   if (isTrialUser) {
     return (
       <div className="p-6">
+        <DebugLoginInfo />
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl font-semibold">Rad Order Pad</h1>
@@ -379,6 +381,7 @@ const MyProfile = () => {
   // Regular user profile view
   return (
     <div className="p-6">
+      <DebugLoginInfo />
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-semibold">Rad Order Pad</h1>
