@@ -36,6 +36,7 @@ import {
   Download
 } from "lucide-react";
 import PageHeader from "@/components/layout/PageHeader";
+import { formatDateShort } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
 
 // Mock organizations data
@@ -223,14 +224,6 @@ const SuperAdminOrganizations = () => {
     setCreditAdjustmentReason("");
   };
 
-  // Format date
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
-  };
 
   // Get status badge
   const getStatusBadge = (status: string) => {
@@ -384,7 +377,7 @@ const SuperAdminOrganizations = () => {
                       </div>
                       <div>
                         <p className="text-xs text-slate-500">Created</p>
-                        <p className="text-sm">{formatDate(org.createdAt)}</p>
+                        <p className="text-sm">{formatDateShort(org.createdAt)}</p>
                       </div>
                     </div>
                   </div>
@@ -451,7 +444,7 @@ const SuperAdminOrganizations = () => {
                           </div>
                           <div>
                             <p className="text-xs text-slate-500">Created On</p>
-                            <p className="text-sm font-medium">{formatDate(orgDetailsMock.organization.created_at)}</p>
+                            <p className="text-sm font-medium">{formatDateShort(orgDetailsMock.organization.created_at)}</p>
                           </div>
                         </div>
                       </div>
@@ -624,7 +617,7 @@ const SuperAdminOrganizations = () => {
                                   <Badge className="bg-slate-100 text-slate-800 border-slate-300">{connection.status}</Badge>
                                 )}
                               </TableCell>
-                              <TableCell>{formatDate(connection.connected_at)}</TableCell>
+                              <TableCell>{formatDateShort(connection.connected_at)}</TableCell>
                               <TableCell className="text-right">
                                 <Button variant="ghost" size="sm">
                                   <LinkIcon className="h-4 w-4 mr-1" />
@@ -655,7 +648,7 @@ const SuperAdminOrganizations = () => {
                         <TableBody>
                           {orgDetailsMock.billingHistory.map(event => (
                             <TableRow key={event.id}>
-                              <TableCell>{formatDate(event.date)}</TableCell>
+                              <TableCell>{formatDateShort(event.date)}</TableCell>
                               <TableCell>
                                 <Badge variant="outline">
                                   {event.type === 'credit_purchase' ? 'Purchase' : 

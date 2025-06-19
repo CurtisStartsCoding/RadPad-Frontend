@@ -43,6 +43,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { UserRole } from "@/lib/roles";
 import { getUserRoleFromStorage } from "@/lib/navigation";
 import { roleDisplayNames } from "@/lib/roles";
+import { formatDateLong } from "@/lib/utils";
 
 interface StoredUser {
   id: string;
@@ -61,14 +62,6 @@ interface StoredUser {
   npi?: string;
 }
 
-// Function to format date
-const formatDate = (dateString: string): string => {
-  return new Date(dateString).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  });
-};
 
 const MyProfile = () => {
   // Load user data directly from localStorage
@@ -212,9 +205,9 @@ const MyProfile = () => {
     role: user?.role ? roleDisplayNames[user.role as UserRole] || user.role : "",
     organization: isTrialUser ? "Trial Account" : (userData?.organization_name || "Medical Practice"),
     joinedDate: userData?.created_at || user?.created_at
-      ? formatDate(userData?.created_at || user?.created_at)
+      ? formatDateLong(userData?.created_at || user?.created_at)
       : "Today",
-    lastLogin: user?.lastLoginAt ? formatDate(user.lastLoginAt) : "Today",
+    lastLogin: user?.lastLoginAt ? formatDateLong(user.lastLoginAt) : "Today",
   };
   
   // Function to handle profile edit

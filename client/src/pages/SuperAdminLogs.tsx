@@ -38,6 +38,7 @@ import {
   Clock
 } from "lucide-react";
 import PageHeader from "@/components/layout/PageHeader";
+import { formatDateShort } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
 
 // Mock validation logs data
@@ -273,14 +274,6 @@ const SuperAdminLogs = () => {
   // State for current tab
   const [currentTab, setCurrentTab] = useState<string>("validation");
   
-  // Format date
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
-  };
   
   // Format datetime
   const formatDateTime = (dateString: string) => {
@@ -848,7 +841,7 @@ const SuperAdminLogs = () => {
                             {event.resolvedAt ? (
                               <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
                                 <Clock className="h-3 w-3 mr-1" />
-                                {formatDate(event.resolvedAt)}
+                                {formatDateShort(event.resolvedAt)}
                               </Badge>
                             ) : (
                               <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">

@@ -33,6 +33,7 @@ import {
   Plus
 } from "lucide-react";
 import PageHeader from "@/components/layout/PageHeader";
+import { formatDateShort } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 
@@ -252,14 +253,6 @@ const SuperAdminUsers = () => {
     return `${firstName[0]}${lastName[0]}`;
   };
 
-  // Format date
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
-  };
 
   // Format time
   const formatDateTime = (dateString: string) => {
@@ -570,11 +563,11 @@ const SuperAdminUsers = () => {
                           </div>
                           <div>
                             <p className="text-xs text-slate-500">Account Created</p>
-                            <p className="text-sm font-medium">{formatDate(userDetailsMock.createdAt)}</p>
+                            <p className="text-sm font-medium">{formatDateShort(userDetailsMock.createdAt)}</p>
                           </div>
                           <div>
                             <p className="text-xs text-slate-500">Last Login</p>
-                            <p className="text-sm font-medium">{formatDate(userDetailsMock.lastLogin)}</p>
+                            <p className="text-sm font-medium">{formatDateShort(userDetailsMock.lastLogin)}</p>
                           </div>
                         </div>
                       </div>

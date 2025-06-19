@@ -51,6 +51,7 @@ import {
 } from "lucide-react";
 import { UserRole } from "@/lib/roles";
 import PageHeader from "@/components/layout/PageHeader";
+import { formatDateShort } from "@/lib/utils";
 
 // Mock data for System Health
 const systemHealthData = {
@@ -411,16 +412,6 @@ const SuperAdminDashboard = ({ navigateTo }: SuperAdminDashboardProps) => {
     }
   };
 
-  // Format date
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
 
   return (
     <div className="p-6">
@@ -465,7 +456,7 @@ const SuperAdminDashboard = ({ navigateTo }: SuperAdminDashboardProps) => {
                     <div className={`mt-0.5 h-2 w-2 rounded-full ${alert.level === 'critical' ? 'bg-red-600' : 'bg-amber-500'} mr-2`} />
                     <div>
                       <p className="text-sm text-slate-900">{alert.message}</p>
-                      <p className="text-xs text-slate-500">{formatDate(alert.timestamp)}</p>
+                      <p className="text-xs text-slate-500">{formatDateShort(alert.timestamp)}</p>
                     </div>
                   </div>
                 ))}
@@ -485,7 +476,7 @@ const SuperAdminDashboard = ({ navigateTo }: SuperAdminDashboardProps) => {
                 <p className="font-medium">
                   System Status: <span className="capitalize">{systemHealthData.status}</span>
                 </p>
-                <p className="text-sm text-slate-500">Last updated: {formatDate(systemHealthData.timestamp)}</p>
+                <p className="text-sm text-slate-500">Last updated: {formatDateShort(systemHealthData.timestamp)}</p>
               </div>
             </div>
             <div className="flex items-center">
@@ -784,7 +775,7 @@ const SuperAdminDashboard = ({ navigateTo }: SuperAdminDashboardProps) => {
                 <div className={`h-2 w-2 rounded-full mr-2 ${getStatusColor(systemHealthData.status)}`}></div>
                 <span className="font-medium capitalize">{systemHealthData.status}</span>
               </div>
-              <p className="text-sm text-slate-500">Last updated: {formatDate(systemHealthData.timestamp)}</p>
+              <p className="text-sm text-slate-500">Last updated: {formatDateShort(systemHealthData.timestamp)}</p>
             </div>
             <div className="flex space-x-2">
               <Button variant="outline" size="sm">
@@ -1588,7 +1579,7 @@ const SuperAdminDashboard = ({ navigateTo }: SuperAdminDashboardProps) => {
                     <TableBody>
                       {errorLogsData.logs.map(log => (
                         <TableRow key={log.id}>
-                          <TableCell className="whitespace-nowrap">{formatDate(log.timestamp)}</TableCell>
+                          <TableCell className="whitespace-nowrap">{formatDateShort(log.timestamp)}</TableCell>
                           <TableCell className="capitalize">{log.service}</TableCell>
                           <TableCell>
                             <Badge variant="outline" className={`
@@ -1761,7 +1752,7 @@ const SuperAdminDashboard = ({ navigateTo }: SuperAdminDashboardProps) => {
                       <TableCell>{session.organizationName}</TableCell>
                       <TableCell>{session.ipAddress}</TableCell>
                       <TableCell>{session.location}</TableCell>
-                      <TableCell className="whitespace-nowrap">{formatDate(session.lastActivity)}</TableCell>
+                      <TableCell className="whitespace-nowrap">{formatDateShort(session.lastActivity)}</TableCell>
                       <TableCell>{session.duration}</TableCell>
                       <TableCell className="text-right">
                         <Button variant="ghost" size="sm">

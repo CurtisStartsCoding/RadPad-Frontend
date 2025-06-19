@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ChevronDown, ChevronUp, Bug } from 'lucide-react';
+import { formatDate } from '@/lib/utils';
 
 interface OrderDebugInfoProps {
   currentUser: any;
@@ -57,7 +58,7 @@ export default function OrderDebugInfo({
         console.log(`  - Partner: ${conn.partnerOrgName} (ID: ${conn.partnerOrgId})`);
         console.log(`  - Status: ${conn.status}`);
         console.log(`  - Direction: ${conn.isInitiator ? 'Outgoing' : 'Incoming'}`);
-        console.log(`  - Created: ${new Date(conn.createdAt).toLocaleDateString()}`);
+        console.log(`  - Created: ${formatDate(conn.createdAt)}`);
       });
     } else if (connectionsLoading) {
       console.log('\n⏳ CONNECTIONS: Loading...');

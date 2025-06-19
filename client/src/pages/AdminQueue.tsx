@@ -23,6 +23,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Search, Filter, Calendar, Clock, ArrowUpDown, FileText, CheckCircle2, Loader2 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
+import { formatDateShort } from "@/lib/utils";
 import { AppPage } from "@/App";
 import PageHeader from "@/components/layout/PageHeader";
 
@@ -115,11 +116,6 @@ const AdminQueue: React.FC<AdminQueueProps> = ({ navigateTo }) => {
     );
   });
   
-  // Format date for display
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-  };
   
   // Format time for display
   const formatTime = (dateString: string) => {
@@ -245,7 +241,7 @@ const AdminQueue: React.FC<AdminQueueProps> = ({ navigateTo }) => {
                           <TableCell>
                             <div className="flex items-center">
                               <Calendar className="h-3.5 w-3.5 mr-1.5 text-slate-500" />
-                              {formatDate(order.created_at)}
+                              {formatDateShort(order.created_at)}
                             </div>
                           </TableCell>
                           <TableCell>
@@ -325,7 +321,7 @@ const AdminQueue: React.FC<AdminQueueProps> = ({ navigateTo }) => {
                           <TableCell>
                             <div className="flex items-center">
                               <Calendar className="h-3.5 w-3.5 mr-1.5 text-slate-500" />
-                              {formatDate(order.created_at)}
+                              {formatDateShort(order.created_at)}
                             </div>
                           </TableCell>
                           <TableCell>
@@ -397,7 +393,7 @@ const AdminQueue: React.FC<AdminQueueProps> = ({ navigateTo }) => {
                           <TableCell>
                             <div className="flex items-center">
                               <Calendar className="h-3.5 w-3.5 mr-1.5 text-slate-500" />
-                              {formatDate(order.created_at)}
+                              {formatDateShort(order.created_at)}
                             </div>
                           </TableCell>
                           <TableCell>

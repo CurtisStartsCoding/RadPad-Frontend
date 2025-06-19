@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import FileUpload from './FileUpload';
 import { FileUploadService } from '@/lib/fileUploadService';
 import { useToast } from '@/hooks/use-toast';
+import { formatDate } from '@/lib/utils';
 
 interface DocumentCategory {
   id: string;
@@ -177,7 +178,7 @@ export default function DocumentManager({
                                 {doc.contentType.replace('application/', '').replace('image/', '')}
                               </td>
                               <td className="px-4 py-3">{FileUploadService.getFileSizeString(doc.fileSize)}</td>
-                              <td className="px-4 py-3">{new Date(doc.uploadedAt).toLocaleDateString()}</td>
+                              <td className="px-4 py-3">{formatDate(doc.uploadedAt)}</td>
                               <td className="px-4 py-3">
                                 <div className="flex space-x-2">
                                   <Button 

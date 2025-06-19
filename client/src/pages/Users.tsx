@@ -12,6 +12,7 @@ import PageHeader from "@/components/layout/PageHeader";
 import { PlusCircle, Search, User, Mail, MapPin, Shield, Edit, UserX, Key, Loader2, Phone, CheckCircle, XCircle } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { formatDate } from "@/lib/utils";
 
 // Define the User type based on API response
 interface ApiUser {
@@ -823,8 +824,8 @@ const Users = () => {
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
-                            {user.invited_at ? new Date(user.invited_at).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }) :
-                             user.created_at ? new Date(user.created_at).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }) : 'N/A'}
+                            {user.invited_at ? formatDate(user.invited_at) :
+                             user.created_at ? formatDate(user.created_at) : 'N/A'}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm">
                             <div className="flex space-x-2">

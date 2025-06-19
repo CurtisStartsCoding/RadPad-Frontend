@@ -35,6 +35,7 @@ import {
   Loader2
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
+import { formatDateShort } from "@/lib/utils";
 import PageHeader from "@/components/layout/PageHeader";
 import { getNewOrderPath } from "@/lib/navigation";
 import { useLocation } from "wouter";
@@ -129,10 +130,6 @@ const OrderList = () => {
   });
   
   // Format date for display
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-  };
   
   // Format time for display
   const formatTime = (dateString: string) => {
@@ -312,7 +309,7 @@ const OrderList = () => {
                         <TableCell>
                           <div className="flex items-center">
                             <Calendar className="h-3.5 w-3.5 mr-1.5 text-slate-500" />
-                            {order.created_at ? formatDate(order.created_at) : 'N/A'}
+                            {order.created_at ? formatDateShort(order.created_at) : 'N/A'}
                           </div>
                         </TableCell>
                         <TableCell>{order.modality || 'N/A'}</TableCell>
