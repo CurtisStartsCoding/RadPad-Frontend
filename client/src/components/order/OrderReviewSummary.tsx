@@ -1,9 +1,11 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { AlertCircle, InfoIcon, Printer } from 'lucide-react';
+import { AlertCircle, Download, InfoIcon, Printer } from 'lucide-react';
+// @ts-ignore - html2pdf.js doesn't have official type definitions
+import html2pdf from 'html2pdf.js';
 
 interface OrderReviewSummaryProps {
   order: {
@@ -77,12 +79,62 @@ export default function OrderReviewSummary({
   onBack,
   isSending
 }: OrderReviewSummaryProps) {
+  const contentRef = useRef<HTMLDivElement>(null);
+
   const handlePrint = () => {
     window.print();
   };
 
+  const handleExportPDF = () => {
+    if (!contentRef.current) return;
+    
+    const filename = `Order_${orderDetails.orderNumber}_${patientInfo.lastName}_${patientInfo.firstName}.pdf`;
+    
+    // Create a clone of the content to remove elements with print:hidden class
+    const element = contentRef.current.cloneNode(true) as HTMLElement;
+    const hiddenElements = element.querySelectorAll('.print\\:hidden');
+    hiddenElements.forEach(el => el.remove());
+    
+    // Add a temporary stylesheet to improve PDF page breaks
+    const style = document.createElement('style');
+    style.innerHTML = `
+      @page { margin: 15mm; }
+      .page-break { page-break-before: always; }
+      .avoid-break { page-break-inside: avoid; }
+      .card { page-break-inside: avoid; }
+    `;
+    element.appendChild(style);
+    
+    // Apply avoid-break class to all cards
+    const cards = element.querySelectorAll('.card');
+    cards.forEach(card => {
+      card.classList.add('avoid-break');
+    });
+    
+    // Configure PDF options
+    const options = {
+      margin: [15, 15, 15, 15] as [number, number, number, number], // [top, right, bottom, left] in mm
+      filename: filename,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: {
+        scale: 2,
+        useCORS: true,
+        letterRendering: true
+      },
+      jsPDF: {
+        unit: 'mm',
+        format: 'a4',
+        orientation: 'portrait' as 'portrait',
+        compress: true
+      },
+      pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+    };
+    
+    html2pdf().set(options).from(element).save();
+  };
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 pdf-document" ref={contentRef}>
       <div>
         <h3 className="text-lg font-medium mb-2">Review Order Information</h3>
         <p className="text-sm text-muted-foreground mb-4">
@@ -90,7 +142,7 @@ export default function OrderReviewSummary({
         </p>
         
         {/* Compact print-friendly layout */}
-        <div className="space-y-3">
+        <div className="space-y-3 pdf-content">
           {/* Order Summary - All in one compact card */}
           <Card className="print:break-inside-avoid">
             <CardHeader className="pb-3">
@@ -172,7 +224,7 @@ export default function OrderReviewSummary({
           </Card>
 
           {/* Patient & Physician Info - Side by side */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-3 avoid-break">
             {/* Patient Information */}
             <Card className="print:break-inside-avoid">
               <CardHeader className="pb-3">
@@ -252,7 +304,7 @@ export default function OrderReviewSummary({
           </div>
           
           {/* Insurance Information - Full details */}
-          <Card className="print:break-inside-avoid">
+          <Card className="print:break-inside-avoid avoid-break">
             <CardHeader className="pb-3">
               <CardTitle className="text-base">Insurance Information</CardTitle>
             </CardHeader>
@@ -329,7 +381,7 @@ export default function OrderReviewSummary({
           
           {/* Special Instructions - Only if present */}
           {orderDetails.instructions && (
-            <Card className="print:break-inside-avoid">
+            <Card className="print:break-inside-avoid avoid-break">
               <CardHeader className="pb-3">
                 <CardTitle className="text-base">Special Instructions</CardTitle>
               </CardHeader>
@@ -349,23 +401,31 @@ export default function OrderReviewSummary({
         </div>
       </div>
       
-      <div className="flex justify-between mt-6">
+      <div className="flex justify-between mt-6 print:hidden">
         <Button variant="outline" onClick={onBack}>
           Back
         </Button>
         <div className="flex gap-2">
-          <Button 
+          <Button
             variant="outline"
             onClick={handlePrint}
             className="print:hidden"
           >
             <Printer className="h-4 w-4 mr-2" />
-            Print Order
+            Print
           </Button>
-          <Button 
-            onClick={onSendToRadiology} 
+          <Button
+            variant="outline"
+            onClick={handleExportPDF}
+            className="print:hidden"
+          >
+            <Download className="h-4 w-4 mr-2" />
+            Export PDF
+          </Button>
+          <Button
+            onClick={onSendToRadiology}
             disabled={isSending}
-            className="bg-green-600 hover:bg-green-700"
+            className="bg-green-600 hover:bg-green-700 print:hidden"
           >
             {isSending ? (
               <>
