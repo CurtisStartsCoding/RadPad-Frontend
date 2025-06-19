@@ -245,7 +245,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
   };
   
   return (
-    <header className={cn("bg-white border-b border-gray-100 flex items-center justify-between py-2.5 px-4", className)}>
+    <header className={cn("fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-100 flex items-center justify-between py-2.5 px-4", className)}>
       <div>
         <h1 className="text-blue-900 font-bold text-2xl">RadOrderPad</h1>
       </div>
