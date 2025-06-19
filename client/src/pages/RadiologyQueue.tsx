@@ -104,12 +104,39 @@ const RadiologyQueue = () => {
       }
       
       console.log(`Fetching radiology orders with endpoint: ${endpoint}`);
-      const response = await apiRequest('GET', endpoint, undefined);
-      if (!response.ok) {
-        throw new Error('Failed to fetch radiology orders');
+      
+      try {
+        const response = await apiRequest('GET', endpoint, undefined);
+        if (!response.ok) {
+          throw new Error(`Failed to fetch radiology orders: ${response.status} ${response.statusText}`);
+        }
+        
+        // Log the raw response for debugging
+        const responseText = await response.text();
+        console.log('Raw API Response:', responseText);
+        
+        // Parse the response as JSON
+        let data;
+        try {
+          data = JSON.parse(responseText);
+        } catch (e) {
+          console.error('Error parsing response as JSON:', e);
+          throw new Error('Invalid JSON response from API');
+        }
+        
+        console.log('Parsed API Response:', data);
+        
+        // Check if the response has the expected structure
+        if (!data || (typeof data === 'object' && !Array.isArray(data.orders) && !Array.isArray(data))) {
+          console.error('Unexpected API response structure:', data);
+          return { orders: [] };
+        }
+        
+        return data;
+      } catch (error) {
+        console.error('Error fetching radiology orders:', error);
+        throw error;
       }
-      const data = await response.json();
-      return data;
     },
     staleTime: 60000, // 1 minute
   });
@@ -181,10 +208,38 @@ const RadiologyQueue = () => {
         title="Radiology Queue"
         description="Review and schedule pending orders"
       >
-        <Button size="sm">
-          <CalendarIcon className="h-4 w-4 mr-2" />
-          View Schedule
-        </Button>
+        <div className="flex space-x-2">
+          <Button size="sm">
+            <CalendarIcon className="h-4 w-4 mr-2" />
+            View Schedule
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={async () => {
+              try {
+                // Make a direct API call without React Query
+                const response = await apiRequest('GET', '/api/radiology/orders', undefined);
+                const responseText = await response.text();
+                console.log('Direct API Response:', responseText);
+                
+                try {
+                  const data = JSON.parse(responseText);
+                  console.log('Parsed API Response:', data);
+                  alert(`API Response: ${data.orders ? data.orders.length : 0} orders found`);
+                } catch (e) {
+                  console.error('Error parsing response:', e);
+                  alert(`API Response (not JSON): ${responseText.substring(0, 100)}...`);
+                }
+              } catch (error) {
+                console.error('Error testing API:', error);
+                alert(`API Error: ${error}`);
+              }
+            }}
+          >
+            Test API Directly
+          </Button>
+        </div>
       </PageHeader>
       
       <DebugUserInfo />

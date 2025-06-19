@@ -49,6 +49,7 @@ import { apiRequest } from "@/lib/queryClient";
 import PageHeader from "@/components/layout/PageHeader";
 import { getNewOrderPath } from "@/lib/navigation";
 import { useLocation } from "wouter";
+import OrderDebugInfo from "@/components/debug/OrderDebugInfo";
 
 // Define the Order type based on API response
 interface ApiOrder {
@@ -405,6 +406,8 @@ const OrderList = () => {
           New Order
         </Button>
       </PageHeader>
+      
+      <OrderDebugInfo />
       
       <Card>
         <CardHeader className="pb-3">

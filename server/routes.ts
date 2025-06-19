@@ -22,7 +22,14 @@ async function apiProxyMiddleware(req: Request, res: Response) {
   
   const targetUrl = `${apiUrl}${targetPath}`;
   
-  log(`Proxying request to: ${targetUrl}`, 'proxy');
+  // Enhanced logging for radiology orders endpoint
+  if (targetPath.includes('/api/radiology/orders')) {
+    log(`🔍 RADIOLOGY ORDERS REQUEST: ${req.method} ${targetPath}`, 'proxy');
+    log(`🔍 Query params: ${JSON.stringify(req.query)}`, 'proxy');
+    log(`🔍 Headers: ${JSON.stringify(req.headers)}`, 'proxy');
+  } else {
+    log(`Proxying request to: ${targetUrl}`, 'proxy');
+  }
   
   try {
     // Forward the request headers (including Authorization)
@@ -63,16 +70,52 @@ async function apiProxyMiddleware(req: Request, res: Response) {
     
     // Handle different content types
     const contentType = response.headers['content-type'] || '';
-    if (contentType.includes('application/json')) {
-      // Parse JSON responses
-      const jsonData = JSON.parse(response.data.toString());
-      res.json(jsonData);
-    } else {
-      // Send binary data as is
-      res.send(response.data);
-    }
     
-    log(`Proxy response: ${response.status}`, 'proxy');
+    // Enhanced logging for radiology orders endpoint
+    if (targetPath.includes('/api/radiology/orders')) {
+      log(`🔍 RADIOLOGY ORDERS RESPONSE: ${response.status}`, 'proxy');
+      
+      if (contentType.includes('application/json')) {
+        // Parse JSON responses
+        const jsonData = JSON.parse(response.data.toString());
+        log(`🔍 Response body: ${JSON.stringify(jsonData)}`, 'proxy');
+        
+        // Check if the response has orders
+        if (jsonData && jsonData.orders) {
+          log(`🔍 Orders count: ${jsonData.orders.length}`, 'proxy');
+          
+          // Log organization info from the first order if available
+          if (jsonData.orders.length > 0) {
+            const firstOrder = jsonData.orders[0];
+            log(`🔍 First order: ${JSON.stringify({
+              id: firstOrder.id,
+              status: firstOrder.status,
+              referring_organization_id: firstOrder.referring_organization_id,
+              radiology_organization_id: firstOrder.radiology_organization_id
+            })}`, 'proxy');
+          }
+        } else {
+          log(`🔍 No orders found in response`, 'proxy');
+        }
+        
+        res.json(jsonData);
+      } else {
+        // Send binary data as is
+        log(`🔍 Non-JSON response: ${response.data.toString().substring(0, 200)}...`, 'proxy');
+        res.send(response.data);
+      }
+    } else {
+      if (contentType.includes('application/json')) {
+        // Parse JSON responses
+        const jsonData = JSON.parse(response.data.toString());
+        res.json(jsonData);
+      } else {
+        // Send binary data as is
+        res.send(response.data);
+      }
+      
+      log(`Proxy response: ${response.status}`, 'proxy');
+    }
   } catch (error) {
     log(`Proxy error: ${error}`, 'error');
     errorResponse(res, 500, `Proxy error: ${error}`);

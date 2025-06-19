@@ -32,8 +32,10 @@ export async function apiRequest(
   url: string,
   data?: unknown | undefined,
 ): Promise<Response> {
-  // Add cache-busting query parameter for GET requests
-  const cacheBustUrl = method === 'GET' ?
+  // Add cache-busting query parameter for GET requests, but exclude specific endpoints
+  // The radiology orders endpoint might be treating the cache-busting parameter as an unknown filter
+  const shouldAddCacheBusting = method === 'GET' && !url.includes('/api/radiology/orders');
+  const cacheBustUrl = shouldAddCacheBusting ?
     `${url}${url.includes('?') ? '&' : '?'}_=${Date.now()}` :
     url;
   
@@ -219,8 +221,9 @@ export const getQueryFn: <T>(options: {
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
     const url = queryKey[0] as string;
-    // Add cache busting for auth endpoints
-    const cacheBustUrl = url.includes('/api/auth/') ?
+    // Add cache busting for auth endpoints, but exclude radiology orders endpoint
+    const shouldAddCacheBusting = url.includes('/api/auth/') && !url.includes('/api/radiology/orders');
+    const cacheBustUrl = shouldAddCacheBusting ?
       `${url}${url.includes('?') ? '&' : '?'}_=${Date.now()}` :
       url;
     
