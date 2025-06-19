@@ -208,36 +208,10 @@ const RadiologyQueue = () => {
         title="Radiology Queue"
         description="Review and schedule pending orders"
       >
-        <div className="flex space-x-2">
+        <div>
           <Button size="sm">
             <CalendarIcon className="h-4 w-4 mr-2" />
             View Schedule
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={async () => {
-              try {
-                // Make a direct API call without React Query
-                const response = await apiRequest('GET', '/api/radiology/orders', undefined);
-                const responseText = await response.text();
-                console.log('Direct API Response:', responseText);
-                
-                try {
-                  const data = JSON.parse(responseText);
-                  console.log('Parsed API Response:', data);
-                  alert(`API Response: ${data.orders ? data.orders.length : 0} orders found`);
-                } catch (e) {
-                  console.error('Error parsing response:', e);
-                  alert(`API Response (not JSON): ${responseText.substring(0, 100)}...`);
-                }
-              } catch (error) {
-                console.error('Error testing API:', error);
-                alert(`API Error: ${error}`);
-              }
-            }}
-          >
-            Test API Directly
           </Button>
         </div>
       </PageHeader>

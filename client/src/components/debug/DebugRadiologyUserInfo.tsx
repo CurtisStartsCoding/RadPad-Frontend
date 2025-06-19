@@ -251,22 +251,24 @@ const DebugRadiologyUserInfo: React.FC = () => {
                   <h3 className="text-sm font-medium">API Diagnostics</h3>
                   
                   <div className="space-y-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={async () => {
-                        try {
-                          const response = await apiRequest('GET', '/api/radiology/orders', undefined);
-                          console.log('Radiology Orders Test Response:', response);
-                          alert(`Radiology Orders Test: ${response.status} ${response.statusText}`);
-                        } catch (err) {
-                          console.error('Radiology Orders Test Error:', err);
-                          alert(`Radiology Orders Test Error: ${err}`);
-                        }
-                      }}
-                    >
-                      Test Radiology Orders API
-                    </Button>
+                    <div className="flex space-x-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={async () => {
+                          try {
+                            const response = await apiRequest('GET', '/api/radiology/orders', undefined);
+                            console.log('Radiology Orders Test Response:', response);
+                            alert(`Radiology Orders Test: ${response.status} ${response.statusText}`);
+                          } catch (err) {
+                            console.error('Radiology Orders Test Error:', err);
+                            alert(`Radiology Orders Test Error: ${err}`);
+                          }
+                        }}
+                      >
+                        Test Radiology Orders API
+                      </Button>
+                    </div>
                     
                     <p className="text-xs text-yellow-700">
                       Check the browser console for detailed response information
