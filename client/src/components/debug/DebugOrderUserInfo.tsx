@@ -74,12 +74,15 @@ interface Organization {
 
 interface Connection {
   id: number;
+  partnerOrgId: number;
+  partnerOrgName: string;
   status: string;
-  requestingOrganizationId: number;
-  requestingOrganizationName: string;
-  targetOrganizationId: number;
-  targetOrganizationName: string;
+  isInitiator: boolean;
+  initiatedBy: string;
+  approvedBy: string | null;
+  notes: string;
   createdAt: string;
+  updatedAt: string;
 }
 
 const OrderDebugInfo: React.FC = () => {
@@ -87,8 +90,17 @@ const OrderDebugInfo: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [organization, setOrganization] = useState<Organization | null>(null);
   const [connections, setConnections] = useState<Connection[]>([]);
+  const [expandedConnections, setExpandedConnections] = useState<Record<number, boolean>>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // Toggle connection expansion
+  const toggleConnection = (id: number) => {
+    setExpandedConnections(prev => ({
+      ...prev,
+      [id]: !prev[id]
+    }));
+  };
   
   // Function to fetch organization and connection data
   const fetchOrgData = async () => {
@@ -110,7 +122,13 @@ const OrderDebugInfo: React.FC = () => {
         const connectionsResponse = await apiRequest('GET', '/api/connections', undefined);
         if (connectionsResponse.ok) {
           const connectionsData = await connectionsResponse.json();
-          setConnections(connectionsData);
+          // Check if the connections data has the expected structure
+          if (connectionsData && connectionsData.connections && Array.isArray(connectionsData.connections)) {
+            setConnections(connectionsData.connections);
+          } else {
+            // Handle legacy or unexpected data format
+            setConnections(Array.isArray(connectionsData) ? connectionsData : []);
+          }
         }
       } catch (err) {
         console.log('Failed to fetch connections (might be restricted by role):', err);
@@ -269,25 +287,56 @@ const OrderDebugInfo: React.FC = () => {
                   <div className="text-center py-4">Loading connections data...</div>
                 ) : connections.length > 0 ? (
                   <div className="space-y-4">
-                    <h3 className="text-sm font-medium">Active Connections: {connections.length}</h3>
+                    <h3 className="text-sm font-medium">Connections: {connections.length}</h3>
                     {connections.map(connection => (
                       <div key={connection.id} className="border border-yellow-200 rounded p-2 text-sm">
-                        <div className="grid grid-cols-2 gap-2">
-                          <div className="font-medium text-yellow-800">Connection ID:</div>
-                          <div>{connection.id}</div>
-                          
-                          <div className="font-medium text-yellow-800">Status:</div>
-                          <div>{connection.status}</div>
-                          
-                          <div className="font-medium text-yellow-800">Requesting Org:</div>
-                          <div>{connection.requestingOrganizationName} (ID: {connection.requestingOrganizationId})</div>
-                          
-                          <div className="font-medium text-yellow-800">Target Org:</div>
-                          <div>{connection.targetOrganizationName} (ID: {connection.targetOrganizationId})</div>
-                          
-                          <div className="font-medium text-yellow-800">Created:</div>
-                          <div>{new Date(connection.createdAt).toLocaleDateString()}</div>
-                        </div>
+                        <Collapsible
+                          open={expandedConnections[connection.id]}
+                          onOpenChange={() => toggleConnection(connection.id)}
+                        >
+                          <CollapsibleTrigger
+                            asChild
+                            className="w-full text-left cursor-pointer"
+                          >
+                            <div className="flex items-center">
+                              {expandedConnections[connection.id] ?
+                                <ChevronDown className="h-4 w-4 mr-2" /> :
+                                <ChevronRight className="h-4 w-4 mr-2" />
+                              }
+                              <div className="font-medium">Connection ID: {connection.id}</div>
+                            </div>
+                          </CollapsibleTrigger>
+                          <CollapsibleContent>
+                            <div className="grid grid-cols-2 gap-2 text-sm mt-2 pl-6">
+                              <div className="font-medium text-yellow-800">Partner Organization:</div>
+                              <div>{connection.partnerOrgName}</div>
+                              
+                              <div className="font-medium text-yellow-800">Partner Organization ID:</div>
+                              <div>{connection.partnerOrgId}</div>
+                              
+                              <div className="font-medium text-yellow-800">Status:</div>
+                              <div>{connection.status}</div>
+                              
+                              <div className="font-medium text-yellow-800">Initiator:</div>
+                              <div>{connection.isInitiator ? 'Yes' : 'No'}</div>
+                              
+                              <div className="font-medium text-yellow-800">Initiated By:</div>
+                              <div>{connection.initiatedBy}</div>
+                              
+                              <div className="font-medium text-yellow-800">Approved By:</div>
+                              <div>{connection.approvedBy || 'Not approved yet'}</div>
+                              
+                              <div className="font-medium text-yellow-800">Notes:</div>
+                              <div>{connection.notes}</div>
+                              
+                              <div className="font-medium text-yellow-800">Created:</div>
+                              <div>{new Date(connection.createdAt).toLocaleString()}</div>
+                              
+                              <div className="font-medium text-yellow-800">Updated:</div>
+                              <div>{new Date(connection.updatedAt).toLocaleString()}</div>
+                            </div>
+                          </CollapsibleContent>
+                        </Collapsible>
                       </div>
                     ))}
                   </div>
@@ -295,7 +344,7 @@ const OrderDebugInfo: React.FC = () => {
                   <div className="text-center py-4">
                     <p>No active connections found</p>
                     <p className="text-xs text-yellow-700 mt-1">
-                      This organization may not have any connections with referring or radiology organizations
+                      Might not have permissions to see Connection info
                     </p>
                     <Button
                       variant="outline"
