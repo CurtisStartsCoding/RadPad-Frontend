@@ -96,3 +96,6 @@ scratch/
 !client/src/pages/TrialValidation.tsx
 !client/src/components/order/DictationForm.tsx
 .claude/settings.local.json
+
+# Symbolic links
+"RadOrderPad API"
