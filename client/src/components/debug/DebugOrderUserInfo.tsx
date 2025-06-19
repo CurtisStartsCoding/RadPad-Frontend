@@ -8,11 +8,68 @@ import { apiRequest } from "@/lib/queryClient";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 
-interface Organization {
+interface Location {
+  id: number;
+  organization_id: number;
+  name: string;
+  address_line1: string;
+  address_line2: string | null;
+  city: string;
+  state: string;
+  zip_code: string;
+  phone_number: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+interface User {
+  id: number;
+  email: string;
+  firstName: string;
+  lastName: string;
+  role: string;
+  npi: string | null;
+  specialty: string | null;
+  phone_number: string | null;
+  organization_id: number;
+  created_at: string;
+  updated_at: string;
+  last_login: string | null;
+  email_verified: boolean;
+  is_active: boolean;
+}
+
+interface OrganizationData {
   id: number;
   name: string;
   type: string;
+  npi: string;
+  tax_id: string;
+  address_line1: string;
+  address_line2: string | null;
+  city: string;
+  state: string;
+  zip_code: string;
+  phone_number: string;
+  fax_number: string | null;
+  contact_email: string;
+  website: string;
+  logo_url: string | null;
+  billing_id: string | null;
+  credit_balance: number;
+  subscription_tier: string | null;
   status: string;
+  created_at: string;
+  updated_at: string;
+  basic_credit_balance: number;
+  advanced_credit_balance: number;
+}
+
+interface Organization {
+  organization: OrganizationData;
+  locations: Location[];
+  users: User[];
 }
 
 interface Connection {
@@ -45,7 +102,7 @@ const OrderDebugInfo: React.FC = () => {
       const orgResponse = await apiRequest('GET', '/api/organizations/mine', undefined);
       if (orgResponse.ok) {
         const orgData = await orgResponse.json();
-        setOrganization(orgData);
+        setOrganization(orgData.data);
       }
       
       // Fetch connections data
@@ -174,17 +231,23 @@ const OrderDebugInfo: React.FC = () => {
                   </div>
                 ) : organization ? (
                   <div className="grid grid-cols-2 gap-2 text-sm">
-                    <div className="font-medium text-yellow-800">Organization ID:</div>
-                    <div>{organization.id}</div>
+                    <div className="font-medium text-yellow-800">data.organization.id</div>
+                    <div>{organization.organization.id}</div>
                     
-                    <div className="font-medium text-yellow-800">Name:</div>
-                    <div>{organization.name}</div>
+                    <div className="font-medium text-yellow-800">Organization Name</div>
+                    <div>{organization.organization.name}</div>
                     
-                    <div className="font-medium text-yellow-800">Type:</div>
-                    <div>{organization.type}</div>
+                    <div className="font-medium text-yellow-800">Organization Type</div>
+                    <div>{organization.organization.type}</div>
                     
                     <div className="font-medium text-yellow-800">Status:</div>
-                    <div>{organization.status}</div>
+                    <div>{organization.organization.status}</div>
+                    
+                    <div className="font-medium text-yellow-800">Locations:</div>
+                    <div>{organization.locations.length} - [{organization.locations.map(loc => loc.id).join(', ')}]</div>
+                    
+                    <div className="font-medium text-yellow-800">Users:</div>
+                    <div>{organization.users.length} - [{organization.users.map(user => user.id).join(', ')}]</div>
                   </div>
                 ) : (
                   <div className="text-center py-4">
