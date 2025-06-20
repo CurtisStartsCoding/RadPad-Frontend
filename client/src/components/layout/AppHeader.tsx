@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Home, LogOut, Settings, FileText, Building2, User, CreditCard, Users, Stethoscope, ListChecks, Map, Link } from "lucide-react";
+import { Home, LogOut, Settings, FileText, Building2, User, CreditCard, Users, Stethoscope, ListChecks, Map, Link, CheckCircle2, MapPin, UserPlus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AppPage } from "@/App";
 import { UserRole, hasAccess } from "@/lib/roles";
@@ -194,6 +194,44 @@ const AppHeader: React.FC<AppHeaderProps> = ({
       
       { key: "profile", page: AppPage.Profile, icon: <User className="h-4 w-4 mr-3 text-gray-500" />, label: "My Profile", alwaysShow: true },
       { key: "security", page: AppPage.Security, icon: <Settings className="h-4 w-4 mr-3 text-gray-500" />, label: "Security", alwaysShow: true },
+
+      // Onboarding section for AdminRadiology role
+      {
+        key: "org-signup",
+        page: AppPage.OrgSignUp,
+        icon: <Building2 className="h-4 w-4 mr-3 text-gray-500" />,
+        label: "Organization Sign Up",
+        condition: effectiveRole === UserRole.AdminRadiology
+      },
+      {
+        key: "org-verification",
+        page: AppPage.OrgVerification,
+        icon: <CheckCircle2 className="h-4 w-4 mr-3 text-gray-500" />,
+        label: "Email Verification",
+        condition: effectiveRole === UserRole.AdminRadiology
+      },
+      {
+        key: "org-setup",
+        page: AppPage.OrgSetup,
+        icon: <Settings className="h-4 w-4 mr-3 text-gray-500" />,
+        label: "Initial Setup",
+        condition: effectiveRole === UserRole.AdminRadiology
+      },
+      {
+        key: "org-locations",
+        page: AppPage.OrgLocations,
+        icon: <MapPin className="h-4 w-4 mr-3 text-gray-500" />,
+        label: "Locations Setup",
+        condition: effectiveRole === UserRole.AdminRadiology
+      },
+      {
+        key: "org-users",
+        page: AppPage.OrgUsers,
+        icon: <UserPlus className="h-4 w-4 mr-3 text-gray-500" />,
+        label: "Users Setup",
+        condition: effectiveRole === UserRole.AdminRadiology
+      },
+      
       {
         key: "superadmin-dashboard",
         page: AppPage.SuperAdminDashboard,

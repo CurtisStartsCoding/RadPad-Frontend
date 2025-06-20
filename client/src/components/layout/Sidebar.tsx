@@ -130,15 +130,21 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onNavigate, currentRole,
           
           // Only show Trial option for TrialPhysician role
           if (section.section === "Auth") {
-            visibleItems = section.items.filter(item => 
+            visibleItems = section.items.filter(item =>
               item.page !== AppPage.TrialAuth || currentRole === UserRole.TrialPhysician
             );
           }
           
-          // Filter items based on user role access
-          visibleItems = visibleItems.filter(item => 
-            hasAccess(currentRole, item.page)
-          );
+          // Special handling for Onboarding section for AdminRadiology role
+          if (section.section === "Onboarding" && currentRole === UserRole.AdminRadiology) {
+            // Show all items in the Onboarding section for AdminRadiology role
+            visibleItems = section.items;
+          } else {
+            // For other sections or roles, filter items based on user role access
+            visibleItems = visibleItems.filter(item =>
+              hasAccess(currentRole, item.page)
+            );
+          }
           
           // Only render section if it has visible items
           if (visibleItems.length === 0) return null;
@@ -214,18 +220,32 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onNavigate, currentRole,
         )}
       </div>
       
+      {/* Organization Sign Up - only visible for Admin Radiology */}
+      {currentRole === UserRole.AdminRadiology && (
+        <div className="px-3 pb-2">
+          <a
+            href="#"
+            onClick={(e) => { e.preventDefault(); onNavigate(AppPage.OrgSignUp); }}
+            className={`sidebar-link ${isActive(AppPage.OrgSignUp) ? 'active' : ''}`}
+          >
+            <Building2 className="h-4 w-4" />
+            Organization Sign Up
+          </a>
+        </div>
+      )}
+      
       {/* User Profile Section */}
       <div className="mt-auto border-t border-slate-200 p-4">
         <div className="flex items-center">
           <div className="bg-primary-lighter text-primary font-medium rounded-full h-8 w-8 flex items-center justify-center">
-            {currentRole === UserRole.SuperAdmin ? 'SA' : 
-             (currentRole === UserRole.Physician || currentRole === UserRole.TrialPhysician) ? 'JD' : 
+            {currentRole === UserRole.SuperAdmin ? 'SA' :
+             (currentRole === UserRole.Physician || currentRole === UserRole.TrialPhysician) ? 'JD' :
              currentRole === UserRole.Radiologist ? 'RD' : 'AD'}
           </div>
           <div className="ml-3">
             <p className="text-sm font-medium">
-              {(currentRole === UserRole.Physician || currentRole === UserRole.TrialPhysician) ? 'Dr. John Doe' : 
-               currentRole === UserRole.Radiologist ? 'Dr. Rebecca Davis' : 
+              {(currentRole === UserRole.Physician || currentRole === UserRole.TrialPhysician) ? 'Dr. John Doe' :
+               currentRole === UserRole.Radiologist ? 'Dr. Rebecca Davis' :
                currentRole === UserRole.SuperAdmin ? 'System Administrator' : 'Alice Johnson'}
             </p>
             <p className="text-xs text-slate-500">{roleDisplayNames[currentRole]}</p>
