@@ -193,10 +193,14 @@ export default function PatientIdentificationDialog({
     const datePatterns = [
       // MM/DD/YYYY
       /\b(0?[1-9]|1[0-2])[\/\-](0?[1-9]|[12]\d|3[01])[\/\-](19|20)\d{2}\b/,
-      // Month DD, YYYY
+      // Month DD, YYYY (full month names)
       /\b(January|February|March|April|May|June|July|August|September|October|November|December)\s+(0?[1-9]|[12]\d|3[01])(?:st|nd|rd|th)?,?\s+((?:19|20)\d{2})\b/i,
-      // Month DD YYYY (no comma)
+      // Month DD YYYY (full month names, no comma)
       /\b(January|February|March|April|May|June|July|August|September|October|November|December)\s+(0?[1-9]|[12]\d|3[01])(?:st|nd|rd|th)?\s+((?:19|20)\d{2})\b/i,
+      // Abbreviated Month DD, YYYY
+      /\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+(0?[1-9]|[12]\d|3[01])(?:st|nd|rd|th)?,?\s+((?:19|20)\d{2})\b/i,
+      // Abbreviated Month DD YYYY (no comma)
+      /\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+(0?[1-9]|[12]\d|3[01])(?:st|nd|rd|th)?\s+((?:19|20)\d{2})\b/i,
       // MM-DD-YYYY
       /\b(0?[1-9]|1[0-2])\-(0?[1-9]|[12]\d|3[01])\-(19|20)\d{2}\b/,
     ];
@@ -216,14 +220,21 @@ export default function PatientIdentificationDialog({
           const parts = match[0].split(/[\/\-]/);
           dob = `${parts[0].padStart(2, '0')}/${parts[1].padStart(2, '0')}/${parts[2]}`;
         } else {
-          // Convert from text format (e.g., "January 1 1980")
+          // Convert from text format (e.g., "January 1 1980" or "Jan 1 1980")
           const months: Record<string, string> = {
+            // Full month names
             'january': '01', 'february': '02', 'march': '03', 'april': '04',
             'may': '05', 'june': '06', 'july': '07', 'august': '08',
-            'september': '09', 'october': '10', 'november': '11', 'december': '12'
+            'september': '09', 'october': '10', 'november': '11', 'december': '12',
+            // Abbreviated month names
+            'jan': '01', 'feb': '02', 'mar': '03', 'apr': '04',
+            'jun': '06', 'jul': '07', 'aug': '08',
+            'sep': '09', 'sept': '09', 'oct': '10', 'nov': '11', 'dec': '12'
           };
           
-          const monthText = match[1].toLowerCase();
+          // Extract the first 3 letters of the month and convert to lowercase
+          // This handles both full names and abbreviations
+          const monthText = match[1].toLowerCase().substring(0, 3);
           const day = match[2].replace(/(?:st|nd|rd|th)/g, '').padStart(2, '0');
           const year = match[3];
           
