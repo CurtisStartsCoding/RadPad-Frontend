@@ -71,6 +71,21 @@ const AppHeader: React.FC<AppHeaderProps> = ({
       case AppPage.Billing:
         targetUrl = "/billing";
         break;
+      case AppPage.OrgSignUp:
+        targetUrl = "/org-signup";
+        break;
+      case AppPage.OrgVerification:
+        targetUrl = "/org-verification";
+        break;
+      case AppPage.OrgSetup:
+        targetUrl = "/org-setup";
+        break;
+      case AppPage.OrgLocations:
+        targetUrl = "/org-locations";
+        break;
+      case AppPage.OrgUsers:
+        targetUrl = "/org-users";
+        break;
       default:
         targetUrl = `/${page.toLowerCase().replace('_', '-')}`;
     }
