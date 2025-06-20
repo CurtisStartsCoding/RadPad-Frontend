@@ -41,6 +41,8 @@ interface ApiRadiologyOrder {
   created_at: string;
   updated_at: string;
   patient_name: string | null;
+  patient_first_name: string | null;
+  patient_last_name: string | null;
   patient_dob: string | null;
   patient_gender: string | null;
   patient_mrn?: string | null;
@@ -177,6 +179,8 @@ const RadiologyQueue = () => {
         
         return (
           (order.patient_name && order.patient_name.toLowerCase().includes(searchLower)) ||
+          (order.patient_first_name && order.patient_first_name.toLowerCase().includes(searchLower)) ||
+          (order.patient_last_name && order.patient_last_name.toLowerCase().includes(searchLower)) ||
           (order.patient_mrn && order.patient_mrn.toLowerCase().includes(searchLower)) ||
           (order.modality && order.modality.toLowerCase().includes(searchLower))
         );
@@ -354,7 +358,11 @@ const RadiologyQueue = () => {
                   ) : (
                     searchFilteredOrders.map((order) => (
                       <TableRow key={order.id}>
-                        <TableCell className="font-medium">{order.patient_name || 'Unknown Patient'}</TableCell>
+                        <TableCell className="font-medium">
+                          {(order.patient_first_name && order.patient_last_name)
+                            ? `${order.patient_first_name} ${order.patient_last_name}`
+                            : order.patient_name || 'Unknown Patient'}
+                        </TableCell>
                         <TableCell className="font-mono text-xs">{order.patient_mrn || 'No MRN'}</TableCell>
                         <TableCell>
                           <div className="flex items-center">
