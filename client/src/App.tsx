@@ -206,8 +206,13 @@ function App() {
           }
         } else if (userRole && ['radiologist', 'admin_radiology', 'scheduler'].includes(userRole)) {
           setCurrentPage(AppPage.RadiologyQueue);
+          // Only redirect to radiology queue if coming from auth page
           if (location === "/auth") {
             setLocation("/radiology-queue");
+          }
+          // Don't redirect if already on an onboarding page
+          else if (location.startsWith("/org-")) {
+            // Keep current location
           }
         } else {
           setCurrentPage(AppPage.Dashboard);

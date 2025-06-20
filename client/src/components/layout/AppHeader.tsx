@@ -31,73 +31,59 @@ const AppHeader: React.FC<AppHeaderProps> = ({
     : checkIsTrialUser(effectiveRole);
   
   
-  const handleNavigation = (page: AppPage) => {
-    let targetUrl = "";
+  // Function to get the URL for a given page
+  const getPageUrl = (page: AppPage): string => {
     switch (page) {
       case AppPage.Profile:
-        targetUrl = "/profile";
-        break;
+        return "/profile";
       case AppPage.Dashboard:
-        targetUrl = "/";
-        break;
+        return "/";
       case AppPage.NewOrder:
         // Use the navigation utility to determine the correct path
-        targetUrl = getNewOrderPath(effectiveRole);
-        break;
+        return getNewOrderPath(effectiveRole);
       case AppPage.Security:
-        targetUrl = "/security";
-        break;
+        return "/security";
       case AppPage.OrderList:
-        targetUrl = "/orders";
-        break;
+        return "/orders";
       case AppPage.AdminQueue:
-        targetUrl = "/admin-queue";
-        break;
+        return "/admin-queue";
       case AppPage.RadiologyQueue:
-        targetUrl = "/radiology-queue";
-        break;
+        return "/radiology-queue";
       case AppPage.OrgProfile:
-        targetUrl = "/org-profile";
-        break;
+        return "/org-profile";
       case AppPage.Locations:
-        targetUrl = "/locations";
-        break;
+        return "/locations";
       case AppPage.Users:
-        targetUrl = "/users";
-        break;
+        return "/users";
       case AppPage.Connections:
-        targetUrl = "/connections";
-        break;
+        return "/connections";
       case AppPage.Billing:
-        targetUrl = "/billing";
-        break;
+        return "/billing";
       case AppPage.OrgSignUp:
-        targetUrl = "/org-signup";
-        break;
+        return "/org-signup";
       case AppPage.OrgVerification:
-        targetUrl = "/org-verification";
-        break;
+        return "/org-verification";
       case AppPage.OrgSetup:
-        targetUrl = "/org-setup";
-        break;
+        return "/org-setup";
       case AppPage.OrgLocations:
-        targetUrl = "/org-locations";
-        break;
+        return "/org-locations";
       case AppPage.OrgUsers:
-        targetUrl = "/org-users";
-        break;
+        return "/org-users";
       default:
-        targetUrl = `/${page.toLowerCase().replace('_', '-')}`;
+        return `/${page.toLowerCase().replace('_', '-')}`;
     }
+  };
+  
+  const handleNavigation = (page: AppPage) => {
+    const targetUrl = getPageUrl(page);
     
     if (onNavigate) {
       onNavigate(page);
     }
     
-    setTimeout(() => {
-      setShowMenu(false);
-      setLocation(targetUrl);
-    }, 0);
+    // First close menu, then navigate using React router
+    setShowMenu(false);
+    setLocation(targetUrl);
   };
   
   const handleLogout = async () => {
@@ -286,14 +272,19 @@ const AppHeader: React.FC<AppHeaderProps> = ({
         return hasAccess(effectiveRole, item.page.toLowerCase().replace('_', '-'));
       })
       .map(item => (
-        <button
+        <a
           key={item.key}
-          className="flex items-center w-full px-3 py-2.5 text-gray-800 hover:bg-gray-100 rounded-md"
-          onClick={() => handleNavigation(item.page)}
+          href={getPageUrl(item.page)}
+          className="flex items-center w-full px-3 py-2.5 text-gray-800 hover:bg-gray-100 rounded-md no-underline"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation(); // Prevent event from bubbling up to the overlay
+            handleNavigation(item.page);
+          }}
         >
           {item.icon}
           <span>{item.label}</span>
-        </button>
+        </a>
       ));
   };
   
@@ -316,8 +307,13 @@ const AppHeader: React.FC<AppHeaderProps> = ({
       {showMenu && (
         <div className="fixed inset-0 z-50 flex justify-end">
           <div
-            className="absolute inset-0 bg-black/20" 
-            onClick={() => setShowMenu(false)}
+            className="absolute inset-0 bg-black/20"
+            onClick={(e) => {
+              // Only close the menu if the click is directly on the overlay
+              if (e.target === e.currentTarget) {
+                setShowMenu(false);
+              }
+            }}
             aria-hidden="true"
           />
           
@@ -383,13 +379,18 @@ const AppHeader: React.FC<AppHeaderProps> = ({
             </div>
             
             <div className="p-2 mt-auto border-t border-gray-100">
-              <button
-                className="flex items-center w-full px-3 py-2.5 text-red-600 hover:bg-red-50 rounded-md"
-                onClick={handleLogout}
+              <a
+                href="/auth"
+                className="flex items-center w-full px-3 py-2.5 text-red-600 hover:bg-red-50 rounded-md no-underline"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleLogout();
+                }}
               >
                 <LogOut className="h-4 w-4 mr-3" />
                 <span>Log out</span>
-              </button>
+              </a>
             </div>
           </div>
         </div>
