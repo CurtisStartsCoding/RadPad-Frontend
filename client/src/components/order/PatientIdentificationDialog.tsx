@@ -1,10 +1,26 @@
 import { useState, useEffect, useRef } from 'react';
-import { Mic } from "lucide-react";
+import { Mic, AlertCircle } from "lucide-react";
+import { apiRequest } from "@/lib/queryClient";
 
 interface PatientIdentificationDialogProps {
   open: boolean;
   onCancel: () => void;
   onIdentify: (patientInfo: { name: string; dob: string }) => void;
+}
+
+interface PatientSearchResponse {
+  success: boolean;
+  data: Array<{
+    id: number;
+    pidn: string;
+    firstName: string;
+    lastName: string;
+    dateOfBirth: string;
+    gender: string;
+    mrn: string;
+    lastVisit: string;
+  }>;
+  message?: string;
 }
 
 enum DialogState {
@@ -66,6 +82,8 @@ export default function PatientIdentificationDialog({
   const [error, setError] = useState<string>('');
   const [isListening, setIsListening] = useState<boolean>(false);
   const [patientSuggestions, setPatientSuggestions] = useState<Array<{name: string, dob: string}>>([]);
+  const [isSearching, setIsSearching] = useState<boolean>(false);
+  const [apiError, setApiError] = useState<string | null>(null);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   
   // Clean up speech recognition when component unmounts
@@ -145,16 +163,65 @@ export default function PatientIdentificationDialog({
         }
       };
       
-      recognition.onend = () => {
+      recognition.onend = async () => {
         console.log("Speech recognition ended");
         setIsListening(false);
         
-        // If we have a transcript, move to confirmation
+        // If we have a transcript, search for patient and move to confirmation
         if (transcript) {
           // Parse the transcript to extract name and DOB
           const parsedInfo = parsePatientInfo(transcript);
-          setPatientSuggestions([parsedInfo]);
-          setDialogState(DialogState.CONFIRMATION);
+          
+          // Reset any previous API errors
+          setApiError(null);
+          
+          try {
+            // Set searching state
+            setIsSearching(true);
+            
+            // Make API call to search for patient
+            const response = await apiRequest('POST', '/api/patients/search', {
+              patientName: parsedInfo.name,
+              dateOfBirth: parsedInfo.dob
+            });
+            
+            const result: PatientSearchResponse = await response.json();
+            
+            if (result.success) {
+              if (result.data.length > 0) {
+                // Map API results to patient suggestions
+                const suggestions = result.data.map(patient => ({
+                  name: `${patient.firstName} ${patient.lastName}`,
+                  dob: patient.dateOfBirth
+                }));
+                setPatientSuggestions(suggestions);
+              } else {
+                // No matches found, use the parsed info
+                setPatientSuggestions([parsedInfo]);
+              }
+              setDialogState(DialogState.CONFIRMATION);
+            } else {
+              // API returned an error
+              setApiError(result.message || 'Failed to search for patient');
+              // Still use the parsed info
+              setPatientSuggestions([parsedInfo]);
+              setDialogState(DialogState.CONFIRMATION);
+            }
+          } catch (error) {
+            console.error('Error searching for patient:', error);
+            // Display error popup but still proceed with parsed info
+            if (error instanceof Error) {
+              setApiError(error.message);
+            } else {
+              setApiError('An unexpected error occurred while searching for patient');
+            }
+            
+            // Still use the parsed info
+            setPatientSuggestions([parsedInfo]);
+            setDialogState(DialogState.CONFIRMATION);
+          } finally {
+            setIsSearching(false);
+          }
         }
       };
       
@@ -372,7 +439,7 @@ export default function PatientIdentificationDialog({
                   />
                   <button
                     className="px-3 py-1 border border-gray-300 rounded-md text-sm"
-                    onClick={() => {
+                    onClick={async () => {
                       if (!transcript || transcript.trim() === '') {
                         setError('Please enter patient information');
                         return;
@@ -380,13 +447,71 @@ export default function PatientIdentificationDialog({
                       
                       // Parse the input and create a suggestion
                       const inputText = transcript.trim();
-                      const suggestion = parsePatientInfo(inputText);
+                      const parsedInfo = parsePatientInfo(inputText);
                       
-                      setPatientSuggestions([suggestion]);
-                      setDialogState(DialogState.CONFIRMATION);
+                      // Reset any previous API errors
+                      setApiError(null);
+                      
+                      try {
+                        // Set searching state
+                        setIsSearching(true);
+                        
+                        // Make API call to search for patient
+                        const response = await apiRequest('POST', '/api/patients/search', {
+                          patientName: parsedInfo.name,
+                          dateOfBirth: parsedInfo.dob
+                        });
+                        
+                        const result: PatientSearchResponse = await response.json();
+                        
+                        if (result.success) {
+                          if (result.data.length > 0) {
+                            // Map API results to patient suggestions
+                            const suggestions = result.data.map(patient => ({
+                              name: `${patient.firstName} ${patient.lastName}`,
+                              dob: patient.dateOfBirth
+                            }));
+                            setPatientSuggestions(suggestions);
+                          } else {
+                            // No matches found, use the parsed info
+                            setPatientSuggestions([parsedInfo]);
+                          }
+                          setDialogState(DialogState.CONFIRMATION);
+                        } else {
+                          // API returned an error
+                          setApiError(result.message || 'Failed to search for patient');
+                          // Still use the parsed info
+                          setPatientSuggestions([parsedInfo]);
+                          setDialogState(DialogState.CONFIRMATION);
+                        }
+                      } catch (error) {
+                        console.error('Error searching for patient:', error);
+                        // Display error popup but still proceed with parsed info
+                        if (error instanceof Error) {
+                          setApiError(error.message);
+                        } else {
+                          setApiError('An unexpected error occurred while searching for patient');
+                        }
+                        
+                        // Still use the parsed info
+                        setPatientSuggestions([parsedInfo]);
+                        setDialogState(DialogState.CONFIRMATION);
+                      } finally {
+                        setIsSearching(false);
+                      }
                     }}
                   >
-                    Parse
+                    {isSearching ? (
+                      <div className="flex items-center">
+                        <svg className="animate-spin h-4 w-4 mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Searching...
+                      </div>
+                    ) : (
+                      "Parse"
+                    )}
                   </button>
                 </div>
               </div>
@@ -401,7 +526,7 @@ export default function PatientIdentificationDialog({
               </button>
               <button
                 className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-                onClick={() => {
+                onClick={async () => {
                   if (!transcript || transcript.trim() === '') {
                     setError('Please enter patient information');
                     return;
@@ -409,16 +534,71 @@ export default function PatientIdentificationDialog({
                   
                   // Parse the input and create a suggestion
                   const inputText = transcript.trim();
-                  const suggestion = {
-                    name: inputText,
-                    dob: inputText.includes('1973') ? '08/29/1973' : '01/01/1980' // Extract date if present
-                  };
+                  const parsedInfo = parsePatientInfo(inputText);
                   
-                  setPatientSuggestions([suggestion]);
-                  setDialogState(DialogState.CONFIRMATION);
+                  // Reset any previous API errors
+                  setApiError(null);
+                  
+                  try {
+                    // Set searching state
+                    setIsSearching(true);
+                    
+                    // Make API call to search for patient
+                    const response = await apiRequest('POST', '/api/patients/search', {
+                      patientName: parsedInfo.name,
+                      dateOfBirth: parsedInfo.dob
+                    });
+                    
+                    const result: PatientSearchResponse = await response.json();
+                    
+                    if (result.success) {
+                      if (result.data.length > 0) {
+                        // Map API results to patient suggestions
+                        const suggestions = result.data.map(patient => ({
+                          name: `${patient.firstName} ${patient.lastName}`,
+                          dob: patient.dateOfBirth
+                        }));
+                        setPatientSuggestions(suggestions);
+                      } else {
+                        // No matches found, use the parsed info
+                        setPatientSuggestions([parsedInfo]);
+                      }
+                      setDialogState(DialogState.CONFIRMATION);
+                    } else {
+                      // API returned an error
+                      setApiError(result.message || 'Failed to search for patient');
+                      // Still use the parsed info
+                      setPatientSuggestions([parsedInfo]);
+                      setDialogState(DialogState.CONFIRMATION);
+                    }
+                  } catch (error) {
+                    console.error('Error searching for patient:', error);
+                    // Display error popup but still proceed with parsed info
+                    if (error instanceof Error) {
+                      setApiError(error.message);
+                    } else {
+                      setApiError('An unexpected error occurred while searching for patient');
+                    }
+                    
+                    // Still use the parsed info
+                    setPatientSuggestions([parsedInfo]);
+                    setDialogState(DialogState.CONFIRMATION);
+                  } finally {
+                    setIsSearching(false);
+                  }
                 }}
               >
-                Identify Patient
+                {isSearching ? (
+                  <div className="flex items-center">
+                    <svg className="animate-spin h-4 w-4 mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Searching...
+                  </div>
+                ) : (
+                  "Identify Patient"
+                )}
               </button>
             </div>
           </>
@@ -472,6 +652,23 @@ export default function PatientIdentificationDialog({
                 Please select the correct interpretation of your dictation:
               </p>
             </div>
+            
+            {/* Display API error if any */}
+            {apiError && (
+              <div className="mx-4 mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
+                <div className="flex items-start">
+                  <AlertCircle className="h-5 w-5 text-red-500 mr-2 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium text-red-800">Error searching for patient</p>
+                    <p className="text-xs text-red-700 mt-1">{apiError}</p>
+                    <p className="text-xs text-red-600 italic mt-1">
+                      {/* Debug message */}
+                      This error message is displayed for debugging purposes.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
             
             <div className="p-4 space-y-3">
               {/* Show the original transcript */}
