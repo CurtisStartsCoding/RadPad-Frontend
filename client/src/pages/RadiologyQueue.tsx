@@ -22,6 +22,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Search, Filter, Calendar, Clock, ArrowUpDown, FileText, CheckCircle2, Calendar as CalendarIcon, Loader2 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
+import { getUserRoleFromStorage } from "@/lib/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import PageHeader from "@/components/layout/PageHeader";
 import DebugRadiologyUserInfo from "@/components/debug/DebugRadiologyUserInfo";
@@ -84,8 +85,11 @@ const RadiologyQueue = () => {
   const { data, isLoading, error } = useQuery<{orders: ApiRadiologyOrder[]} | ApiRadiologyOrder[]>({
     queryKey: ['/api/radiology/orders', statusFilter, debouncedSearchQuery],
     queryFn: async () => {
-      // Build the query parameters
-      let endpoint = `/api/radiology/orders`;
+      // Check user role to determine which endpoint to use
+      const userRole = getUserRoleFromStorage();
+      
+      // Use different endpoint for scheduler role
+      let endpoint = userRole === 'scheduler' ? `/api/orders` : `/api/radiology/orders`;
       const params = new URLSearchParams();
       
       // Add status filter if not "all"
@@ -103,7 +107,7 @@ const RadiologyQueue = () => {
         endpoint += `?${params.toString()}`;
       }
       
-      console.log(`Fetching radiology orders with endpoint: ${endpoint}`);
+      console.log(`Fetching orders with endpoint: ${endpoint}${userRole === 'scheduler' ? ' (scheduler role)' : ' (non-scheduler role)'}`);
       
       try {
         const response = await apiRequest('GET', endpoint, undefined);
