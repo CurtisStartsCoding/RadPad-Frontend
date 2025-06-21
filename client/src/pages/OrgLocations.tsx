@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,19 +31,67 @@ export default function OrgLocations() {
     isPrimary: boolean;
   };
   
-  const [locations, setLocations] = useState<Location[]>([
-    {
-      id: 1,
-      name: "Main Office",
-      address: "123 Main Street",
-      city: "New York",
-      state: "NY",
-      zipCode: "10001",
-      phone: "(555) 123-4567",
-      status: "active",
-      isPrimary: true
-    }
-  ]);
+  const [locations, setLocations] = useState<Location[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  
+  // Fetch locations when component mounts
+  useEffect(() => {
+    const fetchLocations = async () => {
+      setIsLoading(true);
+      setError(null);
+      
+      try {
+        const response = await apiRequest('GET', '/api/organizations/mine/locations');
+        
+        if (!response.ok) {
+          throw new Error(`Failed to fetch locations: ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        
+        // Map API response to our Location type
+        const mappedLocations = data.locations.map((loc: any) => ({
+          id: loc.id,
+          name: loc.name,
+          address: loc.address_line1,
+          city: loc.city,
+          state: loc.state,
+          zipCode: loc.zip_code,
+          phone: loc.phone_number || "",
+          status: loc.is_active ? "active" : "inactive",
+          isPrimary: false // We'll set the first one as primary if none exists
+        }));
+        
+        // If we have locations, set the first one as primary by default
+        if (mappedLocations.length > 0 && !mappedLocations.some((loc: Location) => loc.isPrimary)) {
+          mappedLocations[0].isPrimary = true;
+        }
+        
+        setLocations(mappedLocations);
+      } catch (err) {
+        console.error("Error fetching locations:", err);
+        setError(err instanceof Error ? err.message : "An unknown error occurred");
+        
+        // Set a default location for development/testing purposes
+        setLocations([{
+          id: 1,
+          name: "Main Office (Default)",
+          address: "123 Main Street",
+          city: "New York",
+          state: "NY",
+          zipCode: "10001",
+          phone: "(555) 123-4567",
+          status: "active",
+          isPrimary: true
+        }]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchLocations();
+  }, []);
   
   const [openAddDialog, setOpenAddDialog] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -315,68 +363,86 @@ export default function OrgLocations() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[250px]">Name</TableHead>
-                  <TableHead>Address</TableHead>
-                  <TableHead>Phone</TableHead>
-                  <TableHead className="w-[100px]">Status</TableHead>
-                  <TableHead className="w-[100px]">Primary</TableHead>
-                  <TableHead className="w-[100px] text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {locations.map((location) => (
-                  <TableRow key={location.id}>
-                    <TableCell className="font-medium">{location.name}</TableCell>
-                    <TableCell>
-                      {location.address}, {location.city}, {location.state} {location.zipCode}
-                    </TableCell>
-                    <TableCell>{location.phone}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center space-x-2">
-                        <Switch
-                          checked={location.status === "active"}
-                          onCheckedChange={() => toggleStatus(location.id)}
-                        />
-                        <Badge
-                          variant="outline"
-                          className={`${
-                            location.status === "active"
-                              ? "bg-green-50 text-green-700 border-green-200"
-                              : "bg-slate-100 text-slate-700 border-slate-200"
-                          }`}
-                        >
-                          {location.status === "active" ? "Active" : "Inactive"}
-                        </Badge>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex justify-center">
-                        <Checkbox 
-                          checked={location.isPrimary}
-                          onCheckedChange={() => setPrimaryLocation(location.id)} 
-                          disabled={location.isPrimary}
-                        />
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => deleteLocation(location.id)}
-                        disabled={location.isPrimary || locations.length <= 1}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
+          {isLoading ? (
+            <div className="flex justify-center items-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <span className="ml-2">Loading locations...</span>
+            </div>
+          ) : error ? (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
+              <p className="font-medium">Error loading locations</p>
+              <p className="text-sm">{error}</p>
+              <p className="text-sm mt-2">Please try refreshing the page.</p>
+            </div>
+          ) : locations.length === 0 ? (
+            <div className="text-center py-8 text-slate-500">
+              <Building className="h-12 w-12 mx-auto mb-4 opacity-20" />
+              <p>No locations found. Add your first location to get started.</p>
+            </div>
+          ) : (
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[250px]">Name</TableHead>
+                    <TableHead>Address</TableHead>
+                    <TableHead>Phone</TableHead>
+                    <TableHead className="w-[100px]">Status</TableHead>
+                    <TableHead className="w-[100px]">Primary</TableHead>
+                    <TableHead className="w-[100px] text-right">Actions</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+                </TableHeader>
+                <TableBody>
+                  {locations.map((location) => (
+                    <TableRow key={location.id}>
+                      <TableCell className="font-medium">{location.name}</TableCell>
+                      <TableCell>
+                        {location.address}, {location.city}, {location.state} {location.zipCode}
+                      </TableCell>
+                      <TableCell>{location.phone}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center space-x-2">
+                          <Switch
+                            checked={location.status === "active"}
+                            onCheckedChange={() => toggleStatus(location.id)}
+                          />
+                          <Badge
+                            variant="outline"
+                            className={`${
+                              location.status === "active"
+                                ? "bg-green-50 text-green-700 border-green-200"
+                                : "bg-slate-100 text-slate-700 border-slate-200"
+                            }`}
+                          >
+                            {location.status === "active" ? "Active" : "Inactive"}
+                          </Badge>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex justify-center">
+                          <Checkbox
+                            checked={location.isPrimary}
+                            onCheckedChange={() => setPrimaryLocation(location.id)}
+                            disabled={location.isPrimary}
+                          />
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => deleteLocation(location.id)}
+                          disabled={location.isPrimary || locations.length <= 1}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
         </CardContent>
         <CardFooter className="border-t px-6 py-4">
           <p className="text-sm text-slate-500">
