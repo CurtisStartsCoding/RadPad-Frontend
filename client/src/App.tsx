@@ -206,6 +206,16 @@ function App() {
           if (location === "/auth" || location === "/") {
             setLocation("/trial-validation");
           }
+        } else if (userRole === 'physician') {
+          setCurrentPage(AppPage.NewOrder);
+          if (location === "/auth" || location === "/") {
+            setLocation("/new-order");
+          }
+        } else if (userRole && ['admin_staff', 'admin_referring'].includes(userRole)) {
+          setCurrentPage(AppPage.AdminQueue);
+          if (location === "/auth" || location === "/") {
+            setLocation("/admin-queue");
+          }
         } else if (userRole && ['radiologist', 'admin_radiology', 'scheduler'].includes(userRole)) {
           setCurrentPage(AppPage.RadiologyQueue);
           if (location === "/auth") {
