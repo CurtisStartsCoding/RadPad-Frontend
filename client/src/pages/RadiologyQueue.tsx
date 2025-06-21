@@ -51,11 +51,18 @@ const RadiologyQueue = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFilter, setSelectedFilter] = useState("all");
   
+  // Get the user's role to determine which API endpoint to use
+  const userRole = localStorage.getItem('rad_order_pad_user_role');
+  
+  // Use the appropriate API endpoint based on the user's role
+  // Scheduler role should use /api/orders, other roles use /api/radiology/orders
+  const apiEndpoint = userRole === 'scheduler' ? '/api/orders' : '/api/radiology/orders';
+  
   // Fetch orders from the API
   const { data, isLoading, error } = useQuery<{orders: ApiRadiologyOrder[]} | ApiRadiologyOrder[]>({
-    queryKey: ['/api/radiology/orders'],
+    queryKey: [apiEndpoint],
     queryFn: async () => {
-      const response = await apiRequest('GET', '/api/radiology/orders', undefined);
+      const response = await apiRequest('GET', apiEndpoint, undefined);
       if (!response.ok) {
         throw new Error('Failed to fetch radiology orders');
       }
@@ -69,15 +76,19 @@ const RadiologyQueue = () => {
   const orders = Array.isArray(data) ? data : data?.orders || [];
   
   // Filter orders by status for radiology queue
+  // Include both 'pending_radiology' and 'scheduled' status orders
   const filteredOrders = orders.filter(order => {
+    // Check if the order has a valid status for the radiology queue
+    const validStatus = order.status === 'pending_radiology' || order.status === 'scheduled';
+    
     if (selectedFilter === "all") {
-      return order.status === 'pending_radiology';
+      return validStatus;
     } else if (selectedFilter === "mri") {
-      return order.status === 'pending_radiology' && order.modality && order.modality.toLowerCase().includes('mri');
+      return validStatus && order.modality && order.modality.toLowerCase().includes('mri');
     } else if (selectedFilter === "ct") {
-      return order.status === 'pending_radiology' && order.modality && order.modality.toLowerCase().includes('ct');
+      return validStatus && order.modality && order.modality.toLowerCase().includes('ct');
     } else if (selectedFilter === "xray") {
-      return order.status === 'pending_radiology' && order.modality && order.modality.toLowerCase().includes('x-ray');
+      return validStatus && order.modality && order.modality.toLowerCase().includes('x-ray');
     }
     return false;
   }) || [];
