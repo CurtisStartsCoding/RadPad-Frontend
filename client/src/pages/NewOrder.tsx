@@ -326,6 +326,21 @@ const NewOrder = ({ userRole = UserRole.Physician }: NewOrderProps) => {
     setOrderStep('dictation');
     setDictationText("");
     setValidationResult(null);
+    // Reset patient state to its original values
+    setPatient({
+      id: 0,
+      name: 'No Patient Identified',
+      dob: '',
+      mrn: '',
+      pidn: '',
+      radiologyGroupId: null,
+      referringPracticeId: null,
+      externalPatientId: null,
+      encryptedData: '',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      gender: ''
+    });
   };
 
   // Handle clear dictation text
