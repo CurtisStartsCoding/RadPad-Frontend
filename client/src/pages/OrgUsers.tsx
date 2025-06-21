@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { UserPlus, Download, Upload, RefreshCw, Mail, User, FileSpreadsheet, CheckCircle2, XCircle, AlertCircle } from "lucide-react";
+import { UserPlus, Download, Upload, RefreshCw, Mail, User, FileSpreadsheet, CheckCircle2, XCircle, AlertCircle, Loader2 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -13,6 +13,8 @@ import { UserRole, roleDisplayNames } from "@/lib/roles";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 // Sample users with invitation status
 const initialUsers = [
@@ -62,8 +64,58 @@ Thomas,Wilson,twilson@radiology.com,admin`;
 // Use the appropriate template based on organization type
 const csvTemplate = physicianCsvTemplate; // Change this for radiology groups
 
+// Define a type for user from API
+type ApiUser = {
+  id: number;
+  email: string;
+  first_name: string;
+  last_name: string;
+  role: string;
+  organization_id: number;
+  is_active: boolean;
+  email_verified: boolean;
+  created_at: string;
+  updated_at: string;
+  specialty?: string;
+};
+
+// Define a type for pagination
+type Pagination = {
+  total: number;
+  page: number;
+  limit: number;
+  pages: number;
+};
+
+// Define a type for API response
+type ApiResponse = {
+  success: boolean;
+  data: {
+    users: ApiUser[];
+    pagination: Pagination;
+  };
+};
+
 export default function OrgUsers() {
-  const [users, setUsers] = useState(initialUsers);
+  const [users, setUsers] = useState<{
+    id: number;
+    firstName: string;
+    lastName: string;
+    email: string;
+    role: string;
+    invitationStatus: string;
+    primaryLocation: string;
+    lastLogin: string | null;
+  }[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [pagination, setPagination] = useState<Pagination>({
+    total: 0,
+    page: 1,
+    limit: 20,
+    pages: 1
+  });
+  const { toast } = useToast();
   const [openInviteDialog, setOpenInviteDialog] = useState(false);
   const [activeTab, setActiveTab] = useState("users");
   const [csvFile, setCsvFile] = useState<File | null>(null);
@@ -99,6 +151,49 @@ export default function OrgUsers() {
     role: UserRole.Physician,
     primaryLocation: "Main Office"
   });
+  
+  // Fetch users when component mounts
+  useEffect(() => {
+    const fetchUsers = async () => {
+      setIsLoading(true);
+      setError(null);
+      
+      try {
+        const response = await apiRequest('GET', '/api/users');
+        
+        if (!response.ok) {
+          throw new Error(`Failed to fetch users: ${response.statusText}`);
+        }
+        
+        const data: ApiResponse = await response.json();
+        
+        // Map API response to our component state
+        const mappedUsers = data.data.users.map((user) => ({
+          id: user.id,
+          firstName: user.first_name,
+          lastName: user.last_name,
+          email: user.email,
+          role: user.role,
+          invitationStatus: user.email_verified ? "accepted" : "pending",
+          primaryLocation: "Main Office", // This would need to be fetched from another API
+          lastLogin: user.updated_at // Using updated_at as a proxy for last login
+        }));
+        
+        setUsers(mappedUsers);
+        setPagination(data.data.pagination);
+      } catch (err) {
+        console.error("Error fetching users:", err);
+        setError(err instanceof Error ? err.message : "An unknown error occurred");
+        
+        // Fall back to mock data for development/testing purposes
+        setUsers(initialUsers);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchUsers();
+  }, []);
   
   const handleAddUser = () => {
     // Add validation logic here
@@ -426,7 +521,19 @@ export default function OrgUsers() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="rounded-md border">
+              {isLoading ? (
+                <div className="flex justify-center items-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  <span className="ml-2">Loading users...</span>
+                </div>
+              ) : error ? (
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
+                  <p className="font-medium">Error loading users</p>
+                  <p className="text-sm">{error}</p>
+                  <p className="text-sm mt-2">Please try refreshing the page.</p>
+                </div>
+              ) : (
+                <div className="rounded-md border">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -445,7 +552,7 @@ export default function OrgUsers() {
                           {user.firstName} {user.lastName}
                         </TableCell>
                         <TableCell>{user.email}</TableCell>
-                        <TableCell>{roleDisplayNames[user.role]}</TableCell>
+                        <TableCell>{roleDisplayNames[user.role as keyof typeof roleDisplayNames] || user.role}</TableCell>
                         <TableCell>{user.primaryLocation}</TableCell>
                         <TableCell>
                           {user.invitationStatus === "accepted" ? (
@@ -491,13 +598,15 @@ export default function OrgUsers() {
                   </TableBody>
                 </Table>
               </div>
+              )}
             </CardContent>
             <CardFooter className="border-t px-6 py-4">
               <p className="text-sm text-slate-500">
                 <User className="h-4 w-4 inline-block mr-1" />
-                {users.length} user{users.length !== 1 ? 's' : ''} 
-                {users.filter(u => u.invitationStatus === "pending").length > 0 && 
+                {pagination.total} user{pagination.total !== 1 ? 's' : ''}
+                {users.filter(u => u.invitationStatus === "pending").length > 0 &&
                   ` (${users.filter(u => u.invitationStatus === "pending").length} pending)`}
+                {pagination.pages > 1 && ` • Page ${pagination.page} of ${pagination.pages}`}
               </p>
             </CardFooter>
           </Card>
