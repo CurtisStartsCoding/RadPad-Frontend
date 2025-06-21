@@ -3,6 +3,7 @@ import { AppPage } from "@/App";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useLocation } from "wouter";
+import { formatDate } from "@/lib/utils";
 import { 
   Card, 
   CardContent, 
@@ -203,8 +204,8 @@ const AdminOrderFinalization: React.FC<AdminOrderFinalizationProps> = ({ navigat
         npi: orderData.referring_physician_npi || 'Not available',
         clinic: orderData.referring_physician_specialty || orderData.referring_organization_name || 'Not available',
         phone: orderData.referring_physician_phone || 'Not available',
-        signedDate: orderData.signature_date ? new Date(orderData.signature_date).toLocaleDateString() : 
-                   (orderData.created_at ? new Date(orderData.created_at).toLocaleDateString() : 'Not available')
+        signedDate: orderData.signature_date ? formatDate(orderData.signature_date) : 
+                   (orderData.created_at ? formatDate(orderData.created_at) : 'Not available')
       });
     }
   }, [orderData]);
@@ -623,7 +624,7 @@ const AdminOrderFinalization: React.FC<AdminOrderFinalizationProps> = ({ navigat
               <div className="flex items-center justify-between">
                 <div>
                   <CardTitle>Order #{order.id || order.order_number} - {order.modality || 'N/A'}</CardTitle>
-                  <CardDescription>Created on {new Date(order.created_at || order.createdAt).toLocaleDateString()}</CardDescription>
+                  <CardDescription>Created on {formatDate(order.created_at || order.createdAt)}</CardDescription>
                 </div>
                 <Badge variant="outline" className="bg-amber-50 border-amber-200 text-amber-700">
                   Pending Admin

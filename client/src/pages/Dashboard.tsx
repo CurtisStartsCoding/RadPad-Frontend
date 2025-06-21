@@ -5,6 +5,7 @@ import { UserRole } from "@/lib/roles";
 import { getNewOrderPath } from "@/lib/navigation";
 import { apiRequest } from "@/lib/queryClient";
 import { generateAnalyticsFromOrders } from "@/lib/analyticsUtils";
+import { formatDateShort } from "@/lib/utils";
 import {
   Card,
   CardContent,
@@ -268,10 +269,6 @@ const Dashboard = ({ navigateTo }: DashboardProps) => {
   });
   
   // Format date for display
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-  };
   
   // Format time for display
   const formatTime = (dateString: string) => {
@@ -492,7 +489,7 @@ const Dashboard = ({ navigateTo }: DashboardProps) => {
                           <TableCell>
                             <div className="flex items-center">
                               <Calendar className="h-3.5 w-3.5 mr-1.5 text-slate-500" />
-                              {formatDate(order.created_at)}
+                              {formatDateShort(order.created_at)}
                             </div>
                           </TableCell>
                           <TableCell>

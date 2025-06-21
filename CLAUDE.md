@@ -108,6 +108,27 @@ Test scripts are located in `test-scripts/` directory. These test various API en
 5. Check `AWS API Docs/` for detailed API endpoint documentation
 6. Comprehensive frontend documentation is in the backend repo at `final-documentation/frontend/`
 
+## Date Formatting
+
+**Always use the centralized date utilities instead of `toLocaleDateString()`:**
+
+```typescript
+import { formatDate, formatDateShort, formatDateLong } from '@/lib/utils';
+
+formatDate("2024-02-15")      // → "02/15/2024" (MM/DD/YYYY)
+formatDateShort("2024-02-15") // → "Feb 15, 2024" 
+formatDateLong("2024-02-15")  // → "February 15, 2024"
+```
+
+**Do NOT use:**
+- `new Date().toLocaleDateString()` 
+- Individual formatDate functions in components
+
+**Benefits:**
+- Consistent US date format across the app
+- Single source of truth for date formatting
+- Easy to change format application-wide
+
 ## CRITICAL: API Documentation
 
 **ALWAYS read the API documentation BEFORE implementing any feature:**

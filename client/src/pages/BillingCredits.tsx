@@ -39,6 +39,7 @@ import {
 } from "lucide-react";
 import { UserRole } from "@/lib/roles";
 import PageHeader from "@/components/layout/PageHeader";
+import { formatDateShort } from "@/lib/utils";
 import { PaymentMethodsManager } from "@/components/billing/PaymentMethodsManager";
 
 // Mock transaction history for radiology users
@@ -168,11 +169,6 @@ const BillingCredits = ({ userRole = UserRole.AdminReferring }: BillingCreditsPr
   // Determine if user is a radiologist or radiology admin
   const isRadiologyUser = userRole === UserRole.AdminRadiology || userRole === UserRole.Radiologist;
   
-  // Format date for display
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-  };
   
   // Format currency for display
   const formatCurrency = (amount: number) => {
@@ -530,7 +526,7 @@ const BillingCredits = ({ userRole = UserRole.AdminReferring }: BillingCreditsPr
                       <TableCell>
                         <div className="flex items-center">
                           <Calendar className="h-3.5 w-3.5 mr-1.5 text-slate-500" />
-                          {formatDate(transaction.date)}
+                          {formatDateShort(transaction.date)}
                         </div>
                       </TableCell>
                       <TableCell>{transaction.description}</TableCell>

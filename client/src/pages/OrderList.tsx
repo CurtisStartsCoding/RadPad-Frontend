@@ -1,7 +1,5 @@
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useAuth } from "@/lib/useAuth";
-import { UserRole } from "@/lib/roles";
 import {
   Table,
   TableBody,
@@ -10,15 +8,6 @@ import {
   TableHeader,
   TableRow
 } from "@/components/ui/table";
-import {
-  Pagination,
-  PaginationContent,
-  PaginationEllipsis,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -46,16 +35,18 @@ import {
   Loader2
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
+import { formatDateShort } from "@/lib/utils";
 import PageHeader from "@/components/layout/PageHeader";
 import { getNewOrderPath } from "@/lib/navigation";
 import { useLocation } from "wouter";
-import OrderDebugInfo from "@/components/debug/DebugOrderUserInfo";
+import { useAuth } from "@/lib/useAuth";
+import { UserRole, getAvailableOrderActions } from "@/lib/roles";
 
 // Define the Order type based on API response
 interface ApiOrder {
   id: number;
   order_number?: string;
-  status: 'pending_admin' | 'pending_validation' | 'pending_radiology' | 'scheduled' | 'completed' | 'cancelled';
+  status: 'pending_admin' | 'pending_validation' | 'pending_radiology' | 'scheduled' | 'completed' | 'cancelled' | 'results_available' | 'results_acknowledged';
   modality?: string;
   created_at: string;
   updated_at: string;
@@ -67,7 +58,6 @@ interface ApiOrder {
   radiology_organization_name?: string;
   clinical_indication?: string;
   original_dictation?: string;
-  referring_physician_name?: string;
 }
 
 // Define the API response structure
@@ -83,12 +73,11 @@ interface OrdersApiResponse {
 
 const OrderList = () => {
   const [searchQuery, setSearchQuery] = useState("");
-  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   const [selectedFilter, setSelectedFilter] = useState("all");
-  const [currentPage, setCurrentPage] = useState(1);
   const [_, setLocation] = useLocation();
-  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const { user } = useAuth();
+  
+  const userRole = (user?.role as UserRole) || UserRole.Physician;
   
   // Handle navigation to new order page
   const handleNewOrderClick = () => {
@@ -97,63 +86,11 @@ const OrderList = () => {
     setLocation(newOrderPath);
   };
   
-  // Effect to handle debounced search
-  useEffect(() => {
-    // Clear any existing timer
-    if (debounceTimerRef.current) {
-      clearTimeout(debounceTimerRef.current);
-    }
-    
-    // Only set up debounce timer if search query is at least 3 characters
-    if (searchQuery.length >= 3) {
-      // Set a new timer for 2 seconds
-      debounceTimerRef.current = setTimeout(() => {
-        // Reset to page 1 when search query changes
-        setCurrentPage(1);
-        setDebouncedSearchQuery(searchQuery);
-      }, 2000);
-    } else if (searchQuery.length === 0 && debouncedSearchQuery !== "") {
-      // If search is cleared, update immediately and reset to page 1
-      setCurrentPage(1);
-      setDebouncedSearchQuery("");
-    }
-    
-    // Cleanup function to clear the timer if component unmounts or searchQuery changes
-    return () => {
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current);
-      }
-    };
-  }, [searchQuery]);
-  
   // Fetch orders from the API
-  const { data, isLoading, error, refetch } = useQuery<OrdersApiResponse>({
-    queryKey: ['/api/orders', debouncedSearchQuery, selectedFilter, currentPage],
+  const { data, isLoading, error } = useQuery<OrdersApiResponse>({
+    queryKey: ['/api/orders'],
     queryFn: async () => {
-      // Build the query parameters
-      let endpoint = '/api/orders';
-      const params = new URLSearchParams();
-      
-      // Add search query if provided and at least 3 characters
-      if (debouncedSearchQuery && debouncedSearchQuery.length >= 3) {
-        params.append('search', debouncedSearchQuery);
-      }
-      
-      // Add filter if not "all"
-      if (selectedFilter !== "all") {
-        params.append('status', selectedFilter);
-      }
-      
-      // Add pagination
-      params.append('page', currentPage.toString());
-      
-      // Append query parameters if any exist
-      if (params.toString()) {
-        endpoint += `?${params.toString()}`;
-      }
-      
-      console.log(`Fetching orders with endpoint: ${endpoint}`);
-      const response = await apiRequest('GET', endpoint, undefined);
+      const response = await apiRequest('GET', '/api/orders', undefined);
       if (!response.ok) {
         throw new Error('Failed to fetch orders');
       }
@@ -182,29 +119,22 @@ const OrderList = () => {
     return false;
   });
   
-  // Use the filtered orders directly from the API if debounced search query is provided
-  // Otherwise, filter client-side
-  const searchFilteredOrders = debouncedSearchQuery && debouncedSearchQuery.length >= 3
-    ? filteredOrders
-    : filteredOrders.filter(order => {
-        if (!order) return false;
-        
-        const patientName = `${order.patient_first_name || ''} ${order.patient_last_name || ''}`.trim();
-        
-        const searchLower = debouncedSearchQuery.toLowerCase() || searchQuery.toLowerCase();
-        return (
-          (patientName.toLowerCase() || '').includes(searchLower) ||
-          (order.patient_mrn?.toLowerCase() || '').includes(searchLower) ||
-          (order.modality?.toLowerCase() || '').includes(searchLower) ||
-          (order.radiology_organization_name?.toLowerCase() || '').includes(searchLower)
-        );
-      });
+  // Further filter by search query
+  const searchFilteredOrders = filteredOrders.filter(order => {
+    if (!order) return false;
+    
+    const patientName = `${order.patient_first_name || ''} ${order.patient_last_name || ''}`.trim();
+    
+    const searchLower = searchQuery.toLowerCase();
+    return (
+      (patientName.toLowerCase() || '').includes(searchLower) ||
+      (order.patient_mrn?.toLowerCase() || '').includes(searchLower) ||
+      (order.modality?.toLowerCase() || '').includes(searchLower) ||
+      (order.radiology_organization_name?.toLowerCase() || '').includes(searchLower)
+    );
+  });
   
   // Format date for display
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-  };
   
   // Format time for display
   const formatTime = (dateString: string) => {
@@ -232,27 +162,81 @@ const OrderList = () => {
     }
   };
   
-  // Get action buttons for an order based on status
-  const getActionButtons = (status: string) => {
-    switch (status) {
+  // Navigate to order details
+  const handleViewOrder = (orderId: number) => {
+    setLocation(`/orders/${orderId}`);
+  };
+
+  // Handle order download
+  const handleDownloadOrder = (orderId: number) => {
+    // TODO: Implement PDF download functionality
+    console.log('Download order:', orderId);
+  };
+
+  // Handle order print
+  const handlePrintOrder = (orderId: number) => {
+    // TODO: Implement print functionality
+    console.log('Print order:', orderId);
+  };
+
+  // Navigate to patient history
+  const handleViewPatientHistory = (patientMrn: string | null) => {
+    if (patientMrn) {
+      setLocation(`/patients/${patientMrn}`);
+    }
+  };
+
+  // Get action buttons for an order based on status and user role
+  const getActionButtons = (order: ApiOrder) => {
+    const permissions = getAvailableOrderActions(userRole, order.status);
+    
+    switch (order.status) {
       case 'completed':
+      case 'results_available':
+      case 'results_acknowledged':
         return (
           <div className="flex justify-end space-x-2">
-            <Button variant="outline" size="sm" className="h-8 px-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="h-8 px-2"
+              onClick={() => handleViewOrder(order.id)}
+              title="View Order Details"
+            >
               <Eye className="h-4 w-4" />
             </Button>
-            <Button variant="outline" size="sm" className="h-8 px-2">
-              <Download className="h-4 w-4" />
-            </Button>
-            <Button variant="outline" size="sm" className="h-8 px-2">
-              <Printer className="h-4 w-4" />
-            </Button>
+            {permissions.canDownload && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="h-8 px-2"
+                onClick={() => handleDownloadOrder(order.id)}
+                title="Download Order"
+              >
+                <Download className="h-4 w-4" />
+              </Button>
+            )}
+            {permissions.canPrint && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="h-8 px-2"
+                onClick={() => handlePrintOrder(order.id)}
+                title="Print Order"
+              >
+                <Printer className="h-4 w-4" />
+              </Button>
+            )}
           </div>
         );
       case 'scheduled':
         return (
           <div className="flex justify-end space-x-2">
-            <Button variant="outline" size="sm">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => handleViewOrder(order.id)}
+            >
               <Eye className="h-4 w-4 mr-1" />
               Details
             </Button>
@@ -263,7 +247,11 @@ const OrderList = () => {
       case 'pending_radiology':
         return (
           <div className="flex justify-end space-x-2">
-            <Button variant="outline" size="sm">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => handleViewOrder(order.id)}
+            >
               <Eye className="h-4 w-4 mr-1" />
               Track
             </Button>
@@ -272,6 +260,14 @@ const OrderList = () => {
       case 'cancelled':
         return (
           <div className="flex justify-end space-x-2">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => handleViewOrder(order.id)}
+            >
+              <Eye className="h-4 w-4 mr-1" />
+              View
+            </Button>
             <Button variant="outline" size="sm" onClick={handleNewOrderClick}>
               <PlusCircle className="h-4 w-4 mr-1" />
               New Order
@@ -279,120 +275,19 @@ const OrderList = () => {
           </div>
         );
       default:
-        return null;
+        return (
+          <div className="flex justify-end space-x-2">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => handleViewOrder(order.id)}
+            >
+              <Eye className="h-4 w-4 mr-1" />
+              View
+            </Button>
+          </div>
+        );
     }
-  };
-  
-  // Handle page change
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-    // Scroll to top of the table when changing pages
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-  
-  // Helper function to determine the number of columns based on user role
-  const getColSpan = () => {
-    if (!user) return 7; // Default fallback
-    
-    switch (user.role) {
-      case UserRole.Physician:
-        return 5; // Patient, Date, Time, Modality, View
-      case UserRole.AdminReferring:
-        return 7; // Patient, MRN, Date, Modality, Radiology Group, Status, Actions
-      case UserRole.Radiologist:
-      case UserRole.Scheduler:
-      case UserRole.AdminRadiology:
-        return 7; // Patient, MRN, Date, Time, Modality, Referring Physician, Actions
-      default:
-        return 7; // Default fallback
-    }
-  };
-  
-  // Generate pagination items
-  const renderPaginationItems = () => {
-    if (!data?.pagination) return null;
-    
-    const { total, page, limit, pages } = data.pagination;
-    const currentPage = page;
-    const totalPages = pages;
-    
-    // If no pages or only one page, don't show pagination
-    if (totalPages <= 1) return null;
-    
-    const items = [];
-    
-    // Previous button
-    items.push(
-      <PaginationItem key="prev">
-        <PaginationPrevious
-          onClick={() => handlePageChange(currentPage - 1)}
-          className={currentPage <= 1 ? "pointer-events-none opacity-50" : ""}
-        />
-      </PaginationItem>
-    );
-    
-    // First page
-    items.push(
-      <PaginationItem key={1}>
-        <PaginationLink
-          isActive={currentPage === 1}
-          onClick={() => handlePageChange(1)}
-        >
-          1
-        </PaginationLink>
-      </PaginationItem>
-    );
-    
-    // Ellipsis after first page
-    if (currentPage > 3) {
-      items.push(<PaginationItem key="ellipsis1"><PaginationEllipsis /></PaginationItem>);
-    }
-    
-    // Pages around current page
-    for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) {
-      if (i === 1 || i === totalPages) continue; // Skip first and last page as they're always shown
-      items.push(
-        <PaginationItem key={i}>
-          <PaginationLink
-            isActive={currentPage === i}
-            onClick={() => handlePageChange(i)}
-          >
-            {i}
-          </PaginationLink>
-        </PaginationItem>
-      );
-    }
-    
-    // Ellipsis before last page
-    if (currentPage < totalPages - 2) {
-      items.push(<PaginationItem key="ellipsis2"><PaginationEllipsis /></PaginationItem>);
-    }
-    
-    // Last page (if more than one page)
-    if (totalPages > 1) {
-      items.push(
-        <PaginationItem key={totalPages}>
-          <PaginationLink
-            isActive={currentPage === totalPages}
-            onClick={() => handlePageChange(totalPages)}
-          >
-            {totalPages}
-          </PaginationLink>
-        </PaginationItem>
-      );
-    }
-    
-    // Next button
-    items.push(
-      <PaginationItem key="next">
-        <PaginationNext
-          onClick={() => handlePageChange(currentPage + 1)}
-          className={currentPage >= totalPages ? "pointer-events-none opacity-50" : ""}
-        />
-      </PaginationItem>
-    );
-    
-    return items;
   };
 
   return (
@@ -406,8 +301,6 @@ const OrderList = () => {
           New Order
         </Button>
       </PageHeader>
-      
-      <OrderDebugInfo />
       
       <Card>
         <CardHeader className="pb-3">
@@ -423,30 +316,6 @@ const OrderList = () => {
                   className="pl-9"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      // Prevent default form submission behavior
-                      e.preventDefault();
-                      
-                      // Only trigger search if at least 3 characters
-                      if (searchQuery.length >= 3) {
-                        // Clear any existing timer
-                        if (debounceTimerRef.current) {
-                          clearTimeout(debounceTimerRef.current);
-                        }
-                        
-                        // Reset to page 1 and update debounced query immediately
-                        setCurrentPage(1);
-                        setDebouncedSearchQuery(searchQuery);
-                      } else if (searchQuery.length === 0) {
-                        // If search is cleared, update immediately
-                        setDebouncedSearchQuery("");
-                      } else {
-                        // Show a message that at least 3 characters are required
-                        console.log("Please enter at least 3 characters to search");
-                      }
-                    }
-                  }}
                 />
               </div>
               
@@ -454,13 +323,7 @@ const OrderList = () => {
                 <Filter className="h-4 w-4 text-slate-400" />
                 <Select
                   value={selectedFilter}
-                  onValueChange={(value) => {
-                    setSelectedFilter(value);
-                    // Reset to page 1 when filter changes
-                    setCurrentPage(1);
-                    // Refetch orders when filter changes
-                    refetch();
-                  }}
+                  onValueChange={setSelectedFilter}
                 >
                   <SelectTrigger className="w-44">
                     <SelectValue placeholder="Filter by status" />
@@ -475,15 +338,6 @@ const OrderList = () => {
                 </Select>
               </div>
             </div>
-            
-            {/* Top Pagination */}
-            {data?.pagination && data.pagination.pages > 1 && (
-              <Pagination className="my-4">
-                <PaginationContent>
-                  {renderPaginationItems()}
-                </PaginationContent>
-              </Pagination>
-            )}
             
             {isLoading ? (
               <div className="flex justify-center items-center py-12">
@@ -501,151 +355,64 @@ const OrderList = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    {/* Patient column - shown for all roles */}
                     <TableHead className="w-[180px]">
                       <Button variant="ghost" className="flex items-center text-slate-600 font-medium p-0 h-auto">
                         Patient
                         <ArrowUpDown className="ml-1 h-3 w-3" />
                       </Button>
                     </TableHead>
-                    
-                    {/* MRN column - not shown for physician role */}
-                    {user?.role !== UserRole.Physician && (
-                      <TableHead>MRN</TableHead>
-                    )}
-                    
-                    {/* Date column - shown for all roles */}
+                    <TableHead>MRN</TableHead>
                     <TableHead>
                       <Button variant="ghost" className="flex items-center text-slate-600 font-medium p-0 h-auto">
                         Date
                         <ArrowUpDown className="ml-1 h-3 w-3" />
                       </Button>
                     </TableHead>
-                    
-                    {/* Time column - shown for physician, radiologist, scheduler, admin_radiology roles */}
-                    {(user?.role === UserRole.Physician ||
-                      user?.role === UserRole.Radiologist ||
-                      user?.role === UserRole.Scheduler ||
-                      user?.role === UserRole.AdminRadiology) && (
-                      <TableHead>Time</TableHead>
-                    )}
-                    
-                    {/* Modality column - shown for all roles */}
                     <TableHead>Modality</TableHead>
-                    
-                    {/* Radiology Group column - shown only for admin_referring role */}
-                    {user?.role === UserRole.AdminReferring && (
-                      <TableHead>Radiology Group</TableHead>
-                    )}
-                    
-                    {/* Referring Physician column - shown for radiologist, scheduler, admin_radiology roles */}
-                    {(user?.role === UserRole.Radiologist ||
-                      user?.role === UserRole.Scheduler ||
-                      user?.role === UserRole.AdminRadiology) && (
-                      <TableHead>Referring Physician</TableHead>
-                    )}
-                    
-                    {/* Status column - shown for physician and admin_referring roles */}
-                    {(user?.role === UserRole.Physician ||
-                      user?.role === UserRole.AdminReferring) && (
-                      <TableHead>Status</TableHead>
-                    )}
-                    
-                    {/* Actions/View column - shown for all roles but with different labels */}
-                    <TableHead className="text-right">
-                      {user?.role === UserRole.Physician ? 'View' : 'Actions'}
-                    </TableHead>
+                    <TableHead>Radiology Group</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {searchFilteredOrders.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={getColSpan()} className="text-center py-8 text-slate-500">
+                      <TableCell colSpan={7} className="text-center py-8 text-slate-500">
                         No orders found matching your search criteria
                       </TableCell>
                     </TableRow>
                   ) : (
                     searchFilteredOrders.map((order) => (
                       <TableRow key={order.id}>
-                        {/* Patient column - shown for all roles */}
                         <TableCell className="font-medium">
-                          {`${order.patient_first_name || ''} ${order.patient_last_name || ''}`.trim() || 'Unknown'}
+                          {order.patient_mrn && getAvailableOrderActions(userRole, order.status).canViewPatient ? (
+                            <button 
+                              className="text-left hover:text-blue-600 hover:underline cursor-pointer"
+                              onClick={() => handleViewPatientHistory(order.patient_mrn || null)}
+                              title="View patient history"
+                            >
+                              {`${order.patient_first_name || ''} ${order.patient_last_name || ''}`.trim() || 'Unknown'}
+                            </button>
+                          ) : (
+                            <span>{`${order.patient_first_name || ''} ${order.patient_last_name || ''}`.trim() || 'Unknown'}</span>
+                          )}
                         </TableCell>
-                        
-                        {/* MRN column - not shown for physician role */}
-                        {user?.role !== UserRole.Physician && (
-                          <TableCell className="font-mono text-xs">{order.patient_mrn || 'N/A'}</TableCell>
-                        )}
-                        
-                        {/* Date column - shown for all roles */}
+                        <TableCell className="font-mono text-xs">{order.patient_mrn || 'N/A'}</TableCell>
                         <TableCell>
                           <div className="flex items-center">
                             <Calendar className="h-3.5 w-3.5 mr-1.5 text-slate-500" />
-                            {order.created_at ? formatDate(order.created_at) : 'N/A'}
+                            {order.created_at ? formatDateShort(order.created_at) : 'N/A'}
                           </div>
                         </TableCell>
-                        
-                        {/* Time column - shown for physician, radiologist, scheduler, admin_radiology roles */}
-                        {(user?.role === UserRole.Physician ||
-                          user?.role === UserRole.Radiologist ||
-                          user?.role === UserRole.Scheduler ||
-                          user?.role === UserRole.AdminRadiology) && (
-                          <TableCell>
-                            <div className="flex items-center">
-                              <Clock className="h-3.5 w-3.5 mr-1.5 text-slate-500" />
-                              {order.created_at ? formatTime(order.created_at) : 'N/A'}
-                            </div>
-                          </TableCell>
-                        )}
-                        
-                        {/* Modality column - shown for all roles */}
                         <TableCell>{order.modality || 'N/A'}</TableCell>
-                        
-                        {/* Radiology Group column - shown only for admin_referring role */}
-                        {user?.role === UserRole.AdminReferring && (
-                          <TableCell>{order.radiology_organization_name || 'N/A'}</TableCell>
-                        )}
-                        
-                        {/* Referring Physician column - shown for radiologist, scheduler, admin_radiology roles */}
-                        {(user?.role === UserRole.Radiologist ||
-                          user?.role === UserRole.Scheduler ||
-                          user?.role === UserRole.AdminRadiology) && (
-                          <TableCell>
-                            {order.referring_physician_name || 'N/A'}
-                          </TableCell>
-                        )}
-                        
-                        {/* Status column - shown for physician and admin_referring roles */}
-                        {(user?.role === UserRole.Physician ||
-                          user?.role === UserRole.AdminReferring) && (
-                          <TableCell>{getStatusBadge(order.status)}</TableCell>
-                        )}
-                        
-                        {/* Actions/View column - shown for all roles */}
-                        <TableCell>
-                          {getActionButtons(order.status)}
-                        </TableCell>
+                        <TableCell>{order.radiology_organization_name || 'N/A'}</TableCell>
+                        <TableCell>{getStatusBadge(order.status)}</TableCell>
+                        <TableCell>{getActionButtons(order)}</TableCell>
                       </TableRow>
                     ))
                   )}
                 </TableBody>
               </Table>
-            )}
-            
-            {/* Bottom Pagination */}
-            {data?.pagination && data.pagination.pages > 1 && (
-              <Pagination className="my-4">
-                <PaginationContent>
-                  {renderPaginationItems()}
-                </PaginationContent>
-              </Pagination>
-            )}
-            
-            {/* Pagination Summary */}
-            {data?.pagination && (
-              <div className="text-sm text-slate-500 text-center mt-2">
-                Showing page {data.pagination.page} of {data.pagination.pages} ({data.pagination.total} total orders)
-              </div>
             )}
           </div>
         </CardContent>

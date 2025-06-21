@@ -216,22 +216,20 @@ const SignatureForm = ({
         },
         dictationText: dictationText,
         finalValidationResult: {
-          validationStatus: validationResult.validationStatus || "appropriate",
-          complianceScore: validationResult.complianceScore || 80,
-          feedback: validationResult.feedback || "",
-          suggestedCPTCodes: validationResult.procedureCodes?.map((code, index) => ({
+          ...validationResult,
+          // Reconstruct the arrays from the combined suggestedCodes array
+          suggestedCPTCodes: validationResult.suggestedCodes?.filter(code => code.type === 'CPT').map(code => ({
             code: code.code,
             description: code.description,
-            // Assume first CPT code is primary if isPrimary property doesn't exist
-            isPrimary: index === 0
+            confidence: code.confidence,
+            isPrimary: code.isPrimary
           })) || [],
-          suggestedICD10Codes: validationResult.diagnosisCodes?.map((code, index) => ({
+          suggestedICD10Codes: validationResult.suggestedCodes?.filter(code => code.type === 'ICD-10').map(code => ({
             code: code.code,
             description: code.description,
-            // Assume first ICD10 code is primary if isPrimary property doesn't exist
-            isPrimary: index === 0
-          })) || [],
-          internalReasoning: validationResult.feedback || ""
+            confidence: code.confidence,
+            isPrimary: code.isPrimary
+          })) || []
         },
         isOverride: validationResult.overridden || false,
         signatureData: signatureData,

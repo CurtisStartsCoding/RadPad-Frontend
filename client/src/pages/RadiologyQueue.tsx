@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   Table,
@@ -22,10 +22,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Search, Filter, Calendar, Clock, ArrowUpDown, FileText, CheckCircle2, Calendar as CalendarIcon, Loader2 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
-import { getUserRoleFromStorage } from "@/lib/navigation";
+import { formatDateShort } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import PageHeader from "@/components/layout/PageHeader";
-import DebugRadiologyUserInfo from "@/components/debug/DebugRadiologyUserInfo";
 
 // Define the Order type based on actual API response
 interface ApiRadiologyOrder {
@@ -41,8 +40,6 @@ interface ApiRadiologyOrder {
   created_at: string;
   updated_at: string;
   patient_name: string | null;
-  patient_first_name: string | null;
-  patient_last_name: string | null;
   patient_dob: string | null;
   patient_gender: string | null;
   patient_mrn?: string | null;
@@ -52,97 +49,18 @@ interface ApiRadiologyOrder {
 
 const RadiologyQueue = () => {
   const [searchQuery, setSearchQuery] = useState("");
-  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   const [selectedFilter, setSelectedFilter] = useState("all");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
-  
-  // Effect to handle debounced search
-  useEffect(() => {
-    // Clear any existing timer
-    if (debounceTimerRef.current) {
-      clearTimeout(debounceTimerRef.current);
-    }
-    
-    // Only set up debounce timer if search query is at least 3 characters
-    if (searchQuery.length >= 3) {
-      // Set a new timer for 2 seconds
-      debounceTimerRef.current = setTimeout(() => {
-        setDebouncedSearchQuery(searchQuery);
-      }, 2000);
-    } else if (searchQuery.length === 0 && debouncedSearchQuery !== "") {
-      // If search is cleared, update immediately
-      setDebouncedSearchQuery("");
-    }
-    
-    // Cleanup function to clear the timer if component unmounts or searchQuery changes
-    return () => {
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current);
-      }
-    };
-  }, [searchQuery]);
   
   // Fetch orders from the API
   const { data, isLoading, error } = useQuery<{orders: ApiRadiologyOrder[]} | ApiRadiologyOrder[]>({
-    queryKey: ['/api/radiology/orders', statusFilter, debouncedSearchQuery],
+    queryKey: ['/api/radiology/orders'],
     queryFn: async () => {
-      // Check user role to determine which endpoint to use
-      const userRole = getUserRoleFromStorage();
-      
-      // Use different endpoint for scheduler role
-      let endpoint = userRole === 'scheduler' ? `/api/orders` : `/api/radiology/orders`;
-      const params = new URLSearchParams();
-      
-      // Add status filter if not "all"
-      if (statusFilter !== "all") {
-        params.append('status', statusFilter);
+      const response = await apiRequest('GET', '/api/radiology/orders', undefined);
+      if (!response.ok) {
+        throw new Error('Failed to fetch radiology orders');
       }
-      
-      // Add search query if provided and at least 3 characters
-      if (debouncedSearchQuery && debouncedSearchQuery.length >= 3) {
-        params.append('search', debouncedSearchQuery);
-      }
-      
-      // Append query parameters if any exist
-      if (params.toString()) {
-        endpoint += `?${params.toString()}`;
-      }
-      
-      console.log(`Fetching orders with endpoint: ${endpoint}${userRole === 'scheduler' ? ' (scheduler role)' : ' (non-scheduler role)'}`);
-      
-      try {
-        const response = await apiRequest('GET', endpoint, undefined);
-        if (!response.ok) {
-          throw new Error(`Failed to fetch radiology orders: ${response.status} ${response.statusText}`);
-        }
-        
-        // Log the raw response for debugging
-        const responseText = await response.text();
-        console.log('Raw API Response:', responseText);
-        
-        // Parse the response as JSON
-        let data;
-        try {
-          data = JSON.parse(responseText);
-        } catch (e) {
-          console.error('Error parsing response as JSON:', e);
-          throw new Error('Invalid JSON response from API');
-        }
-        
-        console.log('Parsed API Response:', data);
-        
-        // Check if the response has the expected structure
-        if (!data || (typeof data === 'object' && !Array.isArray(data.orders) && !Array.isArray(data))) {
-          console.error('Unexpected API response structure:', data);
-          return { orders: [] };
-        }
-        
-        return data;
-      } catch (error) {
-        console.error('Error fetching radiology orders:', error);
-        throw error;
-      }
+      const data = await response.json();
+      return data;
     },
     staleTime: 60000, // 1 minute
   });
@@ -150,47 +68,32 @@ const RadiologyQueue = () => {
   // Handle both response formats - either direct array or object with orders property
   const orders = Array.isArray(data) ? data : data?.orders || [];
   
-  // Filter orders by status and modality for radiology queue
+  // Filter orders by status for radiology queue
   const filteredOrders = orders.filter(order => {
-    // First filter by selected status
-    if (statusFilter !== "all" && order.status !== statusFilter) {
-      return false;
-    }
-    
-    // Then filter by modality
     if (selectedFilter === "all") {
-      return true;
+      return order.status === 'pending_radiology';
     } else if (selectedFilter === "mri") {
-      return order.modality && order.modality.toLowerCase().includes('mri');
+      return order.status === 'pending_radiology' && order.modality && order.modality.toLowerCase().includes('mri');
     } else if (selectedFilter === "ct") {
-      return order.modality && order.modality.toLowerCase().includes('ct');
+      return order.status === 'pending_radiology' && order.modality && order.modality.toLowerCase().includes('ct');
     } else if (selectedFilter === "xray") {
-      return order.modality && order.modality.toLowerCase().includes('x-ray');
+      return order.status === 'pending_radiology' && order.modality && order.modality.toLowerCase().includes('x-ray');
     }
     return false;
   }) || [];
   
-  // Further filter by search query if not using API search
-  const searchFilteredOrders = debouncedSearchQuery && debouncedSearchQuery.length >= 3
-    ? filteredOrders
-    : filteredOrders.filter(order => {
-        const searchLower = searchQuery.toLowerCase();
-        if (searchLower === '') return true; // Always include all orders when search is empty
-        
-        return (
-          (order.patient_name && order.patient_name.toLowerCase().includes(searchLower)) ||
-          (order.patient_first_name && order.patient_first_name.toLowerCase().includes(searchLower)) ||
-          (order.patient_last_name && order.patient_last_name.toLowerCase().includes(searchLower)) ||
-          (order.patient_mrn && order.patient_mrn.toLowerCase().includes(searchLower)) ||
-          (order.modality && order.modality.toLowerCase().includes(searchLower))
-        );
-      });
+  // Further filter by search query
+  const searchFilteredOrders = filteredOrders.filter(order => {
+    const searchLower = searchQuery.toLowerCase();
+    return (
+      (order.patient_name && order.patient_name.toLowerCase().includes(searchLower)) ||
+      (order.patient_mrn && order.patient_mrn.toLowerCase().includes(searchLower)) ||
+      (order.modality && order.modality.toLowerCase().includes(searchLower)) ||
+      searchLower === ''  // Always include all orders when search is empty
+    );
+  });
   
   // Format date for display
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-  };
   
   // Format time for display
   const formatTime = (dateString: string) => {
@@ -216,15 +119,11 @@ const RadiologyQueue = () => {
         title="Radiology Queue"
         description="Review and schedule pending orders"
       >
-        <div>
-          <Button size="sm">
-            <CalendarIcon className="h-4 w-4 mr-2" />
-            View Schedule
-          </Button>
-        </div>
+        <Button size="sm">
+          <CalendarIcon className="h-4 w-4 mr-2" />
+          View Schedule
+        </Button>
       </PageHeader>
-      
-      <DebugRadiologyUserInfo />
       
       <Card>
         <CardHeader className="pb-3">
@@ -232,33 +131,12 @@ const RadiologyQueue = () => {
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="all" className="space-y-4">
-            <div className="flex flex-col space-y-4">
-              <TabsList>
-                <TabsTrigger value="all">All Orders ({filteredOrders.length})</TabsTrigger>
-                <TabsTrigger value="mri">MRI ({filteredOrders.filter(o => o.modality && o.modality.toLowerCase().includes('mri')).length})</TabsTrigger>
-                <TabsTrigger value="ct">CT ({filteredOrders.filter(o => o.modality && o.modality.toLowerCase().includes('ct')).length})</TabsTrigger>
-                <TabsTrigger value="xray">X-Ray ({filteredOrders.filter(o => o.modality && o.modality.toLowerCase().includes('x-ray')).length})</TabsTrigger>
-              </TabsList>
-              
-              <div className="flex items-center space-x-2">
-                <span className="text-sm font-medium">Status:</span>
-                <Select
-                  value={statusFilter}
-                  onValueChange={setStatusFilter}
-                >
-                  <SelectTrigger className="w-44">
-                    <SelectValue placeholder="Filter by status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Statuses</SelectItem>
-                    <SelectItem value="pending_radiology">Pending</SelectItem>
-                    <SelectItem value="scheduled">Scheduled</SelectItem>
-                    <SelectItem value="completed">Completed</SelectItem>
-                    <SelectItem value="cancelled">Cancelled</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
+            <TabsList>
+              <TabsTrigger value="all">All Orders ({filteredOrders.length})</TabsTrigger>
+              <TabsTrigger value="mri">MRI ({filteredOrders.filter(o => o.modality && o.modality.toLowerCase().includes('mri')).length})</TabsTrigger>
+              <TabsTrigger value="ct">CT ({filteredOrders.filter(o => o.modality && o.modality.toLowerCase().includes('ct')).length})</TabsTrigger>
+              <TabsTrigger value="xray">X-Ray ({filteredOrders.filter(o => o.modality && o.modality.toLowerCase().includes('x-ray')).length})</TabsTrigger>
+            </TabsList>
             
             <div className="flex justify-between items-center">
               <div className="relative w-72">
@@ -268,29 +146,6 @@ const RadiologyQueue = () => {
                   className="pl-9"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      // Prevent default form submission behavior
-                      e.preventDefault();
-                      
-                      // Only trigger search if at least 3 characters
-                      if (searchQuery.length >= 3) {
-                        // Clear any existing timer
-                        if (debounceTimerRef.current) {
-                          clearTimeout(debounceTimerRef.current);
-                        }
-                        
-                        // Update debounced query immediately
-                        setDebouncedSearchQuery(searchQuery);
-                      } else if (searchQuery.length === 0) {
-                        // If search is cleared, update immediately
-                        setDebouncedSearchQuery("");
-                      } else {
-                        // Show a message that at least 3 characters are required
-                        console.log("Please enter at least 3 characters to search");
-                      }
-                    }
-                  }}
                 />
               </div>
               
@@ -358,16 +213,12 @@ const RadiologyQueue = () => {
                   ) : (
                     searchFilteredOrders.map((order) => (
                       <TableRow key={order.id}>
-                        <TableCell className="font-medium">
-                          {(order.patient_first_name && order.patient_last_name)
-                            ? `${order.patient_first_name} ${order.patient_last_name}`
-                            : order.patient_name || 'Unknown Patient'}
-                        </TableCell>
+                        <TableCell className="font-medium">{order.patient_name || 'Unknown Patient'}</TableCell>
                         <TableCell className="font-mono text-xs">{order.patient_mrn || 'No MRN'}</TableCell>
                         <TableCell>
                           <div className="flex items-center">
                             <Calendar className="h-3.5 w-3.5 mr-1.5 text-slate-500" />
-                            {formatDate(order.created_at)}
+                            {formatDateShort(order.created_at)}
                           </div>
                         </TableCell>
                         <TableCell>

@@ -10,6 +10,7 @@ import PageHeader from "@/components/layout/PageHeader";
 import { PlusCircle, Search, Building2, Link2, CheckCircle2, Clock, XCircle, Loader2 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { formatDate } from "@/lib/utils";
 
 // Define the Connection type based on actual API response
 interface ApiConnection {
@@ -269,7 +270,7 @@ const Connections = () => {
                             <span className="text-sm font-mono text-slate-600">{connection.id}</span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
-                            {connection.createdAt ? new Date(connection.createdAt).toLocaleDateString() : 'N/A'}
+                            {connection.createdAt ? formatDate(connection.createdAt) : 'N/A'}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm">
                             <div className="flex space-x-2">
@@ -363,7 +364,7 @@ const Connections = () => {
                             </span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
-                            {connection.createdAt ? new Date(connection.createdAt).toLocaleDateString() : 'N/A'}
+                            {connection.createdAt ? formatDate(connection.createdAt) : 'N/A'}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm">
                             <div className="flex space-x-2">

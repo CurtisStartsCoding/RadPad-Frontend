@@ -13,6 +13,8 @@ import AppHeader from "@/components/layout/AppHeader";
 import Dashboard from "@/pages/Dashboard";
 import NewOrder from "@/pages/NewOrder";
 import OrderList from "@/pages/OrderList";
+import OrderDetailsView from "@/pages/OrderDetailsView";
+import PatientHistoryView from "@/pages/PatientHistoryView";
 import AdminQueue from "@/pages/AdminQueue";
 import AdminOrderFinalization from "@/pages/AdminOrderFinalization";
 import RadiologyQueue from "@/pages/RadiologyQueue";
@@ -339,6 +341,40 @@ function App() {
           <Route path="/trial-validation">
             <TrialValidation />
           </Route>
+          <Route path="/patients/:patientMrn">
+            {shouldBeAuthenticated ? (
+              <div className="h-screen flex flex-col">
+                <div className="w-full flex-1 overflow-auto">
+                  <AppHeader
+                    title="Patient History"
+                    onNavigate={handleNavigate}
+                  />
+                  <main className="h-full pt-16">
+                    <PatientHistoryView />
+                  </main>
+                </div>
+              </div>
+            ) : (
+              <AuthPage />
+            )}
+          </Route>
+          <Route path="/orders/:orderId">
+            {shouldBeAuthenticated ? (
+              <div className="h-screen flex flex-col">
+                <div className="w-full flex-1 overflow-auto">
+                  <AppHeader
+                    title="Order Details"
+                    onNavigate={handleNavigate}
+                  />
+                  <main className="h-full pt-16">
+                    <OrderDetailsView />
+                  </main>
+                </div>
+              </div>
+            ) : (
+              <AuthPage />
+            )}
+          </Route>
           <Route path="/orders">
             {shouldBeAuthenticated ? (
               <div className="h-screen flex flex-col">
@@ -348,7 +384,7 @@ function App() {
                     subtitle={getPageSubtitle(AppPage.OrderList)}
                     onNavigate={handleNavigate}
                   />
-                  <main className="h-full">
+                  <main className="h-full pt-16">
                     <OrderList />
                   </main>
                 </div>
@@ -366,7 +402,7 @@ function App() {
                     subtitle={getPageSubtitle(AppPage.NewOrder)}
                     onNavigate={handleNavigate}
                   />
-                  <main className="h-full">
+                  <main className="h-full pt-16">
                     <NewOrder userRole={(user?.role as UserRole) || currentRole} />
                   </main>
                 </div>
@@ -384,7 +420,7 @@ function App() {
                     subtitle={getPageSubtitle(AppPage.AdminQueue)}
                     onNavigate={handleNavigate}
                   />
-                  <main className="h-full">
+                  <main className="h-full pt-16">
                     <AdminQueue navigateTo={(page) => setCurrentPage(page)} />
                   </main>
                 </div>
@@ -402,7 +438,7 @@ function App() {
                     subtitle={getPageSubtitle(AppPage.AdminOrderFinalization)}
                     onNavigate={handleNavigate}
                   />
-                  <main className="h-full">
+                  <main className="h-full pt-16">
                     <AdminOrderFinalization navigateTo={(page) => setCurrentPage(page)} />
                   </main>
                 </div>
@@ -420,7 +456,7 @@ function App() {
                     subtitle={getPageSubtitle(AppPage.RadiologyQueue)}
                     onNavigate={handleNavigate}
                   />
-                  <main className="h-full">
+                  <main className="h-full pt-16">
                     <RadiologyQueue />
                   </main>
                 </div>
@@ -438,7 +474,7 @@ function App() {
                     subtitle={getPageSubtitle(AppPage.OrgProfile)}
                     onNavigate={handleNavigate}
                   />
-                  <main className="h-full">
+                  <main className="h-full pt-16">
                     <OrganizationProfile />
                   </main>
                 </div>
@@ -456,7 +492,7 @@ function App() {
                     subtitle={getPageSubtitle(AppPage.Locations)}
                     onNavigate={handleNavigate}
                   />
-                  <main className="h-full">
+                  <main className="h-full pt-16">
                     <Locations />
                   </main>
                 </div>
@@ -474,7 +510,7 @@ function App() {
                     subtitle={getPageSubtitle(AppPage.Users)}
                     onNavigate={handleNavigate}
                   />
-                  <main className="h-full">
+                  <main className="h-full pt-16">
                     <Users />
                   </main>
                 </div>
@@ -492,7 +528,7 @@ function App() {
                     subtitle={getPageSubtitle(AppPage.Connections)}
                     onNavigate={handleNavigate}
                   />
-                  <main className="h-full">
+                  <main className="h-full pt-16">
                     <Connections />
                   </main>
                 </div>
@@ -510,7 +546,7 @@ function App() {
                     subtitle={getPageSubtitle(AppPage.Billing)}
                     onNavigate={handleNavigate}
                   />
-                  <main className="h-full">
+                  <main className="h-full pt-16">
                     <BillingCredits userRole={currentRole} />
                   </main>
                 </div>
@@ -528,7 +564,7 @@ function App() {
                     subtitle={getPageSubtitle(AppPage.Profile)}
                     onNavigate={handleNavigate}
                   />
-                  <main className="h-full">
+                  <main className="h-full pt-16">
                     <MyProfile />
                   </main>
                 </div>
@@ -546,7 +582,7 @@ function App() {
                     subtitle={getPageSubtitle(AppPage.Security)}
                     onNavigate={handleNavigate}
                   />
-                  <main className="h-full">
+                  <main className="h-full pt-16">
                     <Security />
                   </main>
                 </div>
@@ -569,7 +605,7 @@ function App() {
                       subtitle={getPageSubtitle(AppPage.RadiologyQueue)}
                       onNavigate={handleNavigate}
                     />
-                    <main className="h-full">
+                    <main className="h-full pt-16">
                       <RadiologyQueue />
                     </main>
                   </div>
@@ -583,7 +619,7 @@ function App() {
                       subtitle={getPageSubtitle(AppPage.Dashboard)}
                       onNavigate={handleNavigate}
                     />
-                    <main className="h-full">
+                    <main className="h-full pt-16">
                       <Dashboard navigateTo={(page) => setCurrentPage(page)} />
                     </main>
                   </div>
@@ -608,7 +644,7 @@ function App() {
                     subtitle={getPageSubtitle(currentPage)}
                     onNavigate={handleNavigate}
                   />
-                  <main className="h-full">
+                  <main className="h-full pt-16">
                     {renderCurrentPage()}
                   </main>
                 </div>

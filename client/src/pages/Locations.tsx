@@ -19,6 +19,7 @@ import {
   Loader2
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
+import { formatDate } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 
 // Define the Location type based on API response
@@ -401,8 +402,8 @@ const Locations = () => {
                 <div className="pt-2 mt-2 border-t border-gray-100">
                   <div className="flex items-center justify-between">
                     <div className="text-xs text-gray-400">
-                      <div>Created: {new Date(location.created_at).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })}</div>
-                      <div>Updated: {new Date(location.updated_at).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })}</div>
+                      <div>Created: {formatDate(location.created_at)}</div>
+                      <div>Updated: {formatDate(location.updated_at)}</div>
                     </div>
                     {location.is_active && (
                       <Button
