@@ -8,9 +8,11 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { MapPin, Building, Phone, Plus, Trash2, Check, X } from "lucide-react";
+import { MapPin, Building, Phone, Plus, Trash2, Check, X, Loader2 } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 export default function OrgLocations() {
   // Define a type for location status
@@ -44,6 +46,8 @@ export default function OrgLocations() {
   ]);
   
   const [openAddDialog, setOpenAddDialog] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { toast } = useToast();
   const [newLocation, setNewLocation] = useState({
     name: "",
     address: "",
@@ -54,20 +58,86 @@ export default function OrgLocations() {
     isPrimary: false
   });
   
-  const handleAddLocation = () => {
-    // Add validation logic here
-    const id = locations.length + 1;
-    setLocations([...locations, { ...newLocation, id, status: "active" }]);
-    setNewLocation({
-      name: "",
-      address: "",
-      city: "",
-      state: "NY",
-      zipCode: "",
-      phone: "",
-      isPrimary: false
-    });
-    setOpenAddDialog(false);
+  const handleAddLocation = async () => {
+    // Basic validation
+    if (!newLocation.name || !newLocation.address || !newLocation.city || !newLocation.state || !newLocation.zipCode) {
+      toast({
+        title: "Missing required fields",
+        description: "Please fill out all required fields.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setIsSubmitting(true);
+    
+    try {
+      // Map frontend location data to API expected format
+      const locationData = {
+        name: newLocation.name,
+        address_line1: newLocation.address,
+        city: newLocation.city,
+        state: newLocation.state,
+        zip_code: newLocation.zipCode,
+        phone_number: newLocation.phone
+      };
+      
+      // Make API call to create location
+      const response = await apiRequest('POST', '/api/organizations/mine/locations', locationData);
+      const result = await response.json();
+      
+      // Map API response to frontend location format
+      const createdLocation: Location = {
+        id: result.location.id,
+        name: result.location.name,
+        address: result.location.address_line1,
+        city: result.location.city,
+        state: result.location.state,
+        zipCode: result.location.zip_code,
+        phone: result.location.phone_number || "",
+        status: result.location.is_active ? "active" : "inactive",
+        isPrimary: newLocation.isPrimary
+      };
+      
+      // Update locations state with the new location
+      if (newLocation.isPrimary) {
+        // If this is the primary location, update all other locations
+        setLocations(
+          [...locations.map(loc => ({ ...loc, isPrimary: false })), createdLocation]
+        );
+      } else {
+        setLocations([...locations, createdLocation]);
+      }
+      
+      // Reset form
+      setNewLocation({
+        name: "",
+        address: "",
+        city: "",
+        state: "NY",
+        zipCode: "",
+        phone: "",
+        isPrimary: false
+      });
+      
+      // Close dialog
+      setOpenAddDialog(false);
+      
+      // Show success toast
+      toast({
+        title: "Location added",
+        description: "The location has been added successfully.",
+      });
+    } catch (error) {
+      console.error("Error adding location:", error);
+      toast({
+        title: "Error adding location",
+        description: error instanceof Error ? error.message : "An unknown error occurred",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
   
   const toggleStatus = (id: number) => {
@@ -219,11 +289,18 @@ export default function OrgLocations() {
             </div>
             
             <DialogFooter>
-              <Button variant="outline" onClick={() => setOpenAddDialog(false)}>
+              <Button variant="outline" onClick={() => setOpenAddDialog(false)} disabled={isSubmitting}>
                 Cancel
               </Button>
-              <Button onClick={handleAddLocation}>
-                Add Location
+              <Button onClick={handleAddLocation} disabled={isSubmitting}>
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Adding...
+                  </>
+                ) : (
+                  "Add Location"
+                )}
               </Button>
             </DialogFooter>
           </DialogContent>
