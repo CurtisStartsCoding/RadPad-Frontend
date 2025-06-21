@@ -21,7 +21,7 @@ export default function OrgSignUp() {
         <p className="text-sm text-slate-500">Complete the following steps to register your organization with RadOrderPad</p>
       </div>
 
-      <Tabs defaultValue="organization" onValueChange={setActiveTab} className="w-full">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-3 mb-4">
           <TabsTrigger value="organization">Organization Information</TabsTrigger>
           <TabsTrigger value="admin">Admin Account</TabsTrigger>
