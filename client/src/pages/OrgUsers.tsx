@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { UserPlus, Download, Upload, RefreshCw, Mail, User, FileSpreadsheet, CheckCircle2, XCircle, AlertCircle, Loader2 } from "lucide-react";
+import { UserPlus, Download, Upload, RefreshCw, Mail, User, FileSpreadsheet, CheckCircle2, XCircle, AlertCircle, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -13,6 +13,7 @@ import { UserRole, roleDisplayNames } from "@/lib/roles";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
@@ -112,9 +113,14 @@ export default function OrgUsers() {
   const [pagination, setPagination] = useState<Pagination>({
     total: 0,
     page: 1,
-    limit: 20,
+    limit: 10,
     pages: 1
   });
+  const [itemsPerPage, setItemsPerPage] = useState<number>(10);
+  const [sortBy, setSortBy] = useState<string>("last_name");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+  const [searchTerm, setSearchTerm] = useState<string>("");
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState<string>("");
   const { toast } = useToast();
   const [openInviteDialog, setOpenInviteDialog] = useState(false);
   const [activeTab, setActiveTab] = useState("users");
@@ -157,47 +163,114 @@ export default function OrgUsers() {
     primaryLocation: ""
   });
   
+  // Fetch users with pagination, sorting, and search
+  const fetchUsers = async (
+    page = 1,
+    limit = 10,
+    sortField = sortBy,
+    sortDirection = sortOrder,
+    nameSearch = debouncedSearchTerm
+  ) => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      let url = `/api/users?page=${page}&limit=${limit}&sortBy=${sortField}&sortOrder=${sortDirection}`;
+      
+      // Add search parameter if provided
+      if (nameSearch) {
+        url += `&name=${encodeURIComponent(nameSearch)}`;
+      }
+      
+      const response = await apiRequest('GET', url);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch users: ${response.statusText}`);
+      }
+      
+      const data: ApiResponse = await response.json();
+      
+      // Map API response to our component state
+      const mappedUsers = data.data.users.map((user) => ({
+        id: user.id,
+        firstName: user.first_name,
+        lastName: user.last_name,
+        email: user.email,
+        role: user.role,
+        invitationStatus: user.email_verified ? "accepted" : "pending",
+        primaryLocation: "Main Office", // This would need to be fetched from another API
+        lastLogin: user.updated_at // Using updated_at as a proxy for last login
+      }));
+      
+      setUsers(mappedUsers);
+      setPagination(data.data.pagination);
+    } catch (err) {
+      console.error("Error fetching users:", err);
+      setError(err instanceof Error ? err.message : "An unknown error occurred");
+      
+      // Fall back to mock data for development/testing purposes
+      setUsers(initialUsers);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  // Handle page change
+  const handlePageChange = (newPage: number) => {
+    if (newPage < 1 || newPage > pagination.pages) return;
+    setPagination(prev => ({ ...prev, page: newPage }));
+    fetchUsers(newPage, itemsPerPage, sortBy, sortOrder, debouncedSearchTerm);
+  };
+  
+  // Handle items per page change
+  const handleItemsPerPageChange = (value: string) => {
+    const limit = parseInt(value);
+    setItemsPerPage(limit);
+    setPagination(prev => ({ ...prev, page: 1, limit })); // Reset to first page when changing limit
+    fetchUsers(1, limit, sortBy, sortOrder, debouncedSearchTerm);
+  };
+  
+  // Handle sort change
+  const handleSortChange = (field: string) => {
+    // If clicking the same field, toggle sort order
+    if (field === sortBy) {
+      const newOrder = sortOrder === "asc" ? "desc" : "asc";
+      setSortOrder(newOrder);
+      fetchUsers(pagination.page, itemsPerPage, field, newOrder, debouncedSearchTerm);
+    } else {
+      // If clicking a new field, set it as sort field with ascending order
+      setSortBy(field);
+      setSortOrder("asc");
+      fetchUsers(pagination.page, itemsPerPage, field, "asc", debouncedSearchTerm);
+    }
+  };
+  
+  // Handle search input change
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
+  };
+  
+  // Get sort indicator for table headers
+  const getSortIndicator = (field: string) => {
+    if (sortBy !== field) return null;
+    return sortOrder === "asc" ? "↑" : "↓";
+  };
+  
+  // Debounce search term to avoid too many API calls
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+      // Reset to first page when search term changes
+      setPagination(prev => ({ ...prev, page: 1 }));
+      fetchUsers(1, itemsPerPage, sortBy, sortOrder, searchTerm);
+    }, 500);
+    
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+  
   // Fetch users when component mounts
   useEffect(() => {
-    const fetchUsers = async () => {
-      setIsLoading(true);
-      setError(null);
-      
-      try {
-        const response = await apiRequest('GET', '/api/users');
-        
-        if (!response.ok) {
-          throw new Error(`Failed to fetch users: ${response.statusText}`);
-        }
-        
-        const data: ApiResponse = await response.json();
-        
-        // Map API response to our component state
-        const mappedUsers = data.data.users.map((user) => ({
-          id: user.id,
-          firstName: user.first_name,
-          lastName: user.last_name,
-          email: user.email,
-          role: user.role,
-          invitationStatus: user.email_verified ? "accepted" : "pending",
-          primaryLocation: "Main Office", // This would need to be fetched from another API
-          lastLogin: user.updated_at // Using updated_at as a proxy for last login
-        }));
-        
-        setUsers(mappedUsers);
-        setPagination(data.data.pagination);
-      } catch (err) {
-        console.error("Error fetching users:", err);
-        setError(err instanceof Error ? err.message : "An unknown error occurred");
-        
-        // Fall back to mock data for development/testing purposes
-        setUsers(initialUsers);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    fetchUsers();
+    fetchUsers(pagination.page, itemsPerPage, sortBy, sortOrder, debouncedSearchTerm);
   }, []);
   
   // Fetch locations when the invite dialog opens
@@ -681,6 +754,33 @@ export default function OrgUsers() {
               </CardDescription>
             </CardHeader>
             <CardContent>
+              <div className="mb-4">
+                <div className="relative">
+                  <Input
+                    placeholder="Search users by name..."
+                    value={searchTerm}
+                    onChange={handleSearchChange}
+                    className="pl-10"
+                  />
+                  <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-5 w-5"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                      />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+              
               {isLoading ? (
                 <div className="flex justify-center items-center py-8">
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -697,11 +797,31 @@ export default function OrgUsers() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="w-[250px]">Name</TableHead>
-                      <TableHead>Email</TableHead>
-                      <TableHead>Role</TableHead>
+                      <TableHead
+                        className="w-[250px] cursor-pointer hover:bg-slate-50"
+                        onClick={() => handleSortChange("last_name")}
+                      >
+                        Name {getSortIndicator("last_name")}
+                      </TableHead>
+                      <TableHead
+                        className="cursor-pointer hover:bg-slate-50"
+                        onClick={() => handleSortChange("email")}
+                      >
+                        Email {getSortIndicator("email")}
+                      </TableHead>
+                      <TableHead
+                        className="cursor-pointer hover:bg-slate-50"
+                        onClick={() => handleSortChange("role")}
+                      >
+                        Role {getSortIndicator("role")}
+                      </TableHead>
                       <TableHead>Primary Location</TableHead>
-                      <TableHead className="w-[150px]">Status</TableHead>
+                      <TableHead
+                        className="w-[150px] cursor-pointer hover:bg-slate-50"
+                        onClick={() => handleSortChange("is_active")}
+                      >
+                        Status {getSortIndicator("is_active")}
+                      </TableHead>
                       <TableHead className="w-[100px] text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -761,13 +881,151 @@ export default function OrgUsers() {
               )}
             </CardContent>
             <CardFooter className="border-t px-6 py-4">
-              <p className="text-sm text-slate-500">
-                <User className="h-4 w-4 inline-block mr-1" />
-                {pagination.total} user{pagination.total !== 1 ? 's' : ''}
-                {users.filter(u => u.invitationStatus === "pending").length > 0 &&
-                  ` (${users.filter(u => u.invitationStatus === "pending").length} pending)`}
-                {pagination.pages > 1 && ` • Page ${pagination.page} of ${pagination.pages}`}
-              </p>
+              <div className="flex justify-between items-center w-full">
+                <div className="flex items-center gap-4">
+                  <p className="text-sm text-slate-500">
+                    <User className="h-4 w-4 inline-block mr-1" />
+                    {pagination.total} user{pagination.total !== 1 ? 's' : ''}
+                    {users.filter(u => u.invitationStatus === "pending").length > 0 &&
+                      ` (${users.filter(u => u.invitationStatus === "pending").length} pending)`}
+                    {pagination.pages > 1 && ` • Page ${pagination.page} of ${pagination.pages}`}
+                  </p>
+                  
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor="itemsPerPage" className="text-sm text-slate-500">
+                      Show:
+                    </Label>
+                    <Select
+                      value={itemsPerPage.toString()}
+                      onValueChange={handleItemsPerPageChange}
+                    >
+                      <SelectTrigger className="h-8 w-[70px]">
+                        <SelectValue placeholder="10" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="5">5</SelectItem>
+                        <SelectItem value="10">10</SelectItem>
+                        <SelectItem value="20">20</SelectItem>
+                        <SelectItem value="50">50</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                
+                {pagination.pages > 1 && (
+                  <Pagination>
+                    <PaginationContent>
+                      <PaginationItem>
+                        <PaginationPrevious
+                          href="#"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            handlePageChange(pagination.page - 1);
+                          }}
+                          aria-disabled={pagination.page <= 1}
+                          className={pagination.page <= 1 ? "pointer-events-none opacity-50" : ""}
+                        />
+                      </PaginationItem>
+                      
+                      {/* First page */}
+                      {pagination.page > 3 && pagination.pages > 5 && (
+                        <PaginationItem>
+                          <PaginationLink
+                            href="#"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              handlePageChange(1);
+                            }}
+                          >
+                            1
+                          </PaginationLink>
+                        </PaginationItem>
+                      )}
+                      
+                      {/* Ellipsis if needed */}
+                      {pagination.page > 4 && pagination.pages > 6 && (
+                        <PaginationItem>
+                          <PaginationEllipsis />
+                        </PaginationItem>
+                      )}
+                      
+                      {/* Page numbers */}
+                      {Array.from({ length: Math.min(5, pagination.pages) }, (_, i) => {
+                        // Logic to show pages around current page
+                        let pageNum;
+                        if (pagination.pages <= 5) {
+                          // If 5 or fewer pages, show all
+                          pageNum = i + 1;
+                        } else if (pagination.page <= 3) {
+                          // If near start, show first 5 pages
+                          pageNum = i + 1;
+                        } else if (pagination.page >= pagination.pages - 2) {
+                          // If near end, show last 5 pages
+                          pageNum = pagination.pages - 4 + i;
+                        } else {
+                          // Otherwise show 2 before and 2 after current page
+                          pageNum = pagination.page - 2 + i;
+                        }
+                        
+                        // Skip rendering if this would duplicate first/last page buttons
+                        if ((pagination.page > 3 && pageNum === 1) ||
+                            (pagination.page < pagination.pages - 2 && pageNum === pagination.pages)) {
+                          return null;
+                        }
+                        
+                        return (
+                          <PaginationItem key={pageNum}>
+                            <PaginationLink
+                              href="#"
+                              isActive={pagination.page === pageNum}
+                              onClick={(e) => {
+                                e.preventDefault();
+                                handlePageChange(pageNum);
+                              }}
+                            >
+                              {pageNum}
+                            </PaginationLink>
+                          </PaginationItem>
+                        );
+                      })}
+                      
+                      {/* Ellipsis if needed */}
+                      {pagination.page < pagination.pages - 3 && pagination.pages > 6 && (
+                        <PaginationItem>
+                          <PaginationEllipsis />
+                        </PaginationItem>
+                      )}
+                      
+                      {/* Last page */}
+                      {pagination.page < pagination.pages - 2 && pagination.pages > 5 && (
+                        <PaginationItem>
+                          <PaginationLink
+                            href="#"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              handlePageChange(pagination.pages);
+                            }}
+                          >
+                            {pagination.pages}
+                          </PaginationLink>
+                        </PaginationItem>
+                      )}
+                      
+                      <PaginationItem>
+                        <PaginationNext
+                          href="#"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            handlePageChange(pagination.page + 1);
+                          }}
+                          aria-disabled={pagination.page >= pagination.pages}
+                          className={pagination.page >= pagination.pages ? "pointer-events-none opacity-50" : ""}
+                        />
+                      </PaginationItem>
+                    </PaginationContent>
+                  </Pagination>
+                )}
+              </div>
             </CardFooter>
           </Card>
         </TabsContent>
