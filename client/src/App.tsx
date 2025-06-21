@@ -155,10 +155,19 @@ function App() {
     // Map URL paths to AppPage enum values
     if (location === "/profile") {
       setCurrentPage(AppPage.Profile);
-    } else if (location === "/") {
-      setCurrentPage(AppPage.Dashboard);
     } else if (location === "/security") {
       setCurrentPage(AppPage.Security);
+    } else if (location === "/new-order") {
+      setCurrentPage(AppPage.NewOrder);
+    } else if (location === "/admin-queue") {
+      setCurrentPage(AppPage.AdminQueue);
+    } else if (location === "/radiology-queue") {
+      setCurrentPage(AppPage.RadiologyQueue);
+    } else if (location === "/trial-validation") {
+      setCurrentPage(AppPage.NewOrder);
+    } else if (location === "/") {
+      // Don't set Dashboard immediately - let role-based redirect handle this
+      // setCurrentPage(AppPage.Dashboard);
     }
     // Add other URL mappings as needed
   }, [location]);
@@ -193,39 +202,9 @@ function App() {
       const currentlyAuthenticated = isAuthenticated || hasToken || !!token;
       
       if (currentlyAuthenticated) {
-        // Try to get role from token if user object is not available
-        let userRole = null;
-        if (user) {
-          userRole = user.role;
-        } else {
-          userRole = getUserRoleFromStorage();
-        }
-
-        if (userRole === UserRole.TrialPhysician) {
-          setCurrentPage(AppPage.NewOrder);
-          if (location === "/auth" || location === "/") {
-            setLocation("/trial-validation");
-          }
-        } else if (userRole === 'physician') {
-          setCurrentPage(AppPage.NewOrder);
-          if (location === "/auth" || location === "/") {
-            setLocation("/new-order");
-          }
-        } else if (userRole && ['admin_staff', 'admin_referring'].includes(userRole)) {
-          setCurrentPage(AppPage.AdminQueue);
-          if (location === "/auth" || location === "/") {
-            setLocation("/admin-queue");
-          }
-        } else if (userRole && ['radiologist', 'admin_radiology', 'scheduler'].includes(userRole)) {
-          setCurrentPage(AppPage.RadiologyQueue);
-          if (location === "/auth") {
-            setLocation("/radiology-queue");
-          }
-        } else {
-          setCurrentPage(AppPage.Dashboard);
-          if (location === "/auth") {
-            setLocation("/");
-          }
+        // Only redirect from /auth to root - let root route handle role-based rendering
+        if (location === "/auth") {
+          setLocation("/");
         }
       } else if (location !== "/auth" &&
                 location !== "/forgot-password" &&
@@ -251,6 +230,10 @@ function App() {
   const renderCurrentPage = () => {
     switch (currentPage) {
       case AppPage.Dashboard:
+        // Don't render Dashboard if we're on root route and should redirect
+        if (location === "/" && shouldBeAuthenticated && user?.role && user.role !== 'super_admin') {
+          return <div>Loading...</div>; // Show loading while redirecting
+        }
         return <Dashboard navigateTo={(page) => setCurrentPage(page)} />;
       case AppPage.NewOrder:
         return <NewOrder userRole={currentRole} />;
@@ -582,38 +565,84 @@ function App() {
           </Route>
           <Route path="/">
             {shouldBeAuthenticated ? (
-              currentRole === UserRole.TrialPhysician ? (
-                // Redirect trial users to trial validation page
-                <TrialValidation />
-              ) : currentRole === UserRole.Radiologist || currentRole === UserRole.AdminRadiology || currentRole === UserRole.Scheduler ? (
-                // Show Radiology Queue for radiology staff
-                <div className="h-screen flex flex-col">
-                  <div className="w-full flex-1 overflow-auto">
-                    <AppHeader
-                      title={getPageTitle(AppPage.RadiologyQueue)}
-                      subtitle={getPageSubtitle(AppPage.RadiologyQueue)}
-                      onNavigate={handleNavigate}
-                    />
-                    <main className="h-full pt-16">
-                      <RadiologyQueue />
-                    </main>
-                  </div>
-                </div>
-              ) : (
-                // Show Dashboard for all other authenticated users
-                <div className="h-screen flex flex-col">
-                  <div className="w-full flex-1 overflow-auto">
-                    <AppHeader
-                      title={getPageTitle(AppPage.Dashboard)}
-                      subtitle={getPageSubtitle(AppPage.Dashboard)}
-                      onNavigate={handleNavigate}
-                    />
-                    <main className="h-full pt-16">
-                      <Dashboard navigateTo={(page) => setCurrentPage(page)} />
-                    </main>
-                  </div>
-                </div>
-              )
+              (() => {
+                // Get role from user object or storage
+                let userRole = null;
+                if (user) {
+                  userRole = user.role;
+                } else {
+                  userRole = getUserRoleFromStorage();
+                }
+
+                // Direct role-based page rendering - no redirects
+                if (userRole === UserRole.TrialPhysician) {
+                  return <TrialValidation />;
+                } else if (userRole === 'physician') {
+                  // Show New Order page for physicians
+                  return (
+                    <div className="h-screen flex flex-col">
+                      <div className="w-full flex-1 overflow-auto">
+                        <AppHeader
+                          title={getPageTitle(AppPage.NewOrder)}
+                          subtitle={getPageSubtitle(AppPage.NewOrder)}
+                          onNavigate={handleNavigate}
+                        />
+                        <main className="h-full pt-16">
+                          <NewOrder userRole={(user?.role as UserRole) || currentRole} />
+                        </main>
+                      </div>
+                    </div>
+                  );
+                } else if (userRole && ['admin_staff', 'admin_referring'].includes(userRole)) {
+                  // Show Admin Queue for admin staff
+                  return (
+                    <div className="h-screen flex flex-col">
+                      <div className="w-full flex-1 overflow-auto">
+                        <AppHeader
+                          title={getPageTitle(AppPage.AdminQueue)}
+                          subtitle={getPageSubtitle(AppPage.AdminQueue)}
+                          onNavigate={handleNavigate}
+                        />
+                        <main className="h-full pt-16">
+                          <AdminQueue navigateTo={(page) => setCurrentPage(page)} />
+                        </main>
+                      </div>
+                    </div>
+                  );
+                } else if (userRole && ['radiologist', 'admin_radiology', 'scheduler'].includes(userRole)) {
+                  // Show Radiology Queue for radiology staff
+                  return (
+                    <div className="h-screen flex flex-col">
+                      <div className="w-full flex-1 overflow-auto">
+                        <AppHeader
+                          title={getPageTitle(AppPage.RadiologyQueue)}
+                          subtitle={getPageSubtitle(AppPage.RadiologyQueue)}
+                          onNavigate={handleNavigate}
+                        />
+                        <main className="h-full pt-16">
+                          <RadiologyQueue />
+                        </main>
+                      </div>
+                    </div>
+                  );
+                } else {
+                  // Show Dashboard for all other authenticated users
+                  return (
+                    <div className="h-screen flex flex-col">
+                      <div className="w-full flex-1 overflow-auto">
+                        <AppHeader
+                          title={getPageTitle(AppPage.Dashboard)}
+                          subtitle={getPageSubtitle(AppPage.Dashboard)}
+                          onNavigate={handleNavigate}
+                        />
+                        <main className="h-full pt-16">
+                          <Dashboard navigateTo={(page) => setCurrentPage(page)} />
+                        </main>
+                      </div>
+                    </div>
+                  );
+                }
+              })()
             ) : (
               <AuthPage />
             )}
