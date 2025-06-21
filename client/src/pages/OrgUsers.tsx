@@ -123,6 +123,9 @@ export default function OrgUsers() {
   const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'validating' | 'preview' | 'success' | 'error'>('idle');
   const [locations, setLocations] = useState<Array<{id: number, name: string}>>([]);
   const [isLoadingLocations, setIsLoadingLocations] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [responseMessage, setResponseMessage] = useState<string | null>(null);
+  const [showResponseDialog, setShowResponseDialog] = useState(false);
   const [previewData, setPreviewData] = useState<{
     total: number;
     valid: number;
@@ -247,23 +250,82 @@ export default function OrgUsers() {
     }
   };
   
-  const handleAddUser = () => {
+  const handleAddUser = async () => {
     // Add validation logic here
-    const id = users.length + 1;
-    setUsers([...users, { 
-      ...newUser, 
-      id, 
-      invitationStatus: "pending", 
-      lastLogin: null 
-    }]);
-    setNewUser({
-      firstName: "",
-      lastName: "",
-      email: "",
-      role: UserRole.Physician,
-      primaryLocation: "Main Office"
-    });
-    setOpenInviteDialog(false);
+    if (!newUser.firstName || !newUser.lastName || !newUser.email) {
+      toast({
+        title: "Validation Error",
+        description: "Please fill in all required fields",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Set loading state
+    setIsSubmitting(true);
+    
+    try {
+      // Make API call to invite user
+      const response = await apiRequest('POST', '/api/user-invites/invite', {
+        email: newUser.email,
+        role: newUser.role
+      });
+      
+      const responseData = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(responseData.message || 'Failed to send invitation');
+      }
+      
+      // Add user to local state
+      const id = users.length + 1;
+      setUsers([...users, {
+        ...newUser,
+        id,
+        invitationStatus: "pending",
+        lastLogin: null
+      }]);
+      
+      // Reset form
+      setNewUser({
+        firstName: "",
+        lastName: "",
+        email: "",
+        role: UserRole.Physician,
+        primaryLocation: "Main Office"
+      });
+      
+      // Close invite dialog
+      setOpenInviteDialog(false);
+      
+      // Set response message and show response dialog
+      setResponseMessage(responseData.message || "Invitation sent successfully");
+      setShowResponseDialog(true);
+      
+    } catch (error) {
+      console.error("Error sending invitation:", error);
+      
+      // Clean up the error message to remove the "Network error: 409:" prefix
+      let errorMessage = "Failed to send invitation";
+      
+      if (error instanceof Error) {
+        const message = error.message;
+        // Check if the message has the format "Network error: XXX: Actual message"
+        const match = message.match(/Network error: \d+: (.*)/);
+        if (match && match[1]) {
+          // Extract just the actual message part
+          errorMessage = match[1];
+        } else {
+          errorMessage = message;
+        }
+      }
+      
+      // Set error message and show response dialog
+      setResponseMessage(errorMessage);
+      setShowResponseDialog(true);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
   
   // Validate a single user record
@@ -564,8 +626,39 @@ export default function OrgUsers() {
                 <Button variant="outline" onClick={() => setOpenInviteDialog(false)}>
                   Cancel
                 </Button>
-                <Button onClick={handleAddUser}>
-                  Send Invitation
+                <Button
+                  onClick={handleAddUser}
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Sending...
+                    </>
+                  ) : (
+                    "Send Invitation"
+                  )}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          {/* Response Message Dialog */}
+          <Dialog open={showResponseDialog} onOpenChange={setShowResponseDialog}>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>
+                  {responseMessage && responseMessage.toLowerCase().includes("error")
+                    ? "Error"
+                    : "Success"}
+                </DialogTitle>
+              </DialogHeader>
+              <div className="p-4 text-center">
+                {responseMessage}
+              </div>
+              <DialogFooter>
+                <Button onClick={() => setShowResponseDialog(false)}>
+                  Close
                 </Button>
               </DialogFooter>
             </DialogContent>
