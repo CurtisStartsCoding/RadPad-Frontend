@@ -121,6 +121,8 @@ export default function OrgUsers() {
   const [csvFile, setCsvFile] = useState<File | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'validating' | 'preview' | 'success' | 'error'>('idle');
+  const [locations, setLocations] = useState<Array<{id: number, name: string}>>([]);
+  const [isLoadingLocations, setIsLoadingLocations] = useState(false);
   const [previewData, setPreviewData] = useState<{
     total: number;
     valid: number;
@@ -149,7 +151,7 @@ export default function OrgUsers() {
     lastName: "",
     email: "",
     role: UserRole.Physician,
-    primaryLocation: "Main Office"
+    primaryLocation: ""
   });
   
   // Fetch users when component mounts
@@ -194,6 +196,56 @@ export default function OrgUsers() {
     
     fetchUsers();
   }, []);
+  
+  // Fetch locations when the invite dialog opens
+  const fetchLocations = async () => {
+    setIsLoadingLocations(true);
+    try {
+      const response = await apiRequest('GET', '/api/organizations/mine/locations');
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch locations: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      
+      // Map API response to our component state
+      const mappedLocations = data.locations.map((location: any) => ({
+        id: location.id,
+        name: location.name
+      }));
+      
+      setLocations(mappedLocations);
+      
+      // Set default primary location if locations exist and no location is selected
+      if (mappedLocations.length > 0 && !newUser.primaryLocation) {
+        setNewUser(prev => ({
+          ...prev,
+          primaryLocation: mappedLocations[0].name
+        }));
+      }
+    } catch (err) {
+      console.error("Error fetching locations:", err);
+      toast({
+        title: "Error",
+        description: "Failed to load locations. Please try again.",
+        variant: "destructive"
+      });
+      
+      // Fall back to a default location for development/testing purposes
+      setLocations([{ id: 1, name: "Main Office" }]);
+    } finally {
+      setIsLoadingLocations(false);
+    }
+  };
+  
+  // Handle dialog open state change
+  const handleDialogOpenChange = (open: boolean) => {
+    setOpenInviteDialog(open);
+    if (open) {
+      fetchLocations();
+    }
+  };
   
   const handleAddUser = () => {
     // Add validation logic here
@@ -396,7 +448,7 @@ export default function OrgUsers() {
         </div>
         
         <div className="flex space-x-3">
-          <Dialog open={openInviteDialog} onOpenChange={setOpenInviteDialog}>
+          <Dialog open={openInviteDialog} onOpenChange={handleDialogOpenChange}>
             <DialogTrigger asChild>
               <Button variant="default" className="flex items-center gap-2">
                 <UserPlus className="h-4 w-4" />
@@ -478,7 +530,7 @@ export default function OrgUsers() {
                     Primary Location
                   </Label>
                   <div className="col-span-3">
-                    <Select 
+                    <Select
                       value={newUser.primaryLocation}
                       onValueChange={(value) => setNewUser({...newUser, primaryLocation: value})}
                     >
@@ -486,7 +538,22 @@ export default function OrgUsers() {
                         <SelectValue placeholder="Select a location" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="Main Office">Main Office</SelectItem>
+                        {isLoadingLocations ? (
+                          <div className="flex items-center justify-center py-2">
+                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                            <span>Loading locations...</span>
+                          </div>
+                        ) : locations.length > 0 ? (
+                          locations.map(location => (
+                            <SelectItem key={location.id} value={location.name}>
+                              {location.name}
+                            </SelectItem>
+                          ))
+                        ) : (
+                          <SelectItem value="no-locations" disabled>
+                            No locations available
+                          </SelectItem>
+                        )}
                       </SelectContent>
                     </Select>
                   </div>
