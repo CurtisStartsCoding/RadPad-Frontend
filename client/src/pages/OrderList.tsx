@@ -39,12 +39,14 @@ import { formatDateShort } from "@/lib/utils";
 import PageHeader from "@/components/layout/PageHeader";
 import { getNewOrderPath } from "@/lib/navigation";
 import { useLocation } from "wouter";
+import { useAuth } from "@/lib/useAuth";
+import { UserRole, getAvailableOrderActions } from "@/lib/roles";
 
 // Define the Order type based on API response
 interface ApiOrder {
   id: number;
   order_number?: string;
-  status: 'pending_admin' | 'pending_validation' | 'pending_radiology' | 'scheduled' | 'completed' | 'cancelled';
+  status: 'pending_admin' | 'pending_validation' | 'pending_radiology' | 'scheduled' | 'completed' | 'cancelled' | 'results_available' | 'results_acknowledged';
   modality?: string;
   created_at: string;
   updated_at: string;
@@ -73,6 +75,9 @@ const OrderList = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFilter, setSelectedFilter] = useState("all");
   const [_, setLocation] = useLocation();
+  const { user } = useAuth();
+  
+  const userRole = (user?.role as UserRole) || UserRole.Physician;
   
   // Handle navigation to new order page
   const handleNewOrderClick = () => {
@@ -157,27 +162,81 @@ const OrderList = () => {
     }
   };
   
-  // Get action buttons for an order based on status
-  const getActionButtons = (status: string) => {
-    switch (status) {
+  // Navigate to order details
+  const handleViewOrder = (orderId: number) => {
+    setLocation(`/orders/${orderId}`);
+  };
+
+  // Handle order download
+  const handleDownloadOrder = (orderId: number) => {
+    // TODO: Implement PDF download functionality
+    console.log('Download order:', orderId);
+  };
+
+  // Handle order print
+  const handlePrintOrder = (orderId: number) => {
+    // TODO: Implement print functionality
+    console.log('Print order:', orderId);
+  };
+
+  // Navigate to patient history
+  const handleViewPatientHistory = (patientMrn: string | null) => {
+    if (patientMrn) {
+      setLocation(`/patients/${patientMrn}`);
+    }
+  };
+
+  // Get action buttons for an order based on status and user role
+  const getActionButtons = (order: ApiOrder) => {
+    const permissions = getAvailableOrderActions(userRole, order.status);
+    
+    switch (order.status) {
       case 'completed':
+      case 'results_available':
+      case 'results_acknowledged':
         return (
           <div className="flex justify-end space-x-2">
-            <Button variant="outline" size="sm" className="h-8 px-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="h-8 px-2"
+              onClick={() => handleViewOrder(order.id)}
+              title="View Order Details"
+            >
               <Eye className="h-4 w-4" />
             </Button>
-            <Button variant="outline" size="sm" className="h-8 px-2">
-              <Download className="h-4 w-4" />
-            </Button>
-            <Button variant="outline" size="sm" className="h-8 px-2">
-              <Printer className="h-4 w-4" />
-            </Button>
+            {permissions.canDownload && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="h-8 px-2"
+                onClick={() => handleDownloadOrder(order.id)}
+                title="Download Order"
+              >
+                <Download className="h-4 w-4" />
+              </Button>
+            )}
+            {permissions.canPrint && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="h-8 px-2"
+                onClick={() => handlePrintOrder(order.id)}
+                title="Print Order"
+              >
+                <Printer className="h-4 w-4" />
+              </Button>
+            )}
           </div>
         );
       case 'scheduled':
         return (
           <div className="flex justify-end space-x-2">
-            <Button variant="outline" size="sm">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => handleViewOrder(order.id)}
+            >
               <Eye className="h-4 w-4 mr-1" />
               Details
             </Button>
@@ -188,7 +247,11 @@ const OrderList = () => {
       case 'pending_radiology':
         return (
           <div className="flex justify-end space-x-2">
-            <Button variant="outline" size="sm">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => handleViewOrder(order.id)}
+            >
               <Eye className="h-4 w-4 mr-1" />
               Track
             </Button>
@@ -197,6 +260,14 @@ const OrderList = () => {
       case 'cancelled':
         return (
           <div className="flex justify-end space-x-2">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => handleViewOrder(order.id)}
+            >
+              <Eye className="h-4 w-4 mr-1" />
+              View
+            </Button>
             <Button variant="outline" size="sm" onClick={handleNewOrderClick}>
               <PlusCircle className="h-4 w-4 mr-1" />
               New Order
@@ -204,7 +275,18 @@ const OrderList = () => {
           </div>
         );
       default:
-        return null;
+        return (
+          <div className="flex justify-end space-x-2">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => handleViewOrder(order.id)}
+            >
+              <Eye className="h-4 w-4 mr-1" />
+              View
+            </Button>
+          </div>
+        );
     }
   };
 
@@ -303,7 +385,17 @@ const OrderList = () => {
                     searchFilteredOrders.map((order) => (
                       <TableRow key={order.id}>
                         <TableCell className="font-medium">
-                          {`${order.patient_first_name || ''} ${order.patient_last_name || ''}`.trim() || 'Unknown'}
+                          {order.patient_mrn && getAvailableOrderActions(userRole, order.status).canViewPatient ? (
+                            <button 
+                              className="text-left hover:text-blue-600 hover:underline cursor-pointer"
+                              onClick={() => handleViewPatientHistory(order.patient_mrn || null)}
+                              title="View patient history"
+                            >
+                              {`${order.patient_first_name || ''} ${order.patient_last_name || ''}`.trim() || 'Unknown'}
+                            </button>
+                          ) : (
+                            <span>{`${order.patient_first_name || ''} ${order.patient_last_name || ''}`.trim() || 'Unknown'}</span>
+                          )}
                         </TableCell>
                         <TableCell className="font-mono text-xs">{order.patient_mrn || 'N/A'}</TableCell>
                         <TableCell>
@@ -315,7 +407,7 @@ const OrderList = () => {
                         <TableCell>{order.modality || 'N/A'}</TableCell>
                         <TableCell>{order.radiology_organization_name || 'N/A'}</TableCell>
                         <TableCell>{getStatusBadge(order.status)}</TableCell>
-                        <TableCell>{getActionButtons(order.status)}</TableCell>
+                        <TableCell>{getActionButtons(order)}</TableCell>
                       </TableRow>
                     ))
                   )}

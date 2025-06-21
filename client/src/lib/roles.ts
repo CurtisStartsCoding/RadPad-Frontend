@@ -49,6 +49,19 @@ export const hasAccess = (role: UserRole, page: string): boolean => {
       UserRole.AdminStaff, 
       UserRole.AdminReferring
     ],
+    "order-details": [
+      UserRole.Physician, 
+      UserRole.AdminStaff, 
+      UserRole.AdminReferring,
+      UserRole.Scheduler,
+      UserRole.AdminRadiology,
+      UserRole.Radiologist
+    ],
+    "patient-history": [
+      UserRole.Physician, 
+      UserRole.AdminStaff, 
+      UserRole.AdminReferring
+    ],
     "admin-queue": [
       UserRole.AdminStaff, 
       UserRole.AdminReferring
@@ -173,4 +186,54 @@ export const hasAccess = (role: UserRole, page: string): boolean => {
   
   // Return true if the role is in the list of roles for this page
   return accessMap[page]?.includes(role) || false;
+};
+
+// Helper function to check if a user can view order details
+export const canViewOrderDetails = (role: UserRole): boolean => {
+  // All authenticated users who can access orders can view order details
+  return hasAccess(role, "orders") || hasAccess(role, "order-details");
+};
+
+// Helper function to check if a user can view patient history
+export const canViewPatientHistory = (role: UserRole): boolean => {
+  return hasAccess(role, "patient-history");
+};
+
+// Helper function to check if a user can view completed orders
+export const canViewCompletedOrders = (role: UserRole): boolean => {
+  // All referring organization roles can view completed orders
+  // Radiology roles can also view completed orders they processed
+  return [
+    UserRole.Physician,
+    UserRole.AdminStaff, 
+    UserRole.AdminReferring,
+    UserRole.Scheduler,
+    UserRole.AdminRadiology,
+    UserRole.Radiologist
+  ].includes(role);
+};
+
+// Helper function to determine what actions are available for an order status
+export const getAvailableOrderActions = (
+  role: UserRole, 
+  orderStatus: string
+): {
+  canView: boolean;
+  canDownload: boolean;
+  canPrint: boolean;
+  canViewPatient: boolean;
+} => {
+  const canView = canViewOrderDetails(role);
+  const canViewPatient = canViewPatientHistory(role);
+  
+  // For completed orders, all referring roles can download/print
+  const canDownloadPrint = ['completed', 'results_available', 'results_acknowledged'].includes(orderStatus) 
+    && [UserRole.Physician, UserRole.AdminStaff, UserRole.AdminReferring].includes(role);
+  
+  return {
+    canView,
+    canDownload: canDownloadPrint,
+    canPrint: canDownloadPrint,
+    canViewPatient
+  };
 };

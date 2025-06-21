@@ -13,6 +13,8 @@ import AppHeader from "@/components/layout/AppHeader";
 import Dashboard from "@/pages/Dashboard";
 import NewOrder from "@/pages/NewOrder";
 import OrderList from "@/pages/OrderList";
+import OrderDetailsView from "@/pages/OrderDetailsView";
+import PatientHistoryView from "@/pages/PatientHistoryView";
 import AdminQueue from "@/pages/AdminQueue";
 import AdminOrderFinalization from "@/pages/AdminOrderFinalization";
 import RadiologyQueue from "@/pages/RadiologyQueue";
@@ -317,6 +319,40 @@ function App() {
           </Route>
           <Route path="/trial-validation">
             <TrialValidation />
+          </Route>
+          <Route path="/patients/:patientMrn">
+            {shouldBeAuthenticated ? (
+              <div className="h-screen flex flex-col">
+                <div className="w-full flex-1 overflow-auto">
+                  <AppHeader
+                    title="Patient History"
+                    onNavigate={handleNavigate}
+                  />
+                  <main className="h-full pt-16">
+                    <PatientHistoryView />
+                  </main>
+                </div>
+              </div>
+            ) : (
+              <AuthPage />
+            )}
+          </Route>
+          <Route path="/orders/:orderId">
+            {shouldBeAuthenticated ? (
+              <div className="h-screen flex flex-col">
+                <div className="w-full flex-1 overflow-auto">
+                  <AppHeader
+                    title="Order Details"
+                    onNavigate={handleNavigate}
+                  />
+                  <main className="h-full pt-16">
+                    <OrderDetailsView />
+                  </main>
+                </div>
+              </div>
+            ) : (
+              <AuthPage />
+            )}
           </Route>
           <Route path="/orders">
             {shouldBeAuthenticated ? (
