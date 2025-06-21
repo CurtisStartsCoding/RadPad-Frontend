@@ -45,6 +45,7 @@ interface OrderDetails {
   patient_first_name: string;
   patient_last_name: string;
   patient_dob: string;
+  patient_date_of_birth?: string;
   patient_gender: string;
   patient_mrn?: string;
   patient_phone_number?: string;
@@ -414,7 +415,7 @@ const OrderDetailsView = () => {
                     </div>
                     <div>
                       <label className="text-sm font-medium text-gray-500">Date of Birth</label>
-                      <p className="text-sm">{formatDate(order.patient_dob)}</p>
+                      <p className="text-sm">{order.patient_date_of_birth || (order.patient_dob ? formatDate(order.patient_dob) : 'Not provided')}</p>
                     </div>
                     <div>
                       <label className="text-sm font-medium text-gray-500">Gender</label>
