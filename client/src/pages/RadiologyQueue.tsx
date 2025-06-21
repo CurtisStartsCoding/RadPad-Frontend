@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   Table,
@@ -25,6 +25,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { formatDateShort } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import PageHeader from "@/components/layout/PageHeader";
+import DebugRadiologyUserInfo from "@/components/debug/DebugRadiologyUserInfo";
 
 // Define the Order type based on actual API response
 interface ApiRadiologyOrder {
@@ -52,6 +53,7 @@ interface ApiRadiologyOrder {
 const RadiologyQueue = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFilter, setSelectedFilter] = useState("all");
+  const [debugInfo, setDebugInfo] = useState<any>(null);
   
   // Get the user's role to determine which API endpoint to use
   const userRole = localStorage.getItem('rad_order_pad_user_role');
@@ -73,6 +75,28 @@ const RadiologyQueue = () => {
     },
     staleTime: 60000, // 1 minute
   });
+
+  // Debug logging
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔍 RadiologyQueue Debug Info:');
+      console.log('  User Role:', userRole);
+      console.log('  API Endpoint:', apiEndpoint);
+      console.log('  Data Structure:', data ? (Array.isArray(data) ? 'Array' : 'Object') : 'No data');
+      console.log('  Orders Count:', Array.isArray(data) ? data.length : data?.orders?.length || 0);
+      
+      // Collect debug info
+      setDebugInfo({
+        userRole,
+        apiEndpoint,
+        dataType: data ? (Array.isArray(data) ? 'Array' : 'Object') : 'No data',
+        ordersCount: Array.isArray(data) ? data.length : data?.orders?.length || 0,
+        isLoading,
+        hasError: !!error,
+        filterState: selectedFilter
+      });
+    }
+  }, [data, userRole, apiEndpoint, isLoading, error, selectedFilter]);
   
   // Handle both response formats - either direct array or object with orders property
   const orders = Array.isArray(data) ? data : data?.orders || [];
@@ -128,6 +152,8 @@ const RadiologyQueue = () => {
 
   return (
     <div className="p-6">
+      {process.env.NODE_ENV === 'development' && <DebugRadiologyUserInfo />}
+      
       <PageHeader
         title="Radiology Queue"
         description="Review and schedule pending orders"
@@ -137,6 +163,38 @@ const RadiologyQueue = () => {
           View Schedule
         </Button>
       </PageHeader>
+
+      {process.env.NODE_ENV === 'development' && debugInfo && (
+        <Card className="mb-4 border-blue-200 bg-blue-50">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-blue-800">Queue Debug Information</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0 text-xs">
+            <div className="grid grid-cols-2 gap-2">
+              <div className="font-medium text-blue-800">User Role:</div>
+              <div>{debugInfo.userRole || 'Not set'}</div>
+              
+              <div className="font-medium text-blue-800">API Endpoint:</div>
+              <div>{debugInfo.apiEndpoint}</div>
+              
+              <div className="font-medium text-blue-800">Data Structure:</div>
+              <div>{debugInfo.dataType}</div>
+              
+              <div className="font-medium text-blue-800">Orders Count:</div>
+              <div>{debugInfo.ordersCount}</div>
+              
+              <div className="font-medium text-blue-800">Loading State:</div>
+              <div>{debugInfo.isLoading ? 'Loading...' : 'Loaded'}</div>
+              
+              <div className="font-medium text-blue-800">Error State:</div>
+              <div>{debugInfo.hasError ? 'Error' : 'No Error'}</div>
+              
+              <div className="font-medium text-blue-800">Current Filter:</div>
+              <div>{debugInfo.filterState}</div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
       
       <Card>
         <CardHeader className="pb-3">
