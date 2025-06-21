@@ -39,7 +39,9 @@ interface ApiRadiologyOrder {
   final_validation_status?: string;
   created_at: string;
   updated_at: string;
-  patient_name: string | null;
+  patient_name?: string | null;
+  patient_first_name?: string;
+  patient_last_name?: string;
   patient_dob: string | null;
   patient_gender: string | null;
   patient_mrn?: string | null;
@@ -224,7 +226,11 @@ const RadiologyQueue = () => {
                   ) : (
                     searchFilteredOrders.map((order) => (
                       <TableRow key={order.id}>
-                        <TableCell className="font-medium">{order.patient_name || 'Unknown Patient'}</TableCell>
+                        <TableCell className="font-medium">
+                          {order.patient_name ||
+                           `${order.patient_first_name || ''} ${order.patient_last_name || ''}`.trim() ||
+                           'Unknown Patient'}
+                        </TableCell>
                         <TableCell className="font-mono text-xs">{order.patient_mrn || 'No MRN'}</TableCell>
                         <TableCell>
                           <div className="flex items-center">
