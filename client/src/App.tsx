@@ -205,14 +205,30 @@ function App() {
             setLocation("/trial-validation");
           }
         } else if (userRole && ['radiologist', 'admin_radiology', 'scheduler'].includes(userRole)) {
-          setCurrentPage(AppPage.RadiologyQueue);
-          // Only redirect to radiology queue if coming from auth page
-          if (location === "/auth") {
+          // Check if we're on an onboarding page first
+          if (location.startsWith("/org-")) {
+            // On onboarding page - set current page to match the URL
+            const pageMapping = {
+              "/org-signup": AppPage.OrgSignUp,
+              "/org-verification": AppPage.OrgVerification,
+              "/org-setup": AppPage.OrgSetup,
+              "/org-locations": AppPage.OrgLocations,
+              "/org-users": AppPage.OrgUsers
+            };
+            
+            // Set current page based on URL if it's a known onboarding page
+            const matchedPage = pageMapping[location as keyof typeof pageMapping];
+            if (matchedPage) {
+              setCurrentPage(matchedPage);
+            }
+            // Keep current location - no redirect
+          } else if (location === "/auth") {
+            // Coming from auth page - redirect to radiology queue
+            setCurrentPage(AppPage.RadiologyQueue);
             setLocation("/radiology-queue");
-          }
-          // Don't redirect if already on an onboarding page
-          else if (location.startsWith("/org-")) {
-            // Keep current location
+          } else {
+            // For other pages, just set the current page without redirect
+            setCurrentPage(AppPage.RadiologyQueue);
           }
         } else {
           setCurrentPage(AppPage.Dashboard);

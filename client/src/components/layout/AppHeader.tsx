@@ -77,13 +77,18 @@ const AppHeader: React.FC<AppHeaderProps> = ({
   const handleNavigation = (page: AppPage) => {
     const targetUrl = getPageUrl(page);
     
+    // First close menu
+    setShowMenu(false);
+    
+    // Then navigate - both via callback and router
     if (onNavigate) {
       onNavigate(page);
     }
     
-    // First close menu, then navigate using React router
-    setShowMenu(false);
-    setLocation(targetUrl);
+    // Use setTimeout to ensure state updates complete before navigation
+    setTimeout(() => {
+      setLocation(targetUrl);
+    }, 0);
   };
   
   const handleLogout = async () => {
