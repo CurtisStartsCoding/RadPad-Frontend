@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRoute, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,12 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
-import { 
-  ArrowLeft, 
-  Calendar, 
-  User, 
-  FileText, 
-  Building2, 
+import {
+  ArrowLeft,
+  Calendar,
+  User,
+  FileText,
+  Building2,
   Stethoscope,
   Clock,
   Shield,
@@ -30,6 +30,8 @@ import { formatDate, formatDateLong } from "@/lib/utils";
 import PageHeader from "@/components/layout/PageHeader";
 import { useAuth } from "@/lib/useAuth";
 import { UserRole, canViewOrderDetails, canViewPatientHistory } from "@/lib/roles";
+// @ts-ignore - html2pdf.js doesn't have official type definitions
+import html2pdf from 'html2pdf.js';
 
 interface OrderDetails {
   id: number;
@@ -106,6 +108,7 @@ const OrderDetailsView = () => {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
   const orderId = params?.orderId;
+  const contentRef = useRef<HTMLDivElement>(null);
   
   const userRole = (user?.role as UserRole) || UserRole.Physician;
   
@@ -201,8 +204,51 @@ const OrderDetailsView = () => {
   };
 
   const handleDownloadOrder = () => {
-    // TODO: Implement PDF download functionality
-    console.log('Download order:', orderId);
+    if (!contentRef.current || !order) return;
+    
+    const filename = `Order_${order.order_number || order.id}_${order.patient_last_name || ''}_${order.patient_first_name || ''}.pdf`;
+    
+    // Create a clone of the content to remove elements with print:hidden class
+    const element = contentRef.current.cloneNode(true) as HTMLElement;
+    const hiddenElements = element.querySelectorAll('.print\\:hidden');
+    hiddenElements.forEach(el => el.remove());
+    
+    // Add a temporary stylesheet to improve PDF page breaks
+    const style = document.createElement('style');
+    style.innerHTML = `
+      @page { margin: 15mm; }
+      .page-break { page-break-before: always; }
+      .avoid-break { page-break-inside: avoid; }
+      .card { page-break-inside: avoid; }
+    `;
+    element.appendChild(style);
+    
+    // Apply avoid-break class to all cards
+    const cards = element.querySelectorAll('.card');
+    cards.forEach(card => {
+      card.classList.add('avoid-break');
+    });
+    
+    // Configure PDF options
+    const options = {
+      margin: [15, 15, 15, 15] as [number, number, number, number], // [top, right, bottom, left] in mm
+      filename: filename,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: {
+        scale: 2,
+        useCORS: true,
+        letterRendering: true
+      },
+      jsPDF: {
+        unit: 'mm',
+        format: 'a4',
+        orientation: 'portrait' as 'portrait',
+        compress: true
+      },
+      pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+    };
+    
+    html2pdf().set(options).from(element).save();
   };
 
   const handleViewPatientHistory = () => {
@@ -239,12 +285,12 @@ const OrderDetailsView = () => {
   }
 
   return (
-    <div className="p-6">
+    <div className="p-6 pdf-document" ref={contentRef}>
       <PageHeader
         title={`Order #${order.order_number || order.id}`}
         description={`${order.modality || 'Imaging'} order for ${order.patient_first_name} ${order.patient_last_name}`}
       >
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-2 print:hidden">
           <Button variant="outline" onClick={handleBackClick}>
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Orders
@@ -268,8 +314,8 @@ const OrderDetailsView = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Order Status Card */}
-        <div className="lg:col-span-3">
-          <Card>
+        <div className="lg:col-span-3 pdf-content print:hidden">
+          <Card className="print:break-inside-avoid">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
@@ -291,9 +337,9 @@ const OrderDetailsView = () => {
         </div>
 
         {/* Main Content */}
-        <div className="lg:col-span-2">
+        <div className="lg:col-span-2 pdf-content">
           <Tabs defaultValue="order-details" className="space-y-4">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-4 print:hidden">
               <TabsTrigger value="order-details">Order Details</TabsTrigger>
               <TabsTrigger value="patient-info">Patient Info</TabsTrigger>
               <TabsTrigger value="validation">Validation</TabsTrigger>
@@ -301,7 +347,7 @@ const OrderDetailsView = () => {
             </TabsList>
 
             <TabsContent value="order-details" className="space-y-4">
-              <Card>
+              <Card className="print:break-inside-avoid">
                 <CardHeader>
                   <CardTitle className="flex items-center">
                     <Stethoscope className="h-5 w-5 mr-2" />
@@ -362,7 +408,7 @@ const OrderDetailsView = () => {
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card className="print:break-inside-avoid">
                 <CardHeader>
                   <CardTitle className="flex items-center">
                     <FileText className="h-5 w-5 mr-2" />
@@ -400,7 +446,7 @@ const OrderDetailsView = () => {
             </TabsContent>
 
             <TabsContent value="patient-info" className="space-y-4">
-              <Card>
+              <Card className="print:break-inside-avoid">
                 <CardHeader>
                   <CardTitle className="flex items-center">
                     <User className="h-5 w-5 mr-2" />
@@ -460,7 +506,7 @@ const OrderDetailsView = () => {
               </Card>
 
               {order.insurance_provider && (
-                <Card>
+                <Card className="print:break-inside-avoid">
                   <CardHeader>
                     <CardTitle className="flex items-center">
                       <Shield className="h-5 w-5 mr-2" />
@@ -587,8 +633,8 @@ const OrderDetailsView = () => {
         </div>
 
         {/* Sidebar */}
-        <div className="space-y-4">
-          <Card>
+        <div className="space-y-4 pdf-content">
+          <Card className="print:break-inside-avoid">
             <CardHeader>
               <CardTitle className="flex items-center">
                 <Building2 className="h-5 w-5 mr-2" />
@@ -637,7 +683,7 @@ const OrderDetailsView = () => {
           </Card>
 
           {order.radiology_organization_name && (
-            <Card>
+            <Card className="print:break-inside-avoid">
               <CardHeader>
                 <CardTitle className="flex items-center">
                   <Building2 className="h-5 w-5 mr-2" />
@@ -667,7 +713,7 @@ const OrderDetailsView = () => {
             </Card>
           )}
 
-          <Card>
+          <Card className="print:break-inside-avoid">
             <CardHeader>
               <CardTitle className="flex items-center">
                 <Clock className="h-5 w-5 mr-2" />
