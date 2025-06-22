@@ -558,8 +558,10 @@ const AdminOrderFinalization: React.FC<AdminOrderFinalizationProps> = ({ navigat
         </Alert>
         <Button
           className="mt-4"
+          variant="outline"
           onClick={handleBackToQueue}
         >
+          <ArrowLeft className="h-4 w-4 mr-2" />
           Back to Queue
         </Button>
       </div>
@@ -571,17 +573,17 @@ const AdminOrderFinalization: React.FC<AdminOrderFinalizationProps> = ({ navigat
       <PageHeader
         title="Complete Order Information"
         description="Add required patient details to send this order to radiology"
-        backButton={
-          <Button 
-            variant="ghost" 
-            size="sm" 
+      >
+        <div className="flex items-center space-x-2 print:hidden">
+          <Button
+            variant="outline"
             onClick={handleBackToQueue}
           >
-            <ArrowLeft className="h-4 w-4 mr-1" />
+            <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Queue
           </Button>
-        }
-      />
+        </div>
+      </PageHeader>
       
       {/* Debug Information Component */}
       <DebugOrderUserInfo />
@@ -600,7 +602,8 @@ const AdminOrderFinalization: React.FC<AdminOrderFinalizationProps> = ({ navigat
               </p>
               <div className="flex space-x-4">
                 <Button variant="outline" onClick={handleBackToQueue}>
-                  Return to Queue
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Back to Queue
                 </Button>
               </div>
             </div>
