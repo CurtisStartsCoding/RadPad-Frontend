@@ -34,7 +34,7 @@ import PatientInfoTab from "@/components/order/PatientInfoTab";
 import InsuranceInfoTab from "@/components/order/InsuranceInfoTab";
 import OrderDetailsTab from "@/components/order/OrderDetailsTab";
 import DocumentsTab from "@/components/order/DocumentsTab";
-import OrderDebugInfo from "@/components/debug/DebugOrderUserInfo";
+import DebugOrderUserInfo from "@/components/debug/DebugOrderUserInfo";
 
 interface AdminOrderFinalizationProps {
   navigateTo?: (page: AppPage) => void;
@@ -584,7 +584,7 @@ const AdminOrderFinalization: React.FC<AdminOrderFinalizationProps> = ({ navigat
       />
       
       {/* Debug Information Component */}
-      <OrderDebugInfo />
+      <DebugOrderUserInfo />
       
       {orderSent ? (
         <Card>

@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { ChevronDown, ChevronUp, Bug } from 'lucide-react';
 import { formatDate } from '@/lib/utils';
 
-interface OrderDebugInfoProps {
+interface DebugOrderInfoProps {
   currentUser: any;
   orderId: string | null;
   orderData: any;
@@ -18,7 +18,7 @@ interface OrderDebugInfoProps {
   enableDebugLogging?: boolean;
 }
 
-export default function OrderDebugInfo({
+export default function DebugOrderInfo({
   currentUser,
   orderId,
   orderData,
@@ -29,7 +29,7 @@ export default function OrderDebugInfo({
   userFromStorage,
   sessionData,
   enableDebugLogging = true
-}: OrderDebugInfoProps) {
+}: DebugOrderInfoProps) {
   const [isExpanded, setIsExpanded] = React.useState(false);
   const isDevelopment = process.env.NODE_ENV === 'development';
 

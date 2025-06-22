@@ -85,7 +85,7 @@ interface Connection {
   updatedAt: string;
 }
 
-const OrderDebugInfo: React.FC = () => {
+const DebugOrderUserInfo: React.FC = () => {
   const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [organization, setOrganization] = useState<Organization | null>(null);
@@ -394,4 +394,4 @@ const OrderDebugInfo: React.FC = () => {
   );
 };
 
-export default OrderDebugInfo;
+export default DebugOrderUserInfo;
