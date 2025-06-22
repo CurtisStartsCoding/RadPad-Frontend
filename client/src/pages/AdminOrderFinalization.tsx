@@ -584,18 +584,7 @@ const AdminOrderFinalization: React.FC<AdminOrderFinalizationProps> = ({ navigat
       />
       
       {/* Debug Information Component */}
-      <OrderDebugInfo
-        currentUser={currentUser}
-        orderId={orderId}
-        orderData={orderData}
-        connectionsData={connectionsData}
-        connectionsLoading={connectionsLoading}
-        connectionsError={connectionsError}
-        userFromCache={userFromCache}
-        userFromStorage={userFromStorage}
-        sessionData={sessionData}
-        enableDebugLogging={process.env.NODE_ENV === 'development'}
-      />
+      <OrderDebugInfo />
       
       {orderSent ? (
         <Card>
