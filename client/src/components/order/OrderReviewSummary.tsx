@@ -12,6 +12,7 @@ interface OrderReviewSummaryProps {
     id: number;
     modality: string;
     radiologyGroup: string;
+    original_dictation?: string;
   };
   orderDetails: {
     orderNumber: string;
@@ -62,6 +63,14 @@ interface OrderReviewSummaryProps {
     signedDate: string;
   };
   clinicalSummary: string;
+  authorizationInfo?: {
+    authorizationNumber?: string | null;
+    authorizationStatus?: string | null;
+    authorizationDate?: string | null;
+    insuranceAuthorizationNumber?: string | null;
+    insuranceAuthorizationDate?: string | null;
+    insuranceAuthorizationContact?: string | null;
+  };
   onSendToRadiology: () => void;
   onBack: () => void;
   isSending: boolean;
@@ -75,6 +84,7 @@ export default function OrderReviewSummary({
   hasInsurance,
   referringPhysician,
   clinicalSummary,
+  authorizationInfo,
   onSendToRadiology,
   onBack,
   isSending
@@ -143,7 +153,7 @@ export default function OrderReviewSummary({
         
         {/* Compact print-friendly layout */}
         <div className="space-y-3 pdf-content">
-          {/* Order Summary - All in one compact card */}
+          {/* 1. Order Summary - Keep as is */}
           <Card className="print:break-inside-avoid">
             <CardHeader className="pb-3">
               <CardTitle className="text-base">Imaging Order Summary</CardTitle>
@@ -191,39 +201,7 @@ export default function OrderReviewSummary({
             </CardContent>
           </Card>
 
-          {/* Clinical Information & Diagnosis - Combined */}
-          <Card className="print:break-inside-avoid">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">Clinical Information & Diagnosis</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {/* Clinical Summary */}
-              <div className="bg-muted p-3 rounded text-sm">
-                {clinicalSummary}
-              </div>
-              
-              {/* Diagnosis Codes - Inline format */}
-              <div className="space-y-2 text-sm">
-                <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground min-w-[100px]">Primary ICD-10:</span>
-                  <Badge variant="secondary" className="mr-2">{orderDetails.primaryIcd10}</Badge>
-                  <span>{orderDetails.primaryDescription}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground min-w-[100px]">Secondary ICD-10:</span>
-                  <Badge variant="outline" className="mr-2">{orderDetails.secondaryIcd10}</Badge>
-                  <span>{orderDetails.secondaryDescription}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground min-w-[100px]">CPT Code:</span>
-                  <Badge variant="outline" className="mr-2">{orderDetails.cptCode}</Badge>
-                  <span>{orderDetails.cptDescription}</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Patient & Physician Info - Side by side */}
+          {/* 2. Patient & Physician Info - Side by side */}
           <div className="grid grid-cols-2 gap-3 avoid-break">
             {/* Patient Information */}
             <Card className="print:break-inside-avoid">
@@ -257,7 +235,7 @@ export default function OrderReviewSummary({
                   <span className="text-muted-foreground">Address: </span>
                   <span className="font-medium">
                     {patientInfo.addressLine1}
-                    {patientInfo.addressLine2 && `, ${patientInfo.addressLine2}`}, 
+                    {patientInfo.addressLine2 && `, ${patientInfo.addressLine2}`},
                     {' '}{patientInfo.city}, {patientInfo.state} {patientInfo.zipCode}
                   </span>
                 </div>
@@ -303,7 +281,7 @@ export default function OrderReviewSummary({
             </Card>
           </div>
           
-          {/* Insurance Information - Full details */}
+          {/* 3. Insurance Information - Full details */}
           <Card className="print:break-inside-avoid avoid-break">
             <CardHeader className="pb-3">
               <CardTitle className="text-base">Insurance Information</CardTitle>
@@ -379,17 +357,139 @@ export default function OrderReviewSummary({
             </CardContent>
           </Card>
           
-          {/* Special Instructions - Only if present */}
-          {orderDetails.instructions && (
-            <Card className="print:break-inside-avoid avoid-break">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">Special Instructions</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm whitespace-pre-wrap">{orderDetails.instructions}</p>
-              </CardContent>
-            </Card>
-          )}
+          {/* 4. Clinical Information - New section */}
+          <Card className="print:break-inside-avoid">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Clinical Information</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {/* Dictation */}
+              <div>
+                <p className="font-medium text-muted-foreground mb-1">Dictation</p>
+                <div className="bg-muted p-3 rounded text-sm">
+                  {order.original_dictation || clinicalSummary}
+                </div>
+              </div>
+              
+              {/* ICD-10 Codes */}
+              <div>
+                <p className="font-medium text-muted-foreground mb-1">ICD-10 Codes</p>
+                <div className="space-y-2 text-sm">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="secondary" className="mr-2">{orderDetails.primaryIcd10}</Badge>
+                    <span>{orderDetails.primaryDescription}</span>
+                  </div>
+                  {orderDetails.secondaryIcd10 && (
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="mr-2">{orderDetails.secondaryIcd10}</Badge>
+                      <span>{orderDetails.secondaryDescription}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              {/* CPT Codes */}
+              <div>
+                <p className="font-medium text-muted-foreground mb-1">CPT Codes</p>
+                <div className="flex items-center gap-2 text-sm">
+                  <Badge variant="outline" className="mr-2">{orderDetails.cptCode}</Badge>
+                  <span>{orderDetails.cptDescription}</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          {/* 5. Order Details - New section */}
+          <Card className="print:break-inside-avoid avoid-break">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Order Details</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2 text-sm">
+              <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+                <div>
+                  <span className="text-muted-foreground">Radiology Group: </span>
+                  <span className="font-medium">{order.radiologyGroup || 'Not selected'}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Facility: </span>
+                  <span className="font-medium">{orderDetails.location || 'Not selected'}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Priority: </span>
+                  <Badge variant={orderDetails.priority === 'stat' ? 'destructive' : orderDetails.priority === 'urgent' ? 'default' : 'secondary'} className="ml-1">
+                    {orderDetails.priority === 'stat' ? 'STAT' : orderDetails.priority.charAt(0).toUpperCase() + orderDetails.priority.slice(1)}
+                  </Badge>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Scheduling: </span>
+                  <span className="font-medium">{orderDetails.scheduling}</span>
+                </div>
+              </div>
+              
+              {/* Special Instructions - if present */}
+              {orderDetails.instructions && (
+                <div className="mt-3">
+                  <p className="font-medium text-muted-foreground mb-1">Special Instructions</p>
+                  <p className="whitespace-pre-wrap">{orderDetails.instructions}</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+          
+          {/* 6. Authorization - New section */}
+          <Card className="print:break-inside-avoid avoid-break">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Authorization</CardTitle>
+            </CardHeader>
+            <CardContent className="text-sm">
+              <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+                <div>
+                  <span className="text-muted-foreground">Authorization Number: </span>
+                  <span className="font-medium">{authorizationInfo?.authorizationNumber || 'Not provided'}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Insurance Authorization Number: </span>
+                  <span className="font-medium">{authorizationInfo?.insuranceAuthorizationNumber || 'Not provided'}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Authorization Status: </span>
+                  <span className="font-medium">{authorizationInfo?.authorizationStatus || 'Not provided'}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Insurance Authorization Date: </span>
+                  <span className="font-medium">{authorizationInfo?.insuranceAuthorizationDate || 'Not provided'}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Authorization Date: </span>
+                  <span className="font-medium">{authorizationInfo?.authorizationDate || 'Not provided'}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Insurance Authorization Contact: </span>
+                  <span className="font-medium">{authorizationInfo?.insuranceAuthorizationContact || 'Not provided'}</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          {/* 7. Additional - New section (blank for now) */}
+          <Card className="print:break-inside-avoid avoid-break">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Additional</CardTitle>
+            </CardHeader>
+            <CardContent className="text-sm">
+              <p className="text-muted-foreground italic">No additional information provided</p>
+            </CardContent>
+          </Card>
+          
+          {/* 8. Consent/Signatures - New section (blank for now) */}
+          <Card className="print:break-inside-avoid avoid-break">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Consent/Signatures</CardTitle>
+            </CardHeader>
+            <CardContent className="text-sm">
+              <p className="text-muted-foreground italic">No consent/signature information provided</p>
+            </CardContent>
+          </Card>
           
           {/* Credit Usage Alert - Hide on print */}
           <Alert className="print:hidden">

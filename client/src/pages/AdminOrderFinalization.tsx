@@ -781,6 +781,14 @@ const AdminOrderFinalization: React.FC<AdminOrderFinalizationProps> = ({ navigat
                     hasInsurance={hasInsurance}
                     referringPhysician={referringPhysician}
                     clinicalSummary={clinicalSummaryForReview}
+                    authorizationInfo={{
+                      authorizationNumber: orderData?.authorization_number,
+                      authorizationStatus: orderData?.authorization_status,
+                      authorizationDate: orderData?.authorization_date,
+                      insuranceAuthorizationNumber: orderData?.insurance_authorization_number,
+                      insuranceAuthorizationDate: orderData?.insurance_authorization_date,
+                      insuranceAuthorizationContact: orderData?.insurance_authorization_contact
+                    }}
                     onSendToRadiology={handleSendToRadiology}
                     onBack={handlePreviousTab}
                     isSending={isSending}
