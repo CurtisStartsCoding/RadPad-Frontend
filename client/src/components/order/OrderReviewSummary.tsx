@@ -136,8 +136,8 @@ export default function OrderReviewSummary({
   return (
     <div className="space-y-4 pdf-document" ref={contentRef}>
       <div>
-        <h3 className="text-lg font-medium mb-2">Review Order Information</h3>
-        <p className="text-sm text-muted-foreground mb-4">
+        <h3 className="text-lg font-medium mb-2 print:hidden">Review Order Information</h3>
+        <p className="text-sm text-muted-foreground mb-4 print:hidden">
           Please review all information carefully before sending this order to {order.radiologyGroup}.
         </p>
         
