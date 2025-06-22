@@ -270,7 +270,15 @@ const AdminQueue: React.FC<AdminQueueProps> = ({ navigateTo }) => {
                                 Complete
                               </Button>
                             ) : (
-                              <Button variant="outline" size="sm">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  console.log('View button clicked for order:', order.id);
+                                  // Navigate to the order details view
+                                  setLocation(`/orders/${order.id}`);
+                                }}
+                              >
                                 <CheckCircle2 className="h-4 w-4 mr-1" />
                                 View
                               </Button>
@@ -406,7 +414,15 @@ const AdminQueue: React.FC<AdminQueueProps> = ({ navigateTo }) => {
                           <TableCell>{order.radiology_organization?.name || 'Not assigned'}</TableCell>
                           <TableCell>{getStatusBadge(order.status)}</TableCell>
                           <TableCell className="text-right">
-                            <Button variant="outline" size="sm">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                console.log('View button clicked for order (tab 3):', order.id);
+                                // Navigate to the order details view
+                                setLocation(`/orders/${order.id}`);
+                              }}
+                            >
                               <CheckCircle2 className="h-4 w-4 mr-1" />
                               View
                             </Button>
