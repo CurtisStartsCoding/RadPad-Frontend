@@ -196,7 +196,14 @@ const OrderDetailsView = () => {
   };
 
   const handleBackClick = () => {
-    setLocation('/orders');
+    // Check user role to determine where to navigate back to
+    if (userRole === UserRole.AdminStaff) {
+      // Admin staff should go back to admin queue
+      setLocation('/admin-queue');
+    } else {
+      // All other roles (including physicians) go back to orders page
+      setLocation('/orders');
+    }
   };
 
   const handlePrintOrder = () => {
