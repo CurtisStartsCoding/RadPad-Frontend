@@ -211,10 +211,18 @@ function App() {
           if (location === "/auth" || location === "/") {
             setLocation("/new-order");
           }
+          // Don't redirect if already on the correct page
+          else if (location === "/new-order") {
+            // Already on the correct page, no need to redirect
+          }
         } else if (userRole && ['admin_staff', 'admin_referring'].includes(userRole)) {
           setCurrentPage(AppPage.AdminQueue);
           if (location === "/auth" || location === "/") {
             setLocation("/admin-queue");
+          }
+          // Don't redirect if already on the correct page
+          else if (location === "/admin-queue") {
+            // Already on the correct page, no need to redirect
           }
         } else if (userRole && ['radiologist', 'admin_radiology', 'scheduler'].includes(userRole)) {
           // Check if we're on an onboarding page first
@@ -617,6 +625,34 @@ function App() {
                     />
                     <main className="h-full pt-16">
                       <RadiologyQueue />
+                    </main>
+                  </div>
+                </div>
+              ) : currentRole === 'physician' ? (
+                // Show New Order page for physicians
+                <div className="h-screen flex flex-col">
+                  <div className="w-full flex-1 overflow-auto">
+                    <AppHeader
+                      title={getPageTitle(AppPage.NewOrder)}
+                      subtitle={getPageSubtitle(AppPage.NewOrder)}
+                      onNavigate={handleNavigate}
+                    />
+                    <main className="h-full pt-16">
+                      <NewOrder userRole={currentRole} />
+                    </main>
+                  </div>
+                </div>
+              ) : ['admin_staff', 'admin_referring'].includes(currentRole) ? (
+                // Show Admin Queue for admin roles
+                <div className="h-screen flex flex-col">
+                  <div className="w-full flex-1 overflow-auto">
+                    <AppHeader
+                      title={getPageTitle(AppPage.AdminQueue)}
+                      subtitle={getPageSubtitle(AppPage.AdminQueue)}
+                      onNavigate={handleNavigate}
+                    />
+                    <main className="h-full pt-16">
+                      <AdminQueue navigateTo={(page) => setCurrentPage(page)} />
                     </main>
                   </div>
                 </div>

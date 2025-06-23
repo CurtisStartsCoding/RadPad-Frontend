@@ -86,12 +86,23 @@ const Login = () => {
       setTimeout(() => {
         // Check user role to determine where to navigate
         const radiologyRoles = ['radiologist', 'admin_radiology', 'scheduler'];
+        const adminRoles = ['admin_staff', 'admin_referring'];
         
         if (radiologyRoles.includes(user.role)) {
           console.log(`User has role ${user.role}, navigating to Radiology Queue...`);
           // Navigate to Radiology Queue for radiologist, admin_radiology, or scheduler roles
           setLocation("/radiology-queue");
           window.location.href = "/radiology-queue";
+        } else if (user.role === 'physician') {
+          console.log(`User has role ${user.role}, navigating to New Order page...`);
+          // Navigate to New Order page for physician role
+          setLocation("/new-order");
+          window.location.href = "/new-order";
+        } else if (adminRoles.includes(user.role)) {
+          console.log(`User has role ${user.role}, navigating to Admin Queue...`);
+          // Navigate to Admin Queue for admin roles
+          setLocation("/admin-queue");
+          window.location.href = "/admin-queue";
         } else {
           console.log(`User has role ${user.role}, navigating to Dashboard...`);
           // Navigate to Dashboard for all other roles
