@@ -59,6 +59,7 @@ const toast = ({ title, description, variant }: { title: string; description: st
 };
 
 const SuperAdminOrganizations = () => {
+  const [searchInput, setSearchInput] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [typeFilter, setTypeFilter] = useState<string>("all");
@@ -84,6 +85,18 @@ const SuperAdminOrganizations = () => {
     limit: 20,
     totalPages: 0
   });
+  
+  // Debounce search input
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      // Only update searchTerm if input is empty or at least 3 characters
+      if (searchInput === "" || searchInput.length >= 3) {
+        setSearchTerm(searchInput);
+      }
+    }, 3000); // 3 second debounce
+    
+    return () => clearTimeout(timer);
+  }, [searchInput]);
 
   // Fetch organizations on component mount and when filters change
   useEffect(() => {
@@ -355,11 +368,21 @@ const SuperAdminOrganizations = () => {
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-500" />
                 <Input
                   type="search"
-                  placeholder="Search by name or NPI..."
+                  placeholder="Search by name or NPI... (min 3 chars)"
                   className="pl-9"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && (searchInput === "" || searchInput.length >= 3)) {
+                      setSearchTerm(searchInput);
+                    }
+                  }}
                 />
+                <p className="text-xs text-slate-500 mt-1">
+                  {searchInput.length > 0 && searchInput.length < 3 ?
+                    `Enter at least ${3 - searchInput.length} more character${3 - searchInput.length === 1 ? '' : 's'}` :
+                    "Search will trigger after 3 seconds of inactivity"}
+                </p>
               </div>
               
               <div className="flex space-x-2">
@@ -393,7 +416,7 @@ const SuperAdminOrganizations = () => {
             </div>
             
             {/* Organizations list */}
-            <div className="space-y-2 mt-3">
+            <div className="space-y-2 mt-3 h-[calc(100vh-320px)] overflow-y-auto pr-2">
               {isLoading ? (
                 <div className="text-center py-8">
                   <Loader2 className="h-8 w-8 animate-spin mx-auto mb-2 text-primary" />
@@ -455,7 +478,7 @@ const SuperAdminOrganizations = () => {
             
             {/* Pagination controls */}
             {!isLoading && pagination && pagination.totalPages > 1 && (
-              <div className="flex items-center justify-between mt-6 pt-4 border-t">
+              <div className="flex items-center justify-between mt-4 pt-4 border-t">
                 <div className="text-sm text-slate-500">
                   Showing page {pagination.page} of {pagination.totalPages}
                 </div>
@@ -833,7 +856,7 @@ const SuperAdminOrganizations = () => {
               </div>
             )
           ) : (
-            <div className="h-full flex items-center justify-center p-10 text-center">
+            <div className="h-full flex flex-col justify-start p-10 pt-16 text-center">
               <div>
                 <Building2 className="h-12 w-12 text-slate-300 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-slate-900 mb-1">No Organization Selected</h3>
