@@ -275,6 +275,8 @@ const AdminQueue: React.FC<AdminQueueProps> = ({ navigateTo }) => {
                                 size="sm"
                                 onClick={() => {
                                   console.log('View button clicked for order:', order.id);
+                                  // Store the source page in sessionStorage
+                                  sessionStorage.setItem('orderDetailsSource', 'admin-queue');
                                   // Navigate to the order details view
                                   setLocation(`/orders/${order.id}`);
                                 }}

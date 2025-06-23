@@ -278,23 +278,13 @@ const Dashboard = ({ navigateTo }: DashboardProps) => {
   
   // Handle viewing order details
   const handleViewOrderDetails = (orderId: number) => {
-    console.log(`Fetching details for order ID: ${orderId}`);
+    console.log(`Navigating to order details for ID: ${orderId}`);
     
-    // Make API call to get order details
-    apiRequest('GET', `/api/orders/${orderId}`, undefined)
-      .then(async (response) => {
-        if (response.ok) {
-          const orderDetails = await response.json();
-          console.log('Order details retrieved successfully:', orderDetails);
-          // In a real implementation, you might navigate to an order details page
-          // or open a modal to display the order details
-        } else {
-          console.error(`Failed to fetch order details. Status: ${response.status}`);
-        }
-      })
-      .catch((error) => {
-        console.error('Error fetching order details:', error);
-      });
+    // Store the source page in sessionStorage so we can return to it
+    sessionStorage.setItem('orderDetailsSource', 'dashboard');
+    
+    // Navigate to the order details page
+    window.location.href = `/orders/${orderId}`;
   };
   
   // Get status badge for an order

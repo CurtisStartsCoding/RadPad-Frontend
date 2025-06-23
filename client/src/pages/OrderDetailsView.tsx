@@ -196,12 +196,25 @@ const OrderDetailsView = () => {
   };
 
   const handleBackClick = () => {
-    // Check user role to determine where to navigate back to
-    if (userRole === UserRole.AdminStaff) {
-      // Admin staff should go back to admin queue
+    // Check if we have a source page stored in sessionStorage
+    const source = sessionStorage.getItem('orderDetailsSource');
+    
+    // Navigate based on the source or user role
+    if (source === 'dashboard') {
+      // If coming from dashboard, go back to dashboard
+      setLocation('/');
+      // Clear the source from sessionStorage
+      sessionStorage.removeItem('orderDetailsSource');
+    } else if (source === 'admin-queue') {
+      // If coming from admin queue, go back to admin queue
+      setLocation('/admin-queue');
+      // Clear the source from sessionStorage
+      sessionStorage.removeItem('orderDetailsSource');
+    } else if (userRole === UserRole.AdminStaff) {
+      // Admin staff should go back to admin queue if no source is specified
       setLocation('/admin-queue');
     } else {
-      // All other roles (including physicians) go back to orders page
+      // All other roles (including physicians) go back to orders page if no source is specified
       setLocation('/orders');
     }
   };
