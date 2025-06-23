@@ -201,30 +201,26 @@ function App() {
           userRole = getUserRoleFromStorage();
         }
 
-        if (userRole === UserRole.TrialPhysician) {
-          setCurrentPage(AppPage.NewOrder);
-          if (location === "/auth" || location === "/") {
+        // Only set default pages and redirect if coming from auth page
+        // This prevents overriding explicit navigation to other pages
+        if (location === "/auth") {
+          if (userRole === UserRole.TrialPhysician) {
+            setCurrentPage(AppPage.NewOrder);
             setLocation("/trial-validation");
-          }
-        } else if (userRole === 'physician') {
-          setCurrentPage(AppPage.NewOrder);
-          if (location === "/auth" || location === "/") {
+          } else if (userRole === 'physician') {
+            setCurrentPage(AppPage.NewOrder);
             setLocation("/new-order");
-          }
-          // Don't redirect if already on the correct page
-          else if (location === "/new-order") {
-            // Already on the correct page, no need to redirect
-          }
-        } else if (userRole && ['admin_staff', 'admin_referring'].includes(userRole)) {
-          setCurrentPage(AppPage.AdminQueue);
-          if (location === "/auth" || location === "/") {
+          } else if (userRole && ['admin_staff', 'admin_referring'].includes(userRole)) {
+            setCurrentPage(AppPage.AdminQueue);
             setLocation("/admin-queue");
+          } else if (userRole && ['radiologist', 'admin_radiology', 'scheduler'].includes(userRole)) {
+            setCurrentPage(AppPage.RadiologyQueue);
+            setLocation("/radiology-queue");
+          } else {
+            setCurrentPage(AppPage.Dashboard);
+            setLocation("/");
           }
-          // Don't redirect if already on the correct page
-          else if (location === "/admin-queue") {
-            // Already on the correct page, no need to redirect
-          }
-        } else if (userRole && ['radiologist', 'admin_radiology', 'scheduler'].includes(userRole)) {
+        } else if (location.startsWith("/org-") && userRole && ['radiologist', 'admin_radiology', 'scheduler'].includes(userRole)) {
           // Check if we're on an onboarding page first
           if (location.startsWith("/org-")) {
             // On onboarding page - set current page to match the URL
@@ -611,7 +607,22 @@ function App() {
           </Route>
           <Route path="/">
             {shouldBeAuthenticated ? (
-              currentRole === UserRole.TrialPhysician ? (
+              // Check if currentPage is explicitly set to Dashboard
+              currentPage === AppPage.Dashboard ? (
+                // Show Dashboard when explicitly navigated to, regardless of role
+                <div className="h-screen flex flex-col">
+                  <div className="w-full flex-1 overflow-auto">
+                    <AppHeader
+                      title={getPageTitle(AppPage.Dashboard)}
+                      subtitle={getPageSubtitle(AppPage.Dashboard)}
+                      onNavigate={handleNavigate}
+                    />
+                    <main className="h-full pt-16">
+                      <Dashboard navigateTo={(page) => setCurrentPage(page)} />
+                    </main>
+                  </div>
+                </div>
+              ) : currentRole === UserRole.TrialPhysician ? (
                 // Redirect trial users to trial validation page
                 <TrialValidation />
               ) : currentRole === UserRole.Radiologist || currentRole === UserRole.AdminRadiology || currentRole === UserRole.Scheduler ? (

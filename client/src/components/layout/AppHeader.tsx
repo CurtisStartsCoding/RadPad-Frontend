@@ -186,7 +186,14 @@ const AppHeader: React.FC<AppHeaderProps> = ({
   };
   const getMenuItems = () => {
     const menuItemsConfig = [
-      { key: "home", page: AppPage.Dashboard, icon: <Home className="h-4 w-4 mr-3 text-gray-500" />, label: "Dashboard" },
+      // Special handling for Dashboard
+      {
+        key: "home",
+        page: AppPage.Dashboard,
+        icon: <Home className="h-4 w-4 mr-3 text-gray-500" />,
+        label: "Dashboard",
+        specialHandling: true
+      },
       { key: "new-order", page: AppPage.NewOrder, icon: <Stethoscope className="h-4 w-4 mr-3 text-gray-500" />, label: "New Order" },
       { key: "orders", page: AppPage.OrderList, icon: <ListChecks className="h-4 w-4 mr-3 text-gray-500" />, label: "Orders" },
       { key: "admin-queue", page: AppPage.AdminQueue, icon: <FileText className="h-4 w-4 mr-3 text-gray-500" />, label: "Admin Queue" },
@@ -276,21 +283,56 @@ const AppHeader: React.FC<AppHeaderProps> = ({
         
         return hasAccess(effectiveRole, item.page.toLowerCase().replace('_', '-'));
       })
-      .map(item => (
-        <a
-          key={item.key}
-          href={getPageUrl(item.page)}
-          className="flex items-center w-full px-3 py-2.5 text-gray-800 hover:bg-gray-100 rounded-md no-underline"
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation(); // Prevent event from bubbling up to the overlay
-            handleNavigation(item.page);
-          }}
-        >
-          {item.icon}
-          <span>{item.label}</span>
-        </a>
-      ));
+      .map(item => {
+        // Special handling for Dashboard navigation
+        if (item.specialHandling && item.page === AppPage.Dashboard) {
+          return (
+            <a
+              key={item.key}
+              href="/"
+              className="flex items-center w-full px-3 py-2.5 text-gray-800 hover:bg-gray-100 rounded-md no-underline"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation(); // Prevent event from bubbling up to the overlay
+                
+                // Close menu first
+                setShowMenu(false);
+                
+                // Force Dashboard navigation with a direct approach
+                if (onNavigate) {
+                  onNavigate(AppPage.Dashboard);
+                }
+                
+                // Use a longer timeout to ensure state updates complete
+                setTimeout(() => {
+                  // Force a hard navigation to root
+                  window.location.href = '/';
+                }, 100);
+              }}
+            >
+              {item.icon}
+              <span>{item.label}</span>
+            </a>
+          );
+        }
+        
+        // Normal handling for other menu items
+        return (
+          <a
+            key={item.key}
+            href={getPageUrl(item.page)}
+            className="flex items-center w-full px-3 py-2.5 text-gray-800 hover:bg-gray-100 rounded-md no-underline"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation(); // Prevent event from bubbling up to the overlay
+              handleNavigation(item.page);
+            }}
+          >
+            {item.icon}
+            <span>{item.label}</span>
+          </a>
+        );
+      });
   };
   
   return (
