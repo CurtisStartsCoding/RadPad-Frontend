@@ -186,13 +186,14 @@ const AppHeader: React.FC<AppHeaderProps> = ({
   };
   const getMenuItems = () => {
     const menuItemsConfig = [
-      // Special handling for Dashboard
+      // Special handling for Dashboard - don't show for SuperAdmin
       {
         key: "home",
         page: AppPage.Dashboard,
         icon: <Home className="h-4 w-4 mr-3 text-gray-500" />,
         label: "Dashboard",
-        specialHandling: true
+        specialHandling: true,
+        condition: effectiveRole !== UserRole.SuperAdmin
       },
       { key: "new-order", page: AppPage.NewOrder, icon: <Stethoscope className="h-4 w-4 mr-3 text-gray-500" />, label: "New Order" },
       { key: "orders", page: AppPage.OrderList, icon: <ListChecks className="h-4 w-4 mr-3 text-gray-500" />, label: "Orders" },
@@ -249,7 +250,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
         key: "superadmin-dashboard",
         page: AppPage.SuperAdminDashboard,
         icon: <Home className="h-4 w-4 mr-3 text-gray-500" />,
-        label: "Admin Dashboard",
+        label: "Dashboard",
         condition: effectiveRole === UserRole.SuperAdmin
       },
       {
@@ -286,10 +287,15 @@ const AppHeader: React.FC<AppHeaderProps> = ({
       .map(item => {
         // Special handling for Dashboard navigation
         if (item.specialHandling && item.page === AppPage.Dashboard) {
+          // Check if user is a super_admin and navigate to the appropriate dashboard
+          const isSuperAdmin = effectiveRole === UserRole.SuperAdmin;
+          const dashboardPath = isSuperAdmin ? '/superadmin-dashboard' : '/';
+          const dashboardPage = isSuperAdmin ? AppPage.SuperAdminDashboard : AppPage.Dashboard;
+          
           return (
             <a
               key={item.key}
-              href="/"
+              href={dashboardPath}
               className="flex items-center w-full px-3 py-2.5 text-gray-800 hover:bg-gray-100 rounded-md no-underline"
               onClick={(e) => {
                 e.preventDefault();
@@ -300,13 +306,13 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                 
                 // Force Dashboard navigation with a direct approach
                 if (onNavigate) {
-                  onNavigate(AppPage.Dashboard);
+                  onNavigate(dashboardPage);
                 }
                 
                 // Use a longer timeout to ensure state updates complete
                 setTimeout(() => {
-                  // Force a hard navigation to root
-                  window.location.href = '/';
+                  // Force a hard navigation to the appropriate dashboard
+                  window.location.href = dashboardPath;
                 }, 100);
               }}
             >

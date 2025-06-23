@@ -88,7 +88,14 @@ const Login = () => {
         const radiologyRoles = ['radiologist', 'admin_radiology', 'scheduler'];
         const adminRoles = ['admin_staff', 'admin_referring'];
         
-        if (radiologyRoles.includes(user.role)) {
+        console.log(`Determining navigation based on user role: ${user.role}`);
+        
+        if (user.role === 'super_admin') {
+          console.log(`User has role ${user.role}, navigating to Super Admin Dashboard...`);
+          // Navigate to Super Admin Dashboard for super_admin role
+          setLocation("/superadmin-dashboard");
+          window.location.href = "/superadmin-dashboard";
+        } else if (radiologyRoles.includes(user.role)) {
           console.log(`User has role ${user.role}, navigating to Radiology Queue...`);
           // Navigate to Radiology Queue for radiologist, admin_radiology, or scheduler roles
           setLocation("/radiology-queue");

@@ -39,5 +39,7 @@ export function isTrialUser(userRole?: string | null): boolean {
  */
 export function getUserRoleFromStorage(): string | null {
   // Get role directly from localStorage
-  return localStorage.getItem('rad_order_pad_user_role');
+  const role = localStorage.getItem('rad_order_pad_user_role');
+  console.log("User role from localStorage:", role);
+  return role;
 }

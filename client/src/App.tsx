@@ -142,7 +142,13 @@ function App() {
   const [location, setLocation] = useLocation();
   const { isAuthenticated, user, isLoading } = useAuth();
   
+  // Log user role for debugging
+  console.log("User object:", user);
+  console.log("User role from user object:", user?.role);
+  console.log("User role from storage:", getUserRoleFromStorage());
+  
   const currentRole = (user?.role as UserRole) || UserRole.Physician;
+  console.log("Current role used in the app:", currentRole);
   
   // Add a forced loading timeout to prevent getting stuck in loading state
   const [forceLoadingComplete, setForceLoadingComplete] = useState(false);
@@ -204,19 +210,30 @@ function App() {
         // Only set default pages and redirect if coming from auth page
         // This prevents overriding explicit navigation to other pages
         if (location === "/auth") {
+          console.log("Handling redirection after login, user role:", userRole);
+          
           if (userRole === UserRole.TrialPhysician) {
+            console.log("Redirecting trial user to trial-validation");
             setCurrentPage(AppPage.NewOrder);
             setLocation("/trial-validation");
           } else if (userRole === 'physician') {
+            console.log("Redirecting physician to new-order");
             setCurrentPage(AppPage.NewOrder);
             setLocation("/new-order");
           } else if (userRole && ['admin_staff', 'admin_referring'].includes(userRole)) {
+            console.log("Redirecting admin to admin-queue");
             setCurrentPage(AppPage.AdminQueue);
             setLocation("/admin-queue");
           } else if (userRole && ['radiologist', 'admin_radiology', 'scheduler'].includes(userRole)) {
+            console.log("Redirecting radiology staff to radiology-queue");
             setCurrentPage(AppPage.RadiologyQueue);
             setLocation("/radiology-queue");
+          } else if (userRole === UserRole.SuperAdmin || userRole === 'super_admin') {
+            console.log("Redirecting super_admin to superadmin-dashboard");
+            setCurrentPage(AppPage.SuperAdminDashboard);
+            setLocation("/superadmin-dashboard");
           } else {
+            console.log("No specific redirection rule found, defaulting to dashboard");
             setCurrentPage(AppPage.Dashboard);
             setLocation("/");
           }
@@ -247,9 +264,19 @@ function App() {
             setCurrentPage(AppPage.RadiologyQueue);
           }
         } else {
-          setCurrentPage(AppPage.Dashboard);
-          if (location === "/auth") {
-            setLocation("/");
+          // Check if user is super_admin and redirect to superadmin-dashboard
+          if (userRole === UserRole.SuperAdmin || userRole === 'super_admin') {
+            console.log("User is super_admin, redirecting to superadmin-dashboard");
+            setCurrentPage(AppPage.SuperAdminDashboard);
+            if (location === "/auth") {
+              setLocation("/superadmin-dashboard");
+            }
+          } else {
+            console.log("User is not super_admin, using default dashboard");
+            setCurrentPage(AppPage.Dashboard);
+            if (location === "/auth") {
+              setLocation("/");
+            }
           }
         }
       } else if (location !== "/auth" &&
@@ -605,6 +632,24 @@ function App() {
               <AuthPage />
             )}
           </Route>
+          <Route path="/superadmin-dashboard">
+            {shouldBeAuthenticated ? (
+              <div className="h-screen flex flex-col">
+                <div className="w-full flex-1 overflow-auto">
+                  <AppHeader
+                    title={getPageTitle(AppPage.SuperAdminDashboard)}
+                    subtitle={getPageSubtitle(AppPage.SuperAdminDashboard)}
+                    onNavigate={handleNavigate}
+                  />
+                  <main className="h-full pt-16">
+                    <SuperAdminDashboard navigateTo={(page) => setCurrentPage(page as AppPage)} />
+                  </main>
+                </div>
+              </div>
+            ) : (
+              <AuthPage />
+            )}
+          </Route>
           <Route path="/">
             {shouldBeAuthenticated ? (
               // Check if currentPage is explicitly set to Dashboard
@@ -664,6 +709,20 @@ function App() {
                     />
                     <main className="h-full pt-16">
                       <AdminQueue navigateTo={(page) => setCurrentPage(page)} />
+                    </main>
+                  </div>
+                </div>
+              ) : currentRole === UserRole.SuperAdmin ? (
+                // Show Super Admin Dashboard for super_admin users
+                <div className="h-screen flex flex-col">
+                  <div className="w-full flex-1 overflow-auto">
+                    <AppHeader
+                      title={getPageTitle(AppPage.SuperAdminDashboard)}
+                      subtitle={getPageSubtitle(AppPage.SuperAdminDashboard)}
+                      onNavigate={handleNavigate}
+                    />
+                    <main className="h-full pt-16">
+                      <SuperAdminDashboard navigateTo={(page) => setCurrentPage(page as AppPage)} />
                     </main>
                   </div>
                 </div>
