@@ -61,6 +61,7 @@ const roleDisplayNames: { [key: string]: string } = {
 const SuperAdminUsers = () => {
   const [users, setUsers] = useState<SuperAdminUser[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchInput, setSearchInput] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -72,16 +73,46 @@ const SuperAdminUsers = () => {
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const { toast } = useToast();
 
-  // Load users on component mount
+  // Debounce search input
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      // Only update searchTerm if input is empty or at least 3 characters
+      if (searchInput === "" || searchInput.length >= 3) {
+        setSearchTerm(searchInput);
+      }
+    }, 3000); // 3 second debounce
+    
+    return () => clearTimeout(timer);
+  }, [searchInput]);
+
+  // Load users when filters change
   useEffect(() => {
     loadUsers();
-  }, []);
+  }, [searchTerm, roleFilter, statusFilter, organizationFilter]);
 
   // Load users function
   const loadUsers = async () => {
     try {
       setLoading(true);
-      const response = await listUsers();
+      const params: any = {};
+      
+      if (searchTerm) {
+        params.email = searchTerm;
+      }
+      
+      if (roleFilter !== "all") {
+        params.role = roleFilter;
+      }
+      
+      if (statusFilter !== "all") {
+        params.status = statusFilter === "active";
+      }
+      
+      if (organizationFilter !== "all") {
+        params.orgId = parseInt(organizationFilter, 10);
+      }
+      
+      const response = await listUsers(params);
       setUsers(response.users);
     } catch (error) {
       console.error('Error loading users:', error);
@@ -141,21 +172,6 @@ const SuperAdminUsers = () => {
       setUpdatingStatus(false);
     }
   };
-
-  // Filter users based on search term and filters
-  const filteredUsers = users.filter(user => {
-    const matchesSearch = user.first_name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          user.last_name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          user.email.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesRole = roleFilter === "all" || user.role === roleFilter;
-    const matchesStatus = statusFilter === "all" || 
-                         (statusFilter === "active" && user.is_active) || 
-                         (statusFilter === "inactive" && !user.is_active);
-    const matchesOrganization = organizationFilter === "all" || 
-                               (user.organization_id?.toString() === organizationFilter);
-    
-    return matchesSearch && matchesRole && matchesStatus && matchesOrganization;
-  });
 
   // Get unique organizations for filter dropdown
   const uniqueOrganizations = Array.from(new Set(users
@@ -240,7 +256,7 @@ const SuperAdminUsers = () => {
           <CardHeader className="pb-3">
             <CardTitle className="text-lg">Users</CardTitle>
             <CardDescription>
-              {loading ? "Loading..." : `${filteredUsers.length} users found`}
+              {loading ? "Loading..." : `${users.length} users found`}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -252,8 +268,8 @@ const SuperAdminUsers = () => {
                   type="search"
                   placeholder="Search by name or email..."
                   className="pl-9"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
                 />
               </div>
               
@@ -314,12 +330,12 @@ const SuperAdminUsers = () => {
                   <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
                   <p className="text-slate-500">Loading users...</p>
                 </div>
-              ) : filteredUsers.length === 0 ? (
+              ) : users.length === 0 ? (
                 <div className="text-center py-8">
                   <p className="text-slate-500">No users found</p>
                 </div>
               ) : (
-                filteredUsers.map(user => (
+                users.map(user => (
                   <div 
                     key={user.id} 
                     className={`border rounded-lg p-3 cursor-pointer hover:bg-slate-50 transition-colors ${selectedUserId === user.id ? 'bg-slate-50 border-primary' : ''}`}
