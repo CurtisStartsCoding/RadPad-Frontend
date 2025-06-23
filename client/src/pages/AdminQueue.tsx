@@ -65,7 +65,7 @@ const AdminQueue: React.FC<AdminQueueProps> = ({ navigateTo }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFilter, setSelectedFilter] = useState("all");
   
-  // Fetch orders from the API - using /api/orders since /api/admin/orders/queue might not be implemented
+  // Fetch orders from the API - using /api/orders for admin_staff role
   const { data, isLoading, error } = useQuery<ApiAdminOrder[] | ApiOrdersResponse>({
     queryKey: ['/api/orders'],
     queryFn: async () => {

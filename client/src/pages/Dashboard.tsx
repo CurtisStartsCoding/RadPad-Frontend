@@ -145,14 +145,24 @@ const Dashboard = ({ navigateTo }: DashboardProps) => {
   };
   
   // Fetch recent orders from the API
+  // Determine the appropriate endpoint for recent orders based on user role
+  let recentOrdersEndpoint = '/api/orders?limit=5';
+  
+  if (user?.role === 'radiologist' || user?.role === 'admin_radiology') {
+    recentOrdersEndpoint = '/api/radiology/orders?limit=5';
+  } else if (user?.role === 'admin_referring') {
+    recentOrdersEndpoint = '/api/admin/orders/queue?limit=5';
+  }
+  // admin_staff and scheduler use /api/orders (default)
+
   const { data: ordersResponse, isLoading: isLoadingOrders, error: ordersError } = useQuery<OrdersApiResponse>({
-    queryKey: ['/api/orders', { limit: 5 }],
+    queryKey: [recentOrdersEndpoint, { limit: 5 }],
     queryFn: async () => {
       // Determine if this is a trial user
       const isTrialUser = user?.role === 'trial_physician';
-      const endpoint = '/api/orders?limit=5';
+      const endpoint = recentOrdersEndpoint;
       
-      console.log(`Using standard orders endpoint: ${endpoint}`);
+      console.log(`Using recent orders endpoint: ${endpoint}`);
       
       try {
         const response = await apiRequest('GET', endpoint, undefined);
@@ -186,15 +196,15 @@ const Dashboard = ({ navigateTo }: DashboardProps) => {
   // Determine the appropriate endpoint based on user role
   let ordersEndpoint = '/api/orders?limit=100';
   
-  if (user?.role === 'radiologist' || user?.role === 'scheduler') {
+  if (user?.role === 'radiologist' || user?.role === 'admin_radiology') {
     ordersEndpoint = '/api/radiology/orders?limit=100';
-  } else if (user?.role === 'admin_staff' || user?.role === 'admin_referring' || user?.role === 'admin_radiology') {
-    // Admin roles might have access to more orders
-    ordersEndpoint = '/api/orders?limit=100';
+  } else if (user?.role === 'admin_referring') {
+    // Only admin_referring uses the admin queue endpoint
+    ordersEndpoint = '/api/admin/orders/queue?limit=100';
   } else if (user?.role === 'trial_physician') {
-    // Trial users should use the trial-specific endpoint
-    console.log('Trial user accessing trial-specific orders endpoint');
-    ordersEndpoint = '/api/trial/orders?limit=100';
+    // Trial users use the general orders endpoint (same as regular physicians)
+    console.log('Trial user accessing general orders endpoint');
+    ordersEndpoint = '/api/orders?limit=100';
   }
   
   const { data: analytics, isLoading: isLoadingAnalytics, error: analyticsError } = useQuery<ApiAnalytics>({
@@ -303,7 +313,7 @@ const Dashboard = ({ navigateTo }: DashboardProps) => {
       case 'cancelled':
         return <Badge variant="outline" className="bg-red-50 border-red-200 text-red-700">Cancelled</Badge>;
       default:
-        return <Badge variant="outline" className="bg-gray-50 border-gray-200 text-gray-700">{status.replace('_', ' ')}</Badge>;
+        return <Badge variant="outline" className="bg-gray-50 border-gray-200 text-gray-700">{status ? status.replace('_', ' ') : 'Unknown'}</Badge>;
     }
   };
 
