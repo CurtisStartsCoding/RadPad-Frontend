@@ -149,7 +149,45 @@ export async function listOrganizations(params?: {
     const response = await apiRequest('GET', url);
     const data = await response.json();
     
-    return data;
+    // Transform the API response to match our expected structure
+    if (data.success && Array.isArray(data.data)) {
+      // Calculate total pages based on count and limit
+      const limit = params?.limit || 20;
+      const totalPages = Math.ceil(data.count / limit);
+      const page = params?.page || 1;
+      
+      return {
+        organizations: data.data.map((org: any) => ({
+          id: org.id,
+          name: org.name,
+          type: org.type,
+          npi: org.npi || '',
+          status: org.status,
+          creditBalance: org.credit_balance,
+          subscriptionTier: org.subscription_tier || 'none',
+          userCount: 0, // This might need to be fetched separately
+          createdAt: org.created_at,
+          updatedAt: org.updated_at
+        })),
+        pagination: {
+          total: data.count,
+          page: page,
+          limit: limit,
+          totalPages: totalPages
+        }
+      };
+    }
+    
+    // If the response doesn't match the expected structure, return empty data
+    return {
+      organizations: [],
+      pagination: {
+        total: 0,
+        page: 1,
+        limit: 20,
+        totalPages: 0
+      }
+    };
   } catch (error) {
     console.error('Error listing organizations:', error);
     throw error;
