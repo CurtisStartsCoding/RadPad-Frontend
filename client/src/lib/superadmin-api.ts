@@ -205,7 +205,86 @@ export async function getOrganizationDetails(orgId: number): Promise<Organizatio
     const response = await apiRequest('GET', `/api/superadmin/organizations/${orgId}`);
     const data = await response.json();
     
-    return data;
+    // Check if the data has the expected structure
+    if (data && data.data) {
+      // Transform the API response to match our expected structure
+      return {
+        organization: {
+          id: data.data.id || 0,
+          name: data.data.name || '',
+          type: data.data.type || '',
+          npi: data.data.npi || '',
+          tax_id: data.data.tax_id || '',
+          address_line1: data.data.address_line1 || '',
+          address_line2: data.data.address_line2,
+          city: data.data.city || '',
+          state: data.data.state || '',
+          zip_code: data.data.zip_code || '',
+          phone_number: data.data.phone_number || '',
+          fax_number: data.data.fax_number,
+          contact_email: data.data.contact_email || '',
+          website: data.data.website,
+          logo_url: data.data.logo_url,
+          billing_id: data.data.billing_id,
+          credit_balance: data.data.credit_balance || 0,
+          subscription_tier: data.data.subscription_tier || 'none',
+          status: data.data.status || 'active',
+          assigned_account_manager_id: data.data.assigned_account_manager_id,
+          created_at: data.data.created_at || new Date().toISOString(),
+          updated_at: data.data.updated_at || new Date().toISOString(),
+        },
+        users: Array.isArray(data.users) ? data.users.map((user: any) => ({
+          id: user.id || 0,
+          name: user.name || '',
+          email: user.email || '',
+          role: user.role || '',
+          active: user.active !== undefined ? user.active : true,
+        })) : [],
+        connections: Array.isArray(data.connections) ? data.connections.map((connection: any) => ({
+          id: connection.id || 0,
+          name: connection.name || '',
+          type: connection.type || '',
+          status: connection.status || '',
+          connected_at: connection.connected_at || new Date().toISOString(),
+        })) : [],
+        billingHistory: Array.isArray(data.billingHistory) ? data.billingHistory.map((event: any) => ({
+          id: event.id || 0,
+          type: event.type || '',
+          amount: event.amount || 0,
+          credits: event.credits || 0,
+          date: event.date || new Date().toISOString(),
+          status: event.status || '',
+          invoice_id: event.invoice_id,
+          reason: event.reason,
+        })) : [],
+      };
+    }
+    
+    // If the response doesn't match the expected structure, return a default object
+    console.error('API response does not match expected structure:', data);
+    return {
+      organization: {
+        id: orgId,
+        name: 'Unknown Organization',
+        type: '',
+        npi: '',
+        tax_id: '',
+        address_line1: '',
+        city: '',
+        state: '',
+        zip_code: '',
+        phone_number: '',
+        contact_email: '',
+        credit_balance: 0,
+        subscription_tier: 'none',
+        status: 'active',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      },
+      users: [],
+      connections: [],
+      billingHistory: [],
+    };
   } catch (error) {
     console.error(`Error getting organization details for ID ${orgId}:`, error);
     throw error;
