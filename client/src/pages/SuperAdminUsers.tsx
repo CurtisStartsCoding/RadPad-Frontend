@@ -14,6 +14,16 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Search,
   CheckCircle,
   XCircle,
@@ -37,13 +47,13 @@ import PageHeader from "@/components/layout/PageHeader";
 import { formatDateShort } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
-import { 
-  listUsers, 
-  getUserDetails, 
-  updateUserStatus, 
-  SuperAdminUser, 
+import {
+  listUsers,
+  getUserDetails,
+  updateUserStatus,
+  SuperAdminUser,
   UserDetails,
-  UserStatusUpdateRequest 
+  UserStatusUpdateRequest
 } from "@/lib/superadmin-api";
 import { useToast } from "@/hooks/use-toast";
 
@@ -71,6 +81,7 @@ const SuperAdminUsers = () => {
   const [detailTab, setDetailTab] = useState("profile");
   const [loadingUserDetails, setLoadingUserDetails] = useState(false);
   const [updatingStatus, setUpdatingStatus] = useState(false);
+  const [showDeactivateDialog, setShowDeactivateDialog] = useState(false);
   const { toast } = useToast();
 
   // Debounce search input
@@ -405,11 +416,11 @@ const SuperAdminUsers = () => {
                       <span className="sm:inline">Reset Password</span>
                     </Button>
                     {selectedUserDetails.is_active ? (
-                      <Button 
-                        variant="destructive" 
-                        size="sm" 
+                      <Button
+                        variant="destructive"
+                        size="sm"
                         className="h-8"
-                        onClick={() => handleStatusUpdate(selectedUserDetails.id, false)}
+                        onClick={() => setShowDeactivateDialog(true)}
                         disabled={updatingStatus}
                       >
                         {updatingStatus ? (
@@ -633,6 +644,33 @@ const SuperAdminUsers = () => {
           )}
         </Card>
       </div>
+
+      {/* Deactivate User Confirmation Dialog */}
+      <AlertDialog open={showDeactivateDialog} onOpenChange={setShowDeactivateDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Deactivate User</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to deactivate {selectedUserDetails?.first_name} {selectedUserDetails?.last_name}?
+              This will prevent them from accessing the system and all their active sessions will be terminated.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                if (selectedUserDetails) {
+                  handleStatusUpdate(selectedUserDetails.id, false);
+                  setShowDeactivateDialog(false);
+                }
+              }}
+            >
+              Deactivate User
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
