@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,183 +30,22 @@ import {
   Eye,
   AlertTriangle,
   Download,
-  Plus
+  Plus,
+  Loader2
 } from "lucide-react";
 import PageHeader from "@/components/layout/PageHeader";
 import { formatDateShort } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
-
-// Mock users data
-const users = [
-  {
-    id: 1,
-    firstName: "Sarah",
-    lastName: "Johnson",
-    email: "sarah.johnson@nwmedical.example.com",
-    role: "physician",
-    active: true,
-    emailVerified: true,
-    lastLogin: "2025-05-02T14:32:11Z",
-    createdAt: "2024-11-15T09:23:18Z",
-    npi: "1234567890",
-    specialty: "Internal Medicine",
-    phoneNumber: "(555) 123-4567",
-    organizationId: 1,
-    organizationName: "Northwest Medical Group",
-    organizationType: "referring"
-  },
-  {
-    id: 2,
-    firstName: "Michael",
-    lastName: "Chang",
-    email: "michael.chang@nwmedical.example.com",
-    role: "admin_staff",
-    active: true,
-    emailVerified: true,
-    lastLogin: "2025-05-01T11:45:33Z",
-    createdAt: "2024-12-05T13:27:44Z",
-    npi: null,
-    specialty: null,
-    phoneNumber: "(555) 234-5678",
-    organizationId: 1,
-    organizationName: "Northwest Medical Group",
-    organizationType: "referring"
-  },
-  {
-    id: 3,
-    firstName: "Jennifer",
-    lastName: "Williams",
-    email: "jennifer.williams@nwmedical.example.com",
-    role: "admin_referring",
-    active: true,
-    emailVerified: true,
-    lastLogin: "2025-05-03T08:17:22Z",
-    createdAt: "2024-11-10T10:15:30Z",
-    npi: null,
-    specialty: null,
-    phoneNumber: "(555) 345-6789",
-    organizationId: 1,
-    organizationName: "Northwest Medical Group",
-    organizationType: "referring"
-  },
-  {
-    id: 4,
-    firstName: "David",
-    lastName: "Rodriguez",
-    email: "david.rodriguez@centralradiology.example.com",
-    role: "radiologist",
-    active: true,
-    emailVerified: true,
-    lastLogin: "2025-05-02T16:08:59Z",
-    createdAt: "2024-12-20T11:33:27Z",
-    npi: "2345678901",
-    specialty: "Diagnostic Radiology",
-    phoneNumber: "(555) 456-7890",
-    organizationId: 2,
-    organizationName: "Central Radiology Associates",
-    organizationType: "radiology_group"
-  },
-  {
-    id: 5,
-    firstName: "Amanda",
-    lastName: "Taylor",
-    email: "amanda.taylor@centralradiology.example.com",
-    role: "admin_radiology",
-    active: true,
-    emailVerified: true,
-    lastLogin: "2025-05-03T09:45:12Z",
-    createdAt: "2025-01-05T14:22:56Z",
-    npi: null,
-    specialty: null,
-    phoneNumber: "(555) 567-8901",
-    organizationId: 2,
-    organizationName: "Central Radiology Associates",
-    organizationType: "radiology_group"
-  },
-  {
-    id: 6,
-    firstName: "Robert",
-    lastName: "Jones",
-    email: "robert.jones@eastside.example.com",
-    role: "physician",
-    active: false,
-    emailVerified: true,
-    lastLogin: "2025-04-15T10:33:21Z",
-    createdAt: "2025-01-10T09:12:45Z",
-    npi: "3456789012",
-    specialty: "Family Medicine",
-    phoneNumber: "(555) 678-9012",
-    organizationId: 3,
-    organizationName: "Eastside Primary Care",
-    organizationType: "referring"
-  },
-  {
-    id: 7,
-    firstName: "System",
-    lastName: "Administrator",
-    email: "admin@radorderpad.example.com",
-    role: "super_admin",
-    active: true,
-    emailVerified: true,
-    lastLogin: "2025-05-03T07:55:08Z",
-    createdAt: "2024-10-01T08:00:00Z",
-    npi: null,
-    specialty: null,
-    phoneNumber: null,
-    organizationId: null,
-    organizationName: null,
-    organizationType: null
-  }
-];
-
-// Mock user details for selected user
-const userDetailsMock = {
-  id: 1,
-  firstName: "Sarah",
-  lastName: "Johnson",
-  email: "sarah.johnson@nwmedical.example.com",
-  role: "physician",
-  active: true,
-  emailVerified: true,
-  lastLogin: "2025-05-02T14:32:11Z",
-  createdAt: "2024-11-15T09:23:18Z",
-  npi: "1234567890",
-  specialty: "Internal Medicine",
-  phoneNumber: "(555) 123-4567",
-  organizationId: 1,
-  organizationName: "Northwest Medical Group",
-  organizationType: "referring",
-  // Additional details
-  address: "123 Medical Way, Suite 400, Metropolis, CA 90210",
-  locationAccess: ["Main Clinic", "North Branch", "South Branch"],
-  recentActivity: [
-    {
-      id: 101,
-      type: "order_created",
-      timestamp: "2025-05-02T14:30:22Z",
-      details: "Created Order #ROP-250502-42"
-    },
-    {
-      id: 102,
-      type: "login",
-      timestamp: "2025-05-02T14:00:05Z",
-      details: "Login from 192.168.1.100"
-    },
-    {
-      id: 103,
-      type: "order_created",
-      timestamp: "2025-05-01T11:23:45Z",
-      details: "Created Order #ROP-250501-37"
-    },
-    {
-      id: 104,
-      type: "login",
-      timestamp: "2025-05-01T11:15:30Z",
-      details: "Login from 192.168.1.100"
-    }
-  ]
-};
+import { 
+  listUsers, 
+  getUserDetails, 
+  updateUserStatus, 
+  SuperAdminUser, 
+  UserDetails,
+  UserStatusUpdateRequest 
+} from "@/lib/superadmin-api";
+import { useToast } from "@/hooks/use-toast";
 
 const roleDisplayNames: { [key: string]: string } = {
   'physician': 'Physician',
@@ -220,39 +59,114 @@ const roleDisplayNames: { [key: string]: string } = {
 };
 
 const SuperAdminUsers = () => {
+  const [users, setUsers] = useState<SuperAdminUser[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [organizationFilter, setOrganizationFilter] = useState<string>("all");
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
+  const [selectedUserDetails, setSelectedUserDetails] = useState<UserDetails | null>(null);
   const [detailTab, setDetailTab] = useState("profile");
+  const [loadingUserDetails, setLoadingUserDetails] = useState(false);
+  const [updatingStatus, setUpdatingStatus] = useState(false);
+  const { toast } = useToast();
+
+  // Load users on component mount
+  useEffect(() => {
+    loadUsers();
+  }, []);
+
+  // Load users function
+  const loadUsers = async () => {
+    try {
+      setLoading(true);
+      const response = await listUsers();
+      setUsers(response.users);
+    } catch (error) {
+      console.error('Error loading users:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load users. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Load user details when a user is selected
+  const loadUserDetails = async (userId: number) => {
+    try {
+      setLoadingUserDetails(true);
+      const userDetails = await getUserDetails(userId);
+      setSelectedUserDetails(userDetails);
+    } catch (error) {
+      console.error('Error loading user details:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load user details. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingUserDetails(false);
+    }
+  };
+
+  // Handle user status update
+  const handleStatusUpdate = async (userId: number, isActive: boolean) => {
+    try {
+      setUpdatingStatus(true);
+      const statusUpdate: UserStatusUpdateRequest = { isActive };
+      await updateUserStatus(userId, statusUpdate);
+      
+      // Refresh users list and user details
+      await loadUsers();
+      if (selectedUserId === userId) {
+        await loadUserDetails(userId);
+      }
+      
+      toast({
+        title: "Success",
+        description: `User ${isActive ? 'activated' : 'deactivated'} successfully.`,
+      });
+    } catch (error) {
+      console.error('Error updating user status:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update user status. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setUpdatingStatus(false);
+    }
+  };
 
   // Filter users based on search term and filters
   const filteredUsers = users.filter(user => {
-    const matchesSearch = user.firstName.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          user.lastName.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    const matchesSearch = user.first_name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                          user.last_name.toLowerCase().includes(searchTerm.toLowerCase()) || 
                           user.email.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesRole = roleFilter === "all" || user.role === roleFilter;
     const matchesStatus = statusFilter === "all" || 
-                         (statusFilter === "active" && user.active) || 
-                         (statusFilter === "inactive" && !user.active);
+                         (statusFilter === "active" && user.is_active) || 
+                         (statusFilter === "inactive" && !user.is_active);
     const matchesOrganization = organizationFilter === "all" || 
-                               (user.organizationId?.toString() === organizationFilter);
+                               (user.organization_id?.toString() === organizationFilter);
     
     return matchesSearch && matchesRole && matchesStatus && matchesOrganization;
   });
 
   // Get unique organizations for filter dropdown
   const uniqueOrganizations = Array.from(new Set(users
-    .filter(user => user.organizationId !== null)
-    .map(user => ({ id: user.organizationId, name: user.organizationName }))
+    .filter(user => user.organization_id !== null && user.organization_name)
+    .map(user => ({ id: user.organization_id, name: user.organization_name }))
   )).filter(org => org.id !== undefined && org.name !== undefined);
 
   // Helper function to get initials from name
   const getInitials = (firstName: string, lastName: string) => {
-    return `${firstName[0]}${lastName[0]}`;
+    return `${firstName[0] || ''}${lastName[0] || ''}`;
   };
-
 
   // Format time
   const formatDateTime = (dateString: string) => {
@@ -299,6 +213,7 @@ const SuperAdminUsers = () => {
   const handleSelectUser = (userId: number) => {
     setSelectedUserId(userId);
     setDetailTab("profile");
+    loadUserDetails(userId);
   };
 
   return (
@@ -325,7 +240,7 @@ const SuperAdminUsers = () => {
           <CardHeader className="pb-3">
             <CardTitle className="text-lg">Users</CardTitle>
             <CardDescription>
-              {filteredUsers.length} users found
+              {loading ? "Loading..." : `${filteredUsers.length} users found`}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -394,7 +309,12 @@ const SuperAdminUsers = () => {
             
             {/* Users list */}
             <div className="space-y-2 mt-3">
-              {filteredUsers.length === 0 ? (
+              {loading ? (
+                <div className="text-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
+                  <p className="text-slate-500">Loading users...</p>
+                </div>
+              ) : filteredUsers.length === 0 ? (
                 <div className="text-center py-8">
                   <p className="text-slate-500">No users found</p>
                 </div>
@@ -409,12 +329,12 @@ const SuperAdminUsers = () => {
                     <div className="flex items-center gap-3">
                       <Avatar className="h-10 w-10 shrink-0">
                         <AvatarFallback className="bg-primary/10 text-primary">
-                          {getInitials(user.firstName, user.lastName)}
+                          {getInitials(user.first_name, user.last_name)}
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between">
-                          <h3 className="font-medium truncate">{user.firstName} {user.lastName}</h3>
+                          <h3 className="font-medium truncate">{user.first_name} {user.last_name}</h3>
                           <ChevronRight className="h-4 w-4 ml-1 text-slate-400 shrink-0" />
                         </div>
                         <div className="flex flex-wrap gap-1.5 mt-1">
@@ -422,7 +342,7 @@ const SuperAdminUsers = () => {
                             {roleDisplayNames[user.role]}
                           </Badge>
                           <Badge variant="outline" className="text-xs">
-                            {user.active ? 'Active' : 'Inactive'}
+                            {user.is_active ? 'Active' : 'Inactive'}
                           </Badge>
                         </div>
                       </div>
@@ -436,25 +356,25 @@ const SuperAdminUsers = () => {
 
         {/* User Details */}
         <Card className="md:col-span-1 lg:col-span-2 xl:col-span-3">
-          {selectedUserId ? (
+          {selectedUserId && selectedUserDetails ? (
             <>
               <CardHeader className="pb-3">
                 <div className="flex flex-col space-y-4 md:flex-row md:justify-between md:items-start md:space-y-0">
                   <div className="flex items-center">
                     <Avatar className="h-12 w-12 mr-4">
                       <AvatarFallback className="bg-primary/10 text-primary">
-                        {getInitials(userDetailsMock.firstName, userDetailsMock.lastName)}
+                        {getInitials(selectedUserDetails.first_name, selectedUserDetails.last_name)}
                       </AvatarFallback>
                     </Avatar>
                     <div>
-                      <CardTitle className="text-lg">{userDetailsMock.firstName} {userDetailsMock.lastName}</CardTitle>
+                      <CardTitle className="text-lg">{selectedUserDetails.first_name} {selectedUserDetails.last_name}</CardTitle>
                       <CardDescription className="flex flex-wrap items-center gap-2 mt-1">
-                        <Badge variant="outline" className={getRoleBadgeColor(userDetailsMock.role)}>
-                          {roleDisplayNames[userDetailsMock.role]}
+                        <Badge variant="outline" className={getRoleBadgeColor(selectedUserDetails.role)}>
+                          {roleDisplayNames[selectedUserDetails.role]}
                         </Badge>
-                        {getStatusBadge(userDetailsMock.active)}
-                        {userDetailsMock.organizationName && (
-                          <span className="text-sm">{userDetailsMock.organizationName}</span>
+                        {getStatusBadge(selectedUserDetails.is_active)}
+                        {selectedUserDetails.organization_name && (
+                          <span className="text-sm">{selectedUserDetails.organization_name}</span>
                         )}
                       </CardDescription>
                     </div>
@@ -468,14 +388,34 @@ const SuperAdminUsers = () => {
                       <Lock className="h-3.5 w-3.5 mr-1" />
                       <span className="sm:inline">Reset Password</span>
                     </Button>
-                    {userDetailsMock.active ? (
-                      <Button variant="destructive" size="sm" className="h-8">
-                        <XCircle className="h-3.5 w-3.5 mr-1" />
+                    {selectedUserDetails.is_active ? (
+                      <Button 
+                        variant="destructive" 
+                        size="sm" 
+                        className="h-8"
+                        onClick={() => handleStatusUpdate(selectedUserDetails.id, false)}
+                        disabled={updatingStatus}
+                      >
+                        {updatingStatus ? (
+                          <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+                        ) : (
+                          <XCircle className="h-3.5 w-3.5 mr-1" />
+                        )}
                         <span className="sm:inline">Deactivate</span>
                       </Button>
                     ) : (
-                      <Button variant="outline" size="sm" className="h-8 border-green-500 text-green-600 hover:bg-green-50">
-                        <CheckCircle className="h-3.5 w-3.5 mr-1" />
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="h-8 border-green-500 text-green-600 hover:bg-green-50"
+                        onClick={() => handleStatusUpdate(selectedUserDetails.id, true)}
+                        disabled={updatingStatus}
+                      >
+                        {updatingStatus ? (
+                          <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+                        ) : (
+                          <CheckCircle className="h-3.5 w-3.5 mr-1" />
+                        )}
                         <span className="sm:inline">Activate</span>
                       </Button>
                     )}
@@ -484,238 +424,184 @@ const SuperAdminUsers = () => {
               </CardHeader>
               
               <CardContent>
-                {/* Tabs for different sections of user details */}
-                <Tabs value={detailTab} onValueChange={setDetailTab}>
-                  <TabsList className="grid grid-cols-3 mb-4">
-                    <TabsTrigger value="profile">Profile</TabsTrigger>
-                    <TabsTrigger value="access">Access</TabsTrigger>
-                    <TabsTrigger value="activity">Activity</TabsTrigger>
-                  </TabsList>
-                  
-                  {/* Profile Tab */}
-                  <TabsContent value="profile" className="space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {loadingUserDetails ? (
+                  <div className="text-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
+                    <p className="text-slate-500">Loading user details...</p>
+                  </div>
+                ) : (
+                  <Tabs value={detailTab} onValueChange={setDetailTab}>
+                    <TabsList className="grid grid-cols-2 mb-4">
+                      <TabsTrigger value="profile">Profile</TabsTrigger>
+                      <TabsTrigger value="access">Access</TabsTrigger>
+                    </TabsList>
+                    
+                    {/* Profile Tab */}
+                    <TabsContent value="profile" className="space-y-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <h3 className="text-sm font-medium mb-2">Contact Information</h3>
+                          <div className="space-y-3">
+                            <div>
+                              <p className="text-xs text-slate-500">Email</p>
+                              <div className="flex items-center flex-wrap">
+                                <p className="text-sm font-medium break-all">{selectedUserDetails.email}</p>
+                                {selectedUserDetails.email_verified && (
+                                  <Badge variant="outline" className="ml-2 text-xs bg-green-50 text-green-700 border-green-200">
+                                    Verified
+                                  </Badge>
+                                )}
+                              </div>
+                            </div>
+                            <div>
+                              <p className="text-xs text-slate-500">Phone</p>
+                              <p className="text-sm font-medium">{selectedUserDetails.phone_number || "Not provided"}</p>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div>
+                          <h3 className="text-sm font-medium mb-2">Professional Information</h3>
+                          <div className="space-y-3">
+                            {(selectedUserDetails.role === 'physician' || selectedUserDetails.role === 'radiologist') && (
+                              <>
+                                <div>
+                                  <p className="text-xs text-slate-500">NPI Number</p>
+                                  <p className="text-sm font-medium">{selectedUserDetails.npi || "Not provided"}</p>
+                                </div>
+                                <div>
+                                  <p className="text-xs text-slate-500">Specialty</p>
+                                  <p className="text-sm font-medium">{selectedUserDetails.specialty || "Not provided"}</p>
+                                </div>
+                              </>
+                            )}
+                            <div>
+                              <p className="text-xs text-slate-500">Organization</p>
+                              <p className="text-sm font-medium">{selectedUserDetails.organization_name || "None (System User)"}</p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-slate-500">Organization Type</p>
+                              <p className="text-sm font-medium">{selectedUserDetails.organization_type ? (
+                                selectedUserDetails.organization_type === 'referring' ? 'Referring' : 
+                                selectedUserDetails.organization_type === 'radiology_group' ? 'Radiology Group' :
+                                selectedUserDetails.organization_type === 'health_system' ? 'Health System' : 
+                                selectedUserDetails.organization_type
+                              ) : "N/A"}</p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      
                       <div>
-                        <h3 className="text-sm font-medium mb-2">Contact Information</h3>
+                        <h3 className="text-sm font-medium mb-2">Account Information</h3>
                         <div className="space-y-3">
-                          <div>
-                            <p className="text-xs text-slate-500">Email</p>
-                            <div className="flex items-center flex-wrap">
-                              <p className="text-sm font-medium break-all">{userDetailsMock.email}</p>
-                              {userDetailsMock.emailVerified && (
-                                <Badge variant="outline" className="ml-2 text-xs bg-green-50 text-green-700 border-green-200">
-                                  Verified
-                                </Badge>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <p className="text-xs text-slate-500">User ID</p>
+                              <p className="text-sm font-medium">{selectedUserDetails.id}</p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-slate-500">Role</p>
+                              <p className="text-sm font-medium">{roleDisplayNames[selectedUserDetails.role]}</p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-slate-500">Account Created</p>
+                              <p className="text-sm font-medium">{formatDateShort(selectedUserDetails.created_at)}</p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-slate-500">Last Login</p>
+                              <p className="text-sm font-medium">{selectedUserDetails.last_login ? formatDateShort(selectedUserDetails.last_login) : "Never"}</p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </TabsContent>
+                    
+                    {/* Access Tab */}
+                    <TabsContent value="access">
+                      <div className="space-y-6">
+                        <div>
+                          <h3 className="text-sm font-medium mb-2">Location Access</h3>
+                          <div className="border rounded-lg p-4">
+                            {selectedUserDetails.locations && selectedUserDetails.locations.length > 0 ? (
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                {selectedUserDetails.locations.map((location) => (
+                                  <div key={location.id} className="flex items-center">
+                                    <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
+                                    <span className="text-sm">{location.name}</span>
+                                    {!location.is_active && (
+                                      <Badge variant="outline" className="ml-2 text-xs bg-red-50 text-red-700 border-red-200">
+                                        Inactive
+                                      </Badge>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <p className="text-sm text-slate-500">No location access configured.</p>
+                            )}
+                          </div>
+                        </div>
+                        
+                        <div>
+                          <h3 className="text-sm font-medium mb-2">Security Settings</h3>
+                          <div className="border rounded-lg divide-y">
+                            <div className="flex justify-between items-center p-4">
+                              <div>
+                                <p className="font-medium">Email Verification</p>
+                                <p className="text-sm text-slate-500">User's email verified status</p>
+                              </div>
+                              {selectedUserDetails.email_verified ? (
+                                <Badge className="bg-green-100 text-green-800 border-green-300">Verified</Badge>
+                              ) : (
+                                <Button size="sm">Verify Email</Button>
+                              )}
+                            </div>
+                            <div className="flex justify-between items-center p-4">
+                              <div>
+                                <p className="font-medium">Password Reset</p>
+                                <p className="text-sm text-slate-500">Send a password reset link to the user</p>
+                              </div>
+                              <Button variant="outline" size="sm">Send Reset Link</Button>
+                            </div>
+                            <div className="flex justify-between items-center p-4">
+                              <div>
+                                <p className="font-medium">Account Status</p>
+                                <p className="text-sm text-slate-500">Enable or disable user access</p>
+                              </div>
+                              {selectedUserDetails.is_active ? (
+                                <Button 
+                                  variant="destructive" 
+                                  size="sm"
+                                  onClick={() => handleStatusUpdate(selectedUserDetails.id, false)}
+                                  disabled={updatingStatus}
+                                >
+                                  {updatingStatus ? (
+                                    <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                                  ) : null}
+                                  Deactivate Account
+                                </Button>
+                              ) : (
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  className="border-green-500 text-green-600 hover:bg-green-50"
+                                  onClick={() => handleStatusUpdate(selectedUserDetails.id, true)}
+                                  disabled={updatingStatus}
+                                >
+                                  {updatingStatus ? (
+                                    <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                                  ) : null}
+                                  Activate Account
+                                </Button>
                               )}
                             </div>
                           </div>
-                          <div>
-                            <p className="text-xs text-slate-500">Phone</p>
-                            <p className="text-sm font-medium">{userDetailsMock.phoneNumber || "Not provided"}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs text-slate-500">Address</p>
-                            <p className="text-sm font-medium">{userDetailsMock.address || "Not provided"}</p>
-                          </div>
                         </div>
                       </div>
-                      
-                      <div>
-                        <h3 className="text-sm font-medium mb-2">Professional Information</h3>
-                        <div className="space-y-3">
-                          {userDetailsMock.role === 'physician' || userDetailsMock.role === 'radiologist' ? (
-                            <>
-                              <div>
-                                <p className="text-xs text-slate-500">NPI Number</p>
-                                <p className="text-sm font-medium">{userDetailsMock.npi || "Not provided"}</p>
-                              </div>
-                              <div>
-                                <p className="text-xs text-slate-500">Specialty</p>
-                                <p className="text-sm font-medium">{userDetailsMock.specialty || "Not provided"}</p>
-                              </div>
-                            </>
-                          ) : null}
-                          <div>
-                            <p className="text-xs text-slate-500">Organization</p>
-                            <p className="text-sm font-medium">{userDetailsMock.organizationName || "None (System User)"}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs text-slate-500">Organization Type</p>
-                            <p className="text-sm font-medium">{userDetailsMock.organizationType ? (
-                              userDetailsMock.organizationType === 'referring' ? 'Referring' : 'Radiology Group'
-                            ) : "N/A"}</p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <h3 className="text-sm font-medium mb-2">Account Information</h3>
-                      <div className="space-y-3">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div>
-                            <p className="text-xs text-slate-500">User ID</p>
-                            <p className="text-sm font-medium">{userDetailsMock.id}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs text-slate-500">Role</p>
-                            <p className="text-sm font-medium">{roleDisplayNames[userDetailsMock.role]}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs text-slate-500">Account Created</p>
-                            <p className="text-sm font-medium">{formatDateShort(userDetailsMock.createdAt)}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs text-slate-500">Last Login</p>
-                            <p className="text-sm font-medium">{formatDateShort(userDetailsMock.lastLogin)}</p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="flex justify-end">
-                      <Button>
-                        <UserCog className="h-4 w-4 mr-2" />
-                        Edit User Profile
-                      </Button>
-                    </div>
-                  </TabsContent>
-                  
-                  {/* Access Tab */}
-                  <TabsContent value="access">
-                    <div className="space-y-6">
-                      <div>
-                        <h3 className="text-sm font-medium mb-2">Location Access</h3>
-                        <div className="border rounded-lg p-4">
-                          {userDetailsMock.locationAccess && userDetailsMock.locationAccess.length > 0 ? (
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                              {userDetailsMock.locationAccess.map((location, index) => (
-                                <div key={index} className="flex items-center">
-                                  <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
-                                  <span className="text-sm">{location}</span>
-                                </div>
-                              ))}
-                            </div>
-                          ) : (
-                            <p className="text-sm text-slate-500">No location access configured.</p>
-                          )}
-                        </div>
-                      </div>
-                      
-                      <div>
-                        <h3 className="text-sm font-medium mb-2">Security Settings</h3>
-                        <div className="border rounded-lg divide-y">
-                          <div className="flex justify-between items-center p-4">
-                            <div>
-                              <p className="font-medium">Email Verification</p>
-                              <p className="text-sm text-slate-500">User's email verified status</p>
-                            </div>
-                            {userDetailsMock.emailVerified ? (
-                              <Badge className="bg-green-100 text-green-800 border-green-300">Verified</Badge>
-                            ) : (
-                              <Button size="sm">Verify Email</Button>
-                            )}
-                          </div>
-                          <div className="flex justify-between items-center p-4">
-                            <div>
-                              <p className="font-medium">Password Reset</p>
-                              <p className="text-sm text-slate-500">Send a password reset link to the user</p>
-                            </div>
-                            <Button variant="outline" size="sm">Send Reset Link</Button>
-                          </div>
-                          <div className="flex justify-between items-center p-4">
-                            <div>
-                              <p className="font-medium">Account Status</p>
-                              <p className="text-sm text-slate-500">Enable or disable user access</p>
-                            </div>
-                            {userDetailsMock.active ? (
-                              <Button variant="destructive" size="sm">Deactivate Account</Button>
-                            ) : (
-                              <Button variant="outline" size="sm" className="border-green-500 text-green-600 hover:bg-green-50">
-                                Activate Account
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <div>
-                        <h3 className="text-sm font-medium mb-2">Administrative Actions</h3>
-                        <div className="border rounded-lg divide-y">
-                          <div className="flex justify-between items-center p-4">
-                            <div>
-                              <p className="font-medium">Change User Role</p>
-                              <p className="text-sm text-slate-500">Modify user's permissions level</p>
-                            </div>
-                            <Button variant="outline" size="sm">Change Role</Button>
-                          </div>
-                          <div className="flex justify-between items-center p-4">
-                            <div>
-                              <p className="font-medium">Impersonate User</p>
-                              <p className="text-sm text-slate-500">Log in as this user for troubleshooting</p>
-                            </div>
-                            <Button variant="outline" size="sm" className="text-amber-600 border-amber-300 hover:bg-amber-50">
-                              <Eye className="h-4 w-4 mr-1" />
-                              Impersonate
-                            </Button>
-                          </div>
-                          <div className="flex justify-between items-center p-4">
-                            <div>
-                              <p className="font-medium">Delete User</p>
-                              <p className="text-sm text-slate-500">Permanently remove this user</p>
-                            </div>
-                            <Button variant="destructive" size="sm">
-                              <AlertTriangle className="h-4 w-4 mr-1" />
-                              Delete
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </TabsContent>
-                  
-                  {/* Activity Tab */}
-                  <TabsContent value="activity">
-                    <div className="space-y-6">
-                      <div>
-                        <h3 className="text-sm font-medium mb-2">Recent Activity</h3>
-                        <div className="border rounded-lg">
-                          <Table>
-                            <TableHeader>
-                              <TableRow>
-                                <TableHead>Date & Time</TableHead>
-                                <TableHead>Activity</TableHead>
-                                <TableHead>Details</TableHead>
-                              </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                              {userDetailsMock.recentActivity.map(activity => (
-                                <TableRow key={activity.id}>
-                                  <TableCell>{formatDateTime(activity.timestamp)}</TableCell>
-                                  <TableCell>
-                                    <Badge variant="outline" className="bg-slate-100 border-slate-200 text-slate-700">
-                                      {activity.type === 'login' ? 'Login' : 
-                                       activity.type === 'order_created' ? 'Order Created' : 
-                                       activity.type}
-                                    </Badge>
-                                  </TableCell>
-                                  <TableCell>{activity.details}</TableCell>
-                                </TableRow>
-                              ))}
-                            </TableBody>
-                          </Table>
-                        </div>
-                      </div>
-                      
-                      <div className="flex justify-end space-x-2">
-                        <Button variant="outline">
-                          <ArrowDownToLine className="h-4 w-4 mr-2" />
-                          Export Activity Log
-                        </Button>
-                      </div>
-                    </div>
-                  </TabsContent>
-                </Tabs>
+                    </TabsContent>
+                  </Tabs>
+                )}
               </CardContent>
             </>
           ) : (
