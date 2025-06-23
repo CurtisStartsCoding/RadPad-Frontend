@@ -24,6 +24,14 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
+import {
   Search,
   CheckCircle,
   XCircle,
@@ -82,6 +90,8 @@ const SuperAdminUsers = () => {
   const [loadingUserDetails, setLoadingUserDetails] = useState(false);
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [showDeactivateDialog, setShowDeactivateDialog] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const { toast } = useToast();
 
   // Debounce search input
@@ -99,7 +109,13 @@ const SuperAdminUsers = () => {
   // Load users when filters change
   useEffect(() => {
     loadUsers();
+    setCurrentPage(1); // Reset to first page when filters change
   }, [searchTerm, roleFilter, statusFilter, organizationFilter]);
+
+  // Reset current page when page size changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [pageSize]);
 
   // Load users function
   const loadUsers = async () => {
@@ -243,6 +259,64 @@ const SuperAdminUsers = () => {
     loadUserDetails(userId);
   };
 
+  // Handle search on Enter key press
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      // Trigger search immediately if input is empty or at least 3 characters
+      if (searchInput === "" || searchInput.length >= 3) {
+        setSearchTerm(searchInput);
+      }
+    }
+  };
+
+  // Pagination calculations
+  const totalUsers = users.length;
+  const totalPages = Math.ceil(totalUsers / pageSize);
+  const startIndex = (currentPage - 1) * pageSize;
+  const endIndex = startIndex + pageSize;
+  const paginatedUsers = users.slice(startIndex, endIndex);
+
+  // Handle page change
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  // Generate page numbers for pagination
+  const getPageNumbers = () => {
+    const pages = [];
+    const maxVisiblePages = 5;
+    
+    if (totalPages <= maxVisiblePages) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      if (currentPage <= 3) {
+        for (let i = 1; i <= 4; i++) {
+          pages.push(i);
+        }
+        pages.push('...');
+        pages.push(totalPages);
+      } else if (currentPage >= totalPages - 2) {
+        pages.push(1);
+        pages.push('...');
+        for (let i = totalPages - 3; i <= totalPages; i++) {
+          pages.push(i);
+        }
+      } else {
+        pages.push(1);
+        pages.push('...');
+        for (let i = currentPage - 1; i <= currentPage + 1; i++) {
+          pages.push(i);
+        }
+        pages.push('...');
+        pages.push(totalPages);
+      }
+    }
+    
+    return pages;
+  };
+
   return (
     <div className="p-6">
       <PageHeader 
@@ -265,10 +339,29 @@ const SuperAdminUsers = () => {
         {/* Users List */}
         <Card className="md:col-span-1 lg:col-span-1 xl:col-span-1 overflow-hidden">
           <CardHeader className="pb-3">
-            <CardTitle className="text-lg">Users</CardTitle>
-            <CardDescription>
-              {loading ? "Loading..." : `${users.length} users found`}
-            </CardDescription>
+            <div className="flex justify-between items-start">
+              <div>
+                <CardTitle className="text-lg">Users</CardTitle>
+                <CardDescription>
+                  {loading ? "Loading..." : `${totalUsers} users found`}
+                </CardDescription>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-slate-500">Show:</span>
+                <Select value={pageSize.toString()} onValueChange={(value) => setPageSize(parseInt(value))}>
+                  <SelectTrigger className="w-16 h-8">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="5">5</SelectItem>
+                    <SelectItem value="10">10</SelectItem>
+                    <SelectItem value="25">25</SelectItem>
+                    <SelectItem value="50">50</SelectItem>
+                    <SelectItem value="100">100</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
           </CardHeader>
           <CardContent className="space-y-4">
             {/* Search and filters */}
@@ -281,6 +374,7 @@ const SuperAdminUsers = () => {
                   className="pl-9"
                   value={searchInput}
                   onChange={(e) => setSearchInput(e.target.value)}
+                  onKeyDown={handleSearchKeyDown}
                 />
               </div>
               
@@ -335,20 +429,20 @@ const SuperAdminUsers = () => {
             </div>
             
             {/* Users list */}
-            <div className="space-y-2 mt-3">
+            <div className="space-y-2 mt-3 max-h-[calc(100vh-400px)] overflow-y-auto pr-2">
               {loading ? (
                 <div className="text-center py-8">
                   <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
                   <p className="text-slate-500">Loading users...</p>
                 </div>
-              ) : users.length === 0 ? (
+              ) : totalUsers === 0 ? (
                 <div className="text-center py-8">
                   <p className="text-slate-500">No users found</p>
                 </div>
               ) : (
-                users.map(user => (
-                  <div 
-                    key={user.id} 
+                paginatedUsers.map(user => (
+                  <div
+                    key={user.id}
                     className={`border rounded-lg p-3 cursor-pointer hover:bg-slate-50 transition-colors ${selectedUserId === user.id ? 'bg-slate-50 border-primary' : ''}`}
                     onClick={() => handleSelectUser(user.id)}
                     title={user.email} // Email tooltip on hover
@@ -378,6 +472,50 @@ const SuperAdminUsers = () => {
                 ))
               )}
             </div>
+            
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="mt-4 pt-4 border-t">
+                <div className="flex items-center justify-between">
+                  <div className="text-sm text-slate-500">
+                    Showing {startIndex + 1}-{Math.min(endIndex, totalUsers)} of {totalUsers} users
+                  </div>
+                  <Pagination>
+                    <PaginationContent>
+                      <PaginationItem>
+                        <PaginationPrevious
+                          onClick={() => handlePageChange(currentPage - 1)}
+                          className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                        />
+                      </PaginationItem>
+                      
+                      {getPageNumbers().map((page, index) => (
+                        <PaginationItem key={index}>
+                          {page === '...' ? (
+                            <span className="flex h-9 w-9 items-center justify-center text-sm">...</span>
+                          ) : (
+                            <PaginationLink
+                              onClick={() => handlePageChange(page as number)}
+                              isActive={currentPage === page}
+                              className="cursor-pointer"
+                            >
+                              {page}
+                            </PaginationLink>
+                          )}
+                        </PaginationItem>
+                      ))}
+                      
+                      <PaginationItem>
+                        <PaginationNext
+                          onClick={() => handlePageChange(currentPage + 1)}
+                          className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                        />
+                      </PaginationItem>
+                    </PaginationContent>
+                  </Pagination>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 
