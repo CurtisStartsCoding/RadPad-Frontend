@@ -1,0 +1,227 @@
+import { apiRequest } from "./queryClient";
+import { Organization } from "./types";
+
+// Types for SuperAdmin API
+
+// Organization status types
+export type OrganizationStatus = 'active' | 'on_hold' | 'purgatory' | 'terminated';
+
+// Organization type
+export interface SuperAdminOrganization {
+  id: number;
+  name: string;
+  type: 'referring' | 'radiology_group' | 'health_system';
+  npi: string;
+  status: OrganizationStatus;
+  creditBalance: number;
+  subscriptionTier: string;
+  userCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Organization details
+export interface OrganizationDetails {
+  organization: {
+    id: number;
+    name: string;
+    type: string;
+    npi: string;
+    tax_id: string;
+    address_line1: string;
+    address_line2?: string;
+    city: string;
+    state: string;
+    zip_code: string;
+    phone_number: string;
+    fax_number?: string;
+    contact_email: string;
+    website?: string;
+    logo_url?: string;
+    billing_id?: string;
+    credit_balance: number;
+    subscription_tier: string;
+    status: OrganizationStatus;
+    assigned_account_manager_id?: number;
+    created_at: string;
+    updated_at: string;
+  };
+  users: {
+    id: number;
+    name: string;
+    email: string;
+    role: string;
+    active: boolean;
+  }[];
+  connections: {
+    id: number;
+    name: string;
+    type: string;
+    status: string;
+    connected_at: string;
+  }[];
+  billingHistory: {
+    id: number;
+    type: string;
+    amount: number;
+    credits: number;
+    date: string;
+    status: string;
+    invoice_id?: string;
+    reason?: string;
+  }[];
+}
+
+// Credit adjustment request
+export interface CreditAdjustmentRequest {
+  amount: number;
+  reason: string;
+}
+
+// Credit adjustment response
+export interface CreditAdjustmentResponse {
+  success: boolean;
+  message: string;
+  newBalance: number;
+}
+
+// Status update request
+export interface StatusUpdateRequest {
+  status: OrganizationStatus;
+  reason?: string;
+}
+
+// Status update response
+export interface StatusUpdateResponse {
+  success: boolean;
+  message: string;
+  newStatus: OrganizationStatus;
+}
+
+/**
+ * List all organizations with optional filtering
+ * 
+ * @param params Optional filter parameters
+ * @returns Promise with list of organizations
+ */
+export async function listOrganizations(params?: {
+  name?: string;
+  type?: string;
+  status?: string;
+  page?: number;
+  limit?: number;
+}): Promise<{
+  organizations: SuperAdminOrganization[];
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+}> {
+  try {
+    // Build query parameters
+    const queryParams = new URLSearchParams();
+    
+    if (params?.name) {
+      queryParams.append('name', params.name);
+    }
+    
+    if (params?.type) {
+      queryParams.append('type', params.type);
+    }
+    
+    if (params?.status) {
+      queryParams.append('status', params.status);
+    }
+    
+    if (params?.page) {
+      queryParams.append('page', params.page.toString());
+    }
+    
+    if (params?.limit) {
+      queryParams.append('limit', params.limit.toString());
+    }
+    
+    const queryString = queryParams.toString();
+    const url = `/api/superadmin/organizations${queryString ? `?${queryString}` : ''}`;
+    
+    const response = await apiRequest('GET', url);
+    const data = await response.json();
+    
+    return data;
+  } catch (error) {
+    console.error('Error listing organizations:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get organization details by ID
+ * 
+ * @param orgId Organization ID
+ * @returns Promise with organization details
+ */
+export async function getOrganizationDetails(orgId: number): Promise<OrganizationDetails> {
+  try {
+    const response = await apiRequest('GET', `/api/superadmin/organizations/${orgId}`);
+    const data = await response.json();
+    
+    return data;
+  } catch (error) {
+    console.error(`Error getting organization details for ID ${orgId}:`, error);
+    throw error;
+  }
+}
+
+/**
+ * Update organization status
+ * 
+ * @param orgId Organization ID
+ * @param statusUpdate Status update request
+ * @returns Promise with status update response
+ */
+export async function updateOrganizationStatus(
+  orgId: number,
+  statusUpdate: StatusUpdateRequest
+): Promise<StatusUpdateResponse> {
+  try {
+    const response = await apiRequest(
+      'PUT',
+      `/api/superadmin/organizations/${orgId}/status`,
+      statusUpdate
+    );
+    const data = await response.json();
+    
+    return data;
+  } catch (error) {
+    console.error(`Error updating organization status for ID ${orgId}:`, error);
+    throw error;
+  }
+}
+
+/**
+ * Adjust organization credits
+ * 
+ * @param orgId Organization ID
+ * @param adjustment Credit adjustment request
+ * @returns Promise with credit adjustment response
+ */
+export async function adjustOrganizationCredits(
+  orgId: number,
+  adjustment: CreditAdjustmentRequest
+): Promise<CreditAdjustmentResponse> {
+  try {
+    const response = await apiRequest(
+      'POST',
+      `/api/superadmin/organizations/${orgId}/credits/adjust`,
+      adjustment
+    );
+    const data = await response.json();
+    
+    return data;
+  } catch (error) {
+    console.error(`Error adjusting credits for organization ID ${orgId}:`, error);
+    throw error;
+  }
+}

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,6 +25,7 @@ import {
   Filter,
   ArrowUpDown,
   ChevronRight,
+  ChevronLeft,
   FileText,
   MoreHorizontal,
   Pencil,
@@ -33,166 +34,28 @@ import {
   CreditCard,
   Link as LinkIcon,
   Plus,
-  Download
+  Download,
+  Loader2
 } from "lucide-react";
 import PageHeader from "@/components/layout/PageHeader";
 import { formatDateShort } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
+import {
+  listOrganizations,
+  getOrganizationDetails,
+  updateOrganizationStatus,
+  adjustOrganizationCredits,
+  SuperAdminOrganization,
+  OrganizationDetails,
+  OrganizationStatus,
+  CreditAdjustmentRequest,
+  StatusUpdateRequest
+} from "@/lib/superadmin-api";
 
-// Mock organizations data
-const organizations = [
-  {
-    id: 1,
-    name: "Northwest Medical Group",
-    type: "referring",
-    npi: "9876543210",
-    status: "active",
-    creditBalance: 458,
-    subscriptionTier: "tier_1",
-    userCount: 12,
-    createdAt: "2025-01-15T14:23:11Z"
-  },
-  {
-    id: 2,
-    name: "Central Radiology Associates",
-    type: "radiology_group",
-    npi: "1234567890",
-    status: "active",
-    creditBalance: 2500,
-    subscriptionTier: "tier_2",
-    userCount: 25,
-    createdAt: "2025-01-08T09:15:40Z"
-  },
-  {
-    id: 3,
-    name: "Eastside Primary Care",
-    type: "referring",
-    npi: "4567890123",
-    status: "on_hold",
-    creditBalance: 23,
-    subscriptionTier: "tier_1",
-    userCount: 5,
-    createdAt: "2025-02-21T11:42:33Z"
-  },
-  {
-    id: 4,
-    name: "Advanced Diagnostic Imaging",
-    type: "radiology_group",
-    npi: "7890123456",
-    status: "active",
-    creditBalance: 1895,
-    subscriptionTier: "tier_3",
-    userCount: 34,
-    createdAt: "2024-12-03T16:08:27Z"
-  },
-  {
-    id: 5,
-    name: "City Medical Center",
-    type: "referring",
-    npi: "3210987654",
-    status: "purgatory",
-    creditBalance: 0,
-    subscriptionTier: "tier_1",
-    userCount: 7,
-    createdAt: "2025-03-12T08:56:19Z"
-  }
-];
-
-// Organization details mock data for selected organization
-const orgDetailsMock = {
-  organization: {
-    id: 1,
-    name: "Northwest Medical Group",
-    type: "referring",
-    npi: "9876543210",
-    tax_id: "12-3456789",
-    address_line1: "123 Medical Way",
-    address_line2: "Suite 400",
-    city: "Metropolis",
-    state: "CA",
-    zip_code: "90210",
-    phone_number: "(555) 123-4567",
-    fax_number: "(555) 123-4568",
-    contact_email: "admin@nwmedical.example.com",
-    website: "https://nwmedical.example.com",
-    logo_url: null,
-    billing_id: "cus_TEST123456",
-    credit_balance: 458,
-    subscription_tier: "tier_1",
-    status: "active",
-    assigned_account_manager_id: null,
-    created_at: "2025-01-15T14:23:11Z",
-    updated_at: "2025-04-21T04:25:09.592Z"
-  },
-  users: [
-    {
-      id: 101,
-      name: "Dr. John Smith",
-      email: "john.smith@nwmedical.example.com",
-      role: "physician",
-      active: true
-    },
-    {
-      id: 102,
-      name: "Sarah Johnson",
-      email: "sarah.johnson@nwmedical.example.com",
-      role: "admin_staff",
-      active: true
-    },
-    {
-      id: 103,
-      name: "Mark Williams",
-      email: "mark.williams@nwmedical.example.com",
-      role: "admin_referring",
-      active: true
-    }
-  ],
-  connections: [
-    {
-      id: 201,
-      name: "Central Radiology Associates",
-      type: "radiology_group",
-      status: "active",
-      connected_at: "2025-01-20T10:15:22Z"
-    },
-    {
-      id: 202,
-      name: "Advanced Diagnostic Imaging",
-      type: "radiology_group",
-      status: "active",
-      connected_at: "2025-02-05T14:30:45Z"
-    }
-  ],
-  billingHistory: [
-    {
-      id: 301,
-      type: "credit_purchase",
-      amount: 500.00,
-      credits: 250,
-      date: "2025-04-12T09:23:45Z",
-      status: "successful",
-      invoice_id: "in_TEST123456"
-    },
-    {
-      id: 302,
-      type: "credit_purchase",
-      amount: 1000.00,
-      credits: 500,
-      date: "2025-03-15T11:42:18Z",
-      status: "successful",
-      invoice_id: "in_TEST123457"
-    },
-    {
-      id: 303,
-      type: "credit_adjustment",
-      amount: -100.00,
-      credits: -50,
-      date: "2025-03-20T15:10:33Z",
-      status: "completed",
-      invoice_id: null,
-      reason: "Billing issue resolution"
-    }
-  ]
+// Create a simple toast function since we don't have the component
+const toast = ({ title, description, variant }: { title: string; description: string; variant?: string }) => {
+  console.log(`${title}: ${description}`);
+  alert(`${title}: ${description}`);
 };
 
 const SuperAdminOrganizations = () => {
@@ -204,16 +67,107 @@ const SuperAdminOrganizations = () => {
   const [isEditingCredits, setIsEditingCredits] = useState(false);
   const [creditAdjustment, setCreditAdjustment] = useState<string>("");
   const [creditAdjustmentReason, setCreditAdjustmentReason] = useState<string>("");
+  
+  // API data states
+  const [organizations, setOrganizations] = useState<SuperAdminOrganization[]>([]);
+  const [organizationDetails, setOrganizationDetails] = useState<OrganizationDetails | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingDetails, setIsLoadingDetails] = useState(false);
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const [isAdjustingCredits, setIsAdjustingCredits] = useState(false);
+  // Separate current page and limit from pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageLimit, setPageLimit] = useState(20);
+  const [pagination, setPagination] = useState({
+    total: 0,
+    page: 1,
+    limit: 20,
+    totalPages: 0
+  });
+
+  // Fetch organizations on component mount and when filters change
+  useEffect(() => {
+    const fetchOrganizations = async () => {
+      setIsLoading(true);
+      try {
+        const params: any = {
+          page: currentPage,
+          limit: pageLimit
+        };
+        
+        if (statusFilter !== "all") {
+          params.status = statusFilter;
+        }
+        
+        if (typeFilter !== "all") {
+          params.type = typeFilter;
+        }
+        
+        if (searchTerm) {
+          params.name = searchTerm;
+        }
+        
+        const result = await listOrganizations(params);
+        setOrganizations(result.organizations);
+        setPagination(result.pagination);
+        
+        // Update current page and limit if they're different from what we got back
+        if (result.pagination.page !== currentPage) {
+          setCurrentPage(result.pagination.page);
+        }
+        if (result.pagination.limit !== pageLimit) {
+          setPageLimit(result.pagination.limit);
+        }
+      } catch (error) {
+        console.error("Error fetching organizations:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load organizations. Please try again.",
+          variant: "destructive"
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchOrganizations();
+  }, [searchTerm, statusFilter, typeFilter, currentPage, pageLimit]);
+
+  // Fetch organization details when an organization is selected
+  useEffect(() => {
+    if (selectedOrgId) {
+      const fetchOrganizationDetails = async () => {
+        setIsLoadingDetails(true);
+        try {
+          const details = await getOrganizationDetails(selectedOrgId);
+          setOrganizationDetails(details);
+        } catch (error) {
+          console.error(`Error fetching details for organization ${selectedOrgId}:`, error);
+          toast({
+            title: "Error",
+            description: "Failed to load organization details. Please try again.",
+            variant: "destructive"
+          });
+        } finally {
+          setIsLoadingDetails(false);
+        }
+      };
+      
+      fetchOrganizationDetails();
+    } else {
+      setOrganizationDetails(null);
+    }
+  }, [selectedOrgId]);
 
   // Filter organizations based on search term and filters
-  const filteredOrgs = organizations.filter(org => {
-    const matchesSearch = org.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+  const filteredOrgs = organizations ? organizations.filter(org => {
+    const matchesSearch = org.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          org.npi.includes(searchTerm);
     const matchesStatus = statusFilter === "all" || org.status === statusFilter;
     const matchesType = typeFilter === "all" || org.type === typeFilter;
     
     return matchesSearch && matchesStatus && matchesType;
-  });
+  }) : [];
 
   // Select an organization to view details
   const handleSelectOrg = (orgId: number) => {
@@ -222,6 +176,54 @@ const SuperAdminOrganizations = () => {
     setIsEditingCredits(false);
     setCreditAdjustment("");
     setCreditAdjustmentReason("");
+  };
+
+  // Handle updating organization status
+  const handleUpdateStatus = async (orgId: number, newStatus: OrganizationStatus) => {
+    if (!orgId) return;
+    
+    setIsUpdatingStatus(true);
+    try {
+      const statusUpdate: StatusUpdateRequest = {
+        status: newStatus,
+        reason: `Status changed to ${newStatus} by super admin`
+      };
+      
+      const result = await updateOrganizationStatus(orgId, statusUpdate);
+      
+      if (result.success) {
+        toast({
+          title: "Status Updated",
+          description: `Organization status has been updated to ${newStatus}`,
+        });
+        
+        // Refresh organization details
+        const details = await getOrganizationDetails(orgId);
+        setOrganizationDetails(details);
+        
+        // Update organization in the list
+        setOrganizations(orgs =>
+          orgs.map(org =>
+            org.id === orgId ? { ...org, status: newStatus } : org
+          )
+        );
+      } else {
+        toast({
+          title: "Error",
+          description: result.message || "Failed to update organization status",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error(`Error updating status for organization ${orgId}:`, error);
+      toast({
+        title: "Error",
+        description: "Failed to update organization status. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsUpdatingStatus(false);
+    }
   };
 
 
@@ -251,11 +253,72 @@ const SuperAdminOrganizations = () => {
   };
 
   // Handle credit adjustment
-  const handleCreditAdjustment = () => {
-    console.log(`Adjusting credits: ${creditAdjustment} for reason: ${creditAdjustmentReason}`);
-    setIsEditingCredits(false);
-    setCreditAdjustment("");
-    setCreditAdjustmentReason("");
+  const handleCreditAdjustment = async () => {
+    if (!selectedOrgId || !creditAdjustment || !creditAdjustmentReason) {
+      toast({
+        title: "Error",
+        description: "Please enter both credit amount and reason",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    const creditAmount = parseInt(creditAdjustment);
+    if (isNaN(creditAmount)) {
+      toast({
+        title: "Error",
+        description: "Please enter a valid number for credit adjustment",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setIsAdjustingCredits(true);
+    try {
+      const adjustment: CreditAdjustmentRequest = {
+        amount: creditAmount,
+        reason: creditAdjustmentReason
+      };
+      
+      const result = await adjustOrganizationCredits(selectedOrgId, adjustment);
+      
+      if (result.success) {
+        toast({
+          title: "Credits Adjusted",
+          description: `Organization credits have been adjusted. New balance: ${result.newBalance}`,
+        });
+        
+        // Refresh organization details
+        const details = await getOrganizationDetails(selectedOrgId);
+        setOrganizationDetails(details);
+        
+        // Update organization in the list
+        setOrganizations(orgs =>
+          orgs.map(org =>
+            org.id === selectedOrgId ? { ...org, creditBalance: result.newBalance } : org
+          )
+        );
+        
+        setIsEditingCredits(false);
+        setCreditAdjustment("");
+        setCreditAdjustmentReason("");
+      } else {
+        toast({
+          title: "Error",
+          description: result.message || "Failed to adjust credits",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error(`Error adjusting credits for organization ${selectedOrgId}:`, error);
+      toast({
+        title: "Error",
+        description: "Failed to adjust organization credits. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsAdjustingCredits(false);
+    }
   };
 
   return (
@@ -331,7 +394,12 @@ const SuperAdminOrganizations = () => {
             
             {/* Organizations list */}
             <div className="space-y-2 mt-3">
-              {filteredOrgs.length === 0 ? (
+              {isLoading ? (
+                <div className="text-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin mx-auto mb-2 text-primary" />
+                  <p className="text-slate-500">Loading organizations...</p>
+                </div>
+              ) : filteredOrgs.length === 0 ? (
                 <div className="text-center py-8">
                   <p className="text-slate-500">No organizations found</p>
                 </div>
@@ -384,43 +452,98 @@ const SuperAdminOrganizations = () => {
                 ))
               )}
             </div>
+            
+            {/* Pagination controls */}
+            {!isLoading && pagination && pagination.totalPages > 1 && (
+              <div className="flex items-center justify-between mt-6 pt-4 border-t">
+                <div className="text-sm text-slate-500">
+                  Showing page {pagination.page} of {pagination.totalPages}
+                </div>
+                <div className="flex space-x-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={currentPage <= 1}
+                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                  >
+                    <ChevronLeft className="h-4 w-4 mr-1" />
+                    Previous
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={currentPage >= (pagination?.totalPages || 1)}
+                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, pagination?.totalPages || 1))}
+                  >
+                    Next
+                    <ChevronRight className="h-4 w-4 ml-1" />
+                  </Button>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 
         {/* Organization Details */}
         <Card className="lg:col-span-2">
           {selectedOrgId ? (
-            <>
-              <CardHeader className="pb-3">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <CardTitle className="text-lg">{orgDetailsMock.organization.name}</CardTitle>
-                    <CardDescription className="flex items-center mt-1">
-                      <span>{orgDetailsMock.organization.type === 'referring' ? 'Referring Organization' : 'Radiology Group'}</span>
-                      <span className="mx-2">•</span>
-                      <span>{getStatusBadge(orgDetailsMock.organization.status)}</span>
-                    </CardDescription>
-                  </div>
-                  <div className="flex">
-                    <Button variant="outline" size="sm" className="h-8 mr-2">
-                      <Pencil className="h-3.5 w-3.5 mr-1" />
-                      Edit
-                    </Button>
-                    <Button variant="destructive" size="sm" className="h-8">
-                      <AlertTriangle className="h-3.5 w-3.5 mr-1" />
-                      {orgDetailsMock.organization.status === 'purgatory' ? 'Remove from Purgatory' : 'Send to Purgatory'}
-                    </Button>
-                  </div>
+            isLoadingDetails ? (
+              <div className="h-full flex items-center justify-center p-10 text-center">
+                <div>
+                  <Loader2 className="h-12 w-12 animate-spin mx-auto mb-4 text-primary" />
+                  <h3 className="text-lg font-medium text-slate-900 mb-1">Loading Organization Details</h3>
+                  <p className="text-slate-500 max-w-md mx-auto">
+                    Please wait while we fetch the organization details...
+                  </p>
                 </div>
-              </CardHeader>
+              </div>
+            ) : organizationDetails ? (
+              <>
+                <CardHeader className="pb-3">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <CardTitle className="text-lg">{organizationDetails.organization.name}</CardTitle>
+                      <CardDescription className="flex items-center mt-1">
+                        <span>{organizationDetails.organization.type === 'referring' ? 'Referring Organization' : 'Radiology Group'}</span>
+                        <span className="mx-2">•</span>
+                        <span>{getStatusBadge(organizationDetails.organization.status)}</span>
+                      </CardDescription>
+                    </div>
+                    <div className="flex">
+                      <Button variant="outline" size="sm" className="h-8 mr-2">
+                        <Pencil className="h-3.5 w-3.5 mr-1" />
+                        Edit
+                      </Button>
+                      {isUpdatingStatus ? (
+                        <Button variant="destructive" size="sm" className="h-8" disabled>
+                          <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
+                          Updating...
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          className="h-8"
+                          onClick={() => handleUpdateStatus(
+                            selectedOrgId,
+                            organizationDetails.organization.status === 'purgatory' ? 'active' : 'purgatory'
+                          )}
+                        >
+                          <AlertTriangle className="h-3.5 w-3.5 mr-1" />
+                          {organizationDetails.organization.status === 'purgatory' ? 'Remove from Purgatory' : 'Send to Purgatory'}
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </CardHeader>
               
               <CardContent>
                 {/* Tabs for different sections of organization details */}
                 <Tabs value={detailTab} onValueChange={setDetailTab}>
                   <TabsList className="grid grid-cols-4 mb-4">
                     <TabsTrigger value="info">Info</TabsTrigger>
-                    <TabsTrigger value="users">Users ({orgDetailsMock.users.length})</TabsTrigger>
-                    <TabsTrigger value="connections">Connections ({orgDetailsMock.connections.length})</TabsTrigger>
+                    <TabsTrigger value="users">Users ({organizationDetails.users.length})</TabsTrigger>
+                    <TabsTrigger value="connections">Connections ({organizationDetails.connections.length})</TabsTrigger>
                     <TabsTrigger value="billing">Billing</TabsTrigger>
                   </TabsList>
                   
@@ -432,19 +555,19 @@ const SuperAdminOrganizations = () => {
                         <div className="space-y-3">
                           <div>
                             <p className="text-xs text-slate-500">NPI Number</p>
-                            <p className="text-sm font-medium">{orgDetailsMock.organization.npi}</p>
+                            <p className="text-sm font-medium">{organizationDetails.organization.npi}</p>
                           </div>
                           <div>
                             <p className="text-xs text-slate-500">Tax ID</p>
-                            <p className="text-sm font-medium">{orgDetailsMock.organization.tax_id}</p>
+                            <p className="text-sm font-medium">{organizationDetails.organization.tax_id}</p>
                           </div>
                           <div>
                             <p className="text-xs text-slate-500">Subscription Tier</p>
-                            <p className="text-sm font-medium">{orgDetailsMock.organization.subscription_tier}</p>
+                            <p className="text-sm font-medium">{organizationDetails.organization.subscription_tier}</p>
                           </div>
                           <div>
                             <p className="text-xs text-slate-500">Created On</p>
-                            <p className="text-sm font-medium">{formatDateShort(orgDetailsMock.organization.created_at)}</p>
+                            <p className="text-sm font-medium">{formatDateShort(organizationDetails.organization.created_at)}</p>
                           </div>
                         </div>
                       </div>
@@ -454,25 +577,25 @@ const SuperAdminOrganizations = () => {
                         <div className="space-y-3">
                           <div>
                             <p className="text-xs text-slate-500">Address</p>
-                            <p className="text-sm font-medium">{orgDetailsMock.organization.address_line1}</p>
-                            {orgDetailsMock.organization.address_line2 && (
-                              <p className="text-sm font-medium">{orgDetailsMock.organization.address_line2}</p>
+                            <p className="text-sm font-medium">{organizationDetails.organization.address_line1}</p>
+                            {organizationDetails.organization.address_line2 && (
+                              <p className="text-sm font-medium">{organizationDetails.organization.address_line2}</p>
                             )}
                             <p className="text-sm font-medium">
-                              {orgDetailsMock.organization.city}, {orgDetailsMock.organization.state} {orgDetailsMock.organization.zip_code}
+                              {organizationDetails.organization.city}, {organizationDetails.organization.state} {organizationDetails.organization.zip_code}
                             </p>
                           </div>
                           <div>
                             <p className="text-xs text-slate-500">Phone</p>
-                            <p className="text-sm font-medium">{orgDetailsMock.organization.phone_number}</p>
+                            <p className="text-sm font-medium">{organizationDetails.organization.phone_number}</p>
                           </div>
                           <div>
                             <p className="text-xs text-slate-500">Email</p>
-                            <p className="text-sm font-medium">{orgDetailsMock.organization.contact_email}</p>
+                            <p className="text-sm font-medium">{organizationDetails.organization.contact_email}</p>
                           </div>
                           <div>
                             <p className="text-xs text-slate-500">Website</p>
-                            <p className="text-sm font-medium">{orgDetailsMock.organization.website}</p>
+                            <p className="text-sm font-medium">{organizationDetails.organization.website}</p>
                           </div>
                         </div>
                       </div>
@@ -484,7 +607,7 @@ const SuperAdminOrganizations = () => {
                         <div className="flex justify-between items-center">
                           <div>
                             <p className="text-sm text-slate-500">Current Credit Balance</p>
-                            <p className="text-2xl font-bold">{orgDetailsMock.organization.credit_balance}</p>
+                            <p className="text-2xl font-bold">{organizationDetails.organization.credit_balance}</p>
                           </div>
                           {!isEditingCredits ? (
                             <Button onClick={() => setIsEditingCredits(true)}>
@@ -495,9 +618,16 @@ const SuperAdminOrganizations = () => {
                               <Button variant="outline" onClick={() => setIsEditingCredits(false)}>
                                 Cancel
                               </Button>
-                              <Button onClick={handleCreditAdjustment}>
-                                Apply Adjustment
-                              </Button>
+                              {isAdjustingCredits ? (
+                                <Button disabled>
+                                  <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                                  Processing...
+                                </Button>
+                              ) : (
+                                <Button onClick={handleCreditAdjustment}>
+                                  Apply Adjustment
+                                </Button>
+                              )}
                             </div>
                           )}
                         </div>
@@ -556,7 +686,7 @@ const SuperAdminOrganizations = () => {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {orgDetailsMock.users.map(user => (
+                          {organizationDetails.users.map(user => (
                             <TableRow key={user.id}>
                               <TableCell className="font-medium">{user.name}</TableCell>
                               <TableCell>{user.email}</TableCell>
@@ -602,7 +732,7 @@ const SuperAdminOrganizations = () => {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {orgDetailsMock.connections.map(connection => (
+                          {organizationDetails.connections.map(connection => (
                             <TableRow key={connection.id}>
                               <TableCell className="font-medium">{connection.name}</TableCell>
                               <TableCell>
@@ -646,7 +776,7 @@ const SuperAdminOrganizations = () => {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {orgDetailsMock.billingHistory.map(event => (
+                          {organizationDetails.billingHistory.map(event => (
                             <TableRow key={event.id}>
                               <TableCell>{formatDateShort(event.date)}</TableCell>
                               <TableCell>
@@ -690,7 +820,18 @@ const SuperAdminOrganizations = () => {
                   </TabsContent>
                 </Tabs>
               </CardContent>
-            </>
+              </>
+            ) : (
+              <div className="h-full flex items-center justify-center p-10 text-center">
+                <div>
+                  <AlertTriangle className="h-12 w-12 text-amber-500 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-slate-900 mb-1">Error Loading Details</h3>
+                  <p className="text-slate-500 max-w-md mx-auto">
+                    There was a problem loading the organization details. Please try again.
+                  </p>
+                </div>
+              </div>
+            )
           ) : (
             <div className="h-full flex items-center justify-center p-10 text-center">
               <div>
