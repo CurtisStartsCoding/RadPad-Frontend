@@ -650,6 +650,60 @@ function App() {
               <AuthPage />
             )}
           </Route>
+          <Route path="/superadmin-organizations">
+            {shouldBeAuthenticated ? (
+              <div className="h-screen flex flex-col">
+                <div className="w-full flex-1 overflow-auto">
+                  <AppHeader
+                    title={getPageTitle(AppPage.SuperAdminOrganizations)}
+                    subtitle={getPageSubtitle(AppPage.SuperAdminOrganizations)}
+                    onNavigate={handleNavigate}
+                  />
+                  <main className="h-full pt-16">
+                    <SuperAdminOrganizations />
+                  </main>
+                </div>
+              </div>
+            ) : (
+              <AuthPage />
+            )}
+          </Route>
+          <Route path="/superadmin-users">
+            {shouldBeAuthenticated ? (
+              <div className="h-screen flex flex-col">
+                <div className="w-full flex-1 overflow-auto">
+                  <AppHeader
+                    title={getPageTitle(AppPage.SuperAdminUsers)}
+                    subtitle={getPageSubtitle(AppPage.SuperAdminUsers)}
+                    onNavigate={handleNavigate}
+                  />
+                  <main className="h-full pt-16">
+                    <SuperAdminUsers />
+                  </main>
+                </div>
+              </div>
+            ) : (
+              <AuthPage />
+            )}
+          </Route>
+          <Route path="/superadmin-logs">
+            {shouldBeAuthenticated ? (
+              <div className="h-screen flex flex-col">
+                <div className="w-full flex-1 overflow-auto">
+                  <AppHeader
+                    title={getPageTitle(AppPage.SuperAdminLogs)}
+                    subtitle={getPageSubtitle(AppPage.SuperAdminLogs)}
+                    onNavigate={handleNavigate}
+                  />
+                  <main className="h-full pt-16">
+                    <SuperAdminLogs />
+                  </main>
+                </div>
+              </div>
+            ) : (
+              <AuthPage />
+            )}
+          </Route>
           <Route path="/">
             {shouldBeAuthenticated ? (
               // Check if currentPage is explicitly set to Dashboard
