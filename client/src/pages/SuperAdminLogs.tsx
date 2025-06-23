@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,219 +35,22 @@ import {
   ArrowDownToLine,
   FileJson,
   Zap,
-  Clock
+  Clock,
+  Loader2
 } from "lucide-react";
 import PageHeader from "@/components/layout/PageHeader";
 import { formatDateShort } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
-
-// Mock validation logs data
-const validationLogs = [
-  {
-    id: 123,
-    orderId: 456,
-    validationAttemptId: 789,
-    userId: 101,
-    userName: "Dr. Sarah Johnson",
-    organizationId: 202,
-    organizationName: "Northwest Medical Group",
-    llmProvider: "Anthropic",
-    modelName: "claude-3.7",
-    promptTemplateId: 303,
-    promptTemplateName: "Validation Template v3",
-    promptTokens: 1500,
-    completionTokens: 500,
-    totalTokens: 2000,
-    latencyMs: 2500,
-    status: "appropriate",
-    errorMessage: null,
-    createdAt: "2025-05-03T14:30:00.000Z"
-  },
-  {
-    id: 124,
-    orderId: 457,
-    validationAttemptId: 790,
-    userId: 102,
-    userName: "Dr. Michael Chang",
-    organizationId: 202,
-    organizationName: "Northwest Medical Group",
-    llmProvider: "OpenAI",
-    modelName: "gpt-4.5-turbo",
-    promptTemplateId: 303,
-    promptTemplateName: "Validation Template v3",
-    promptTokens: 1200,
-    completionTokens: 450,
-    totalTokens: 1650,
-    latencyMs: 1800,
-    status: "appropriate",
-    errorMessage: null,
-    createdAt: "2025-05-03T13:45:00.000Z"
-  },
-  {
-    id: 125,
-    orderId: 458,
-    validationAttemptId: 791,
-    userId: 103,
-    userName: "Dr. Jennifer Williams",
-    organizationId: 203,
-    organizationName: "Eastside Primary Care",
-    llmProvider: "Anthropic",
-    modelName: "claude-3.7",
-    promptTemplateId: 303,
-    promptTemplateName: "Validation Template v3",
-    promptTokens: 1600,
-    completionTokens: 550,
-    totalTokens: 2150,
-    latencyMs: 2700,
-    status: "inappropriate",
-    errorMessage: null,
-    createdAt: "2025-05-03T12:15:00.000Z"
-  },
-  {
-    id: 126,
-    orderId: 459,
-    validationAttemptId: 792,
-    userId: 104,
-    userName: "Dr. David Rodriguez",
-    organizationId: 204,
-    organizationName: "Central Radiology Associates",
-    llmProvider: "OpenAI",
-    modelName: "gpt-4.5-turbo",
-    promptTemplateId: 303,
-    promptTemplateName: "Validation Template v3",
-    promptTokens: 1300,
-    completionTokens: 0,
-    totalTokens: 1300,
-    latencyMs: 5000,
-    status: "error",
-    errorMessage: "LLM service timeout after 5000ms",
-    createdAt: "2025-05-03T11:30:00.000Z"
-  },
-  {
-    id: 127,
-    orderId: 460,
-    validationAttemptId: 793,
-    userId: 105,
-    userName: "Dr. Amanda Taylor",
-    organizationId: 202,
-    organizationName: "Northwest Medical Group",
-    llmProvider: "Anthropic",
-    modelName: "claude-3.7",
-    promptTemplateId: 304,
-    promptTemplateName: "Validation Template v3.1",
-    promptTokens: 1550,
-    completionTokens: 520,
-    totalTokens: 2070,
-    latencyMs: 2600,
-    status: "needs_clarification",
-    errorMessage: null,
-    createdAt: "2025-05-03T10:45:00.000Z"
-  }
-];
-
-// Mock credit usage logs data
-const creditUsageLogs = [
-  {
-    id: 123,
-    organizationId: 202,
-    organizationName: "Northwest Medical Group",
-    userId: 101,
-    userName: "Dr. Sarah Johnson",
-    orderId: 456,
-    validationAttemptId: 789,
-    tokensBurned: 1,
-    actionType: "order_submission",
-    createdAt: "2025-05-03T14:30:00.000Z"
-  },
-  {
-    id: 124,
-    organizationId: 202,
-    organizationName: "Northwest Medical Group",
-    userId: 102,
-    userName: "Dr. Michael Chang",
-    orderId: 457,
-    validationAttemptId: 790,
-    tokensBurned: 1,
-    actionType: "order_submission",
-    createdAt: "2025-05-03T13:45:00.000Z"
-  },
-  {
-    id: 125,
-    organizationId: 203,
-    organizationName: "Eastside Primary Care",
-    userId: 103,
-    userName: "Dr. Jennifer Williams",
-    orderId: 458,
-    validationAttemptId: 791,
-    tokensBurned: 1,
-    actionType: "order_submission",
-    createdAt: "2025-05-03T12:15:00.000Z"
-  },
-  {
-    id: 126,
-    organizationId: 202,
-    organizationName: "Northwest Medical Group",
-    userId: null,
-    userName: "System",
-    orderId: null,
-    validationAttemptId: null,
-    tokensBurned: 500,
-    actionType: "credit_purchase",
-    createdAt: "2025-05-03T09:30:00.000Z"
-  },
-  {
-    id: 127,
-    organizationId: 203,
-    organizationName: "Eastside Primary Care",
-    userId: null,
-    userName: "System",
-    orderId: null,
-    validationAttemptId: null,
-    tokensBurned: 200,
-    actionType: "credit_purchase",
-    createdAt: "2025-05-03T08:15:00.000Z"
-  }
-];
-
-// Mock purgatory events data
-const purgatoryEvents = [
-  {
-    id: 123,
-    organizationId: 202,
-    organizationName: "Northwest Medical Group",
-    reason: "Suspicious activity detected",
-    triggeredBy: "super_admin",
-    triggeredById: 101,
-    triggeredByName: "System Administrator",
-    status: "to_purgatory",
-    createdAt: "2025-05-03T14:30:00.000Z",
-    resolvedAt: null
-  },
-  {
-    id: 124,
-    organizationId: 203,
-    organizationName: "Eastside Primary Care",
-    reason: "Payment failure",
-    triggeredBy: "system",
-    triggeredById: null,
-    triggeredByName: "Automated System",
-    status: "to_purgatory",
-    createdAt: "2025-05-02T09:15:00.000Z",
-    resolvedAt: "2025-05-03T11:30:00.000Z"
-  },
-  {
-    id: 125,
-    organizationId: 204,
-    organizationName: "Central Radiology Associates",
-    reason: "Compliance review",
-    triggeredBy: "super_admin",
-    triggeredById: 101,
-    triggeredByName: "System Administrator",
-    status: "to_purgatory",
-    createdAt: "2025-05-01T16:45:00.000Z",
-    resolvedAt: "2025-05-02T14:20:00.000Z"
-  }
-];
+import {
+  getValidationLogs,
+  getEnhancedValidationLogs,
+  getCreditUsageLogs,
+  getPurgatoryEvents,
+  ValidationLog,
+  CreditUsageLog,
+  PurgatoryEvent,
+  LogsPagination
+} from "@/lib/superadmin-api";
 
 const SuperAdminLogs = () => {
   // State for validation logs
@@ -274,6 +77,194 @@ const SuperAdminLogs = () => {
   // State for current tab
   const [currentTab, setCurrentTab] = useState<string>("validation");
   
+  // Data state
+  const [validationLogs, setValidationLogs] = useState<ValidationLog[]>([]);
+  const [creditUsageLogs, setCreditUsageLogs] = useState<CreditUsageLog[]>([]);
+  const [purgatoryEvents, setPurgatoryEvents] = useState<PurgatoryEvent[]>([]);
+  
+  // Pagination state
+  const [validationPagination, setValidationPagination] = useState<LogsPagination>({
+    total: 0,
+    limit: 50,
+    offset: 0,
+    has_more: false
+  });
+  const [creditPagination, setCreditPagination] = useState<LogsPagination>({
+    total: 0,
+    limit: 50,
+    offset: 0,
+    has_more: false
+  });
+  const [purgatoryPagination, setPurgatoryPagination] = useState<LogsPagination>({
+    total: 0,
+    limit: 50,
+    offset: 0,
+    has_more: false
+  });
+  
+  // Loading state
+  const [validationLoading, setValidationLoading] = useState<boolean>(false);
+  const [creditLoading, setCreditLoading] = useState<boolean>(false);
+  const [purgatoryLoading, setPurgatoryLoading] = useState<boolean>(false);
+  
+  // Load validation logs
+  const loadValidationLogs = async (offset: number = 0) => {
+    setValidationLoading(true);
+    try {
+      const params: any = {
+        limit: 50,
+        offset: offset
+      };
+      
+      // Add filters
+      if (validationOrgFilter !== "all") {
+        params.organization_id = parseInt(validationOrgFilter);
+      }
+      
+      if (validationStatusFilter !== "all") {
+        params.status = validationStatusFilter;
+      }
+      
+      if (validationProviderFilter !== "all") {
+        params.llm_provider = validationProviderFilter;
+      }
+      
+      if (validationDatePreset !== "all") {
+        params.date_preset = validationDatePreset;
+      }
+      
+      if (validationSearchTerm) {
+        params.search_text = validationSearchTerm;
+      }
+      
+      if (validationSortBy) {
+        params.sort_by = validationSortBy;
+        params.sort_direction = validationSortDir;
+      }
+      
+      const response = validationTab === "enhanced" 
+        ? await getEnhancedValidationLogs(params)
+        : await getValidationLogs(params);
+      
+      setValidationLogs(response.logs);
+      setValidationPagination(response.pagination);
+    } catch (error) {
+      console.error('Error loading validation logs:', error);
+      setValidationLogs([]);
+    } finally {
+      setValidationLoading(false);
+    }
+  };
+  
+  // Load credit usage logs
+  const loadCreditUsageLogs = async (offset: number = 0) => {
+    setCreditLoading(true);
+    try {
+      const params: any = {
+        limit: 50,
+        offset: offset
+      };
+      
+      // Add filters
+      if (creditOrgFilter !== "all") {
+        params.organization_id = parseInt(creditOrgFilter);
+      }
+      
+      if (creditActionFilter !== "all") {
+        params.action_type = creditActionFilter;
+      }
+      
+      if (creditDateRange !== "all") {
+        params.date_preset = creditDateRange;
+      }
+      
+      if (creditSearchTerm) {
+        params.search_text = creditSearchTerm;
+      }
+      
+      const response = await getCreditUsageLogs(params);
+      setCreditUsageLogs(response.logs);
+      setCreditPagination(response.pagination);
+    } catch (error) {
+      console.error('Error loading credit usage logs:', error);
+      setCreditUsageLogs([]);
+    } finally {
+      setCreditLoading(false);
+    }
+  };
+  
+  // Load purgatory events
+  const loadPurgatoryEvents = async (offset: number = 0) => {
+    setPurgatoryLoading(true);
+    try {
+      const params: any = {
+        limit: 50,
+        offset: offset
+      };
+      
+      // Add filters
+      if (purgatoryStatusFilter !== "all") {
+        params.status = purgatoryStatusFilter;
+      }
+      
+      if (purgatoryDateRange !== "all") {
+        params.date_preset = purgatoryDateRange;
+      }
+      
+      if (purgatorySearchTerm) {
+        params.search_text = purgatorySearchTerm;
+      }
+      
+      const response = await getPurgatoryEvents(params);
+      setPurgatoryEvents(response.events);
+      setPurgatoryPagination(response.pagination);
+    } catch (error) {
+      console.error('Error loading purgatory events:', error);
+      setPurgatoryEvents([]);
+    } finally {
+      setPurgatoryLoading(false);
+    }
+  };
+  
+  // Load data when tab changes or filters change
+  useEffect(() => {
+    if (currentTab === "validation") {
+      loadValidationLogs();
+    } else if (currentTab === "credits") {
+      loadCreditUsageLogs();
+    } else if (currentTab === "purgatory") {
+      loadPurgatoryEvents();
+    }
+  }, [
+    currentTab,
+    validationTab,
+    validationOrgFilter,
+    validationStatusFilter,
+    validationProviderFilter,
+    validationDatePreset,
+    validationSortBy,
+    validationSortDir,
+    creditOrgFilter,
+    creditActionFilter,
+    creditDateRange,
+    purgatoryStatusFilter,
+    purgatoryDateRange
+  ]);
+  
+  // Search with debounce
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (currentTab === "validation") {
+        loadValidationLogs();
+      } else if (currentTab === "credits") {
+        loadCreditUsageLogs();
+      } else if (currentTab === "purgatory") {
+        loadPurgatoryEvents();
+      }
+    }, 500);
+    
+    return () => clearTimeout(timeoutId);
+  }, [validationSearchTerm, creditSearchTerm, purgatorySearchTerm]);
   
   // Format datetime
   const formatDateTime = (dateString: string) => {
@@ -314,12 +305,21 @@ const SuperAdminLogs = () => {
   // Get badge for credit usage action type
   const getCreditActionBadge = (actionType: string) => {
     switch (actionType) {
+      case "order_submitted":
+        return <Badge className="bg-blue-100 text-blue-800 border-blue-300">Order Submitted</Badge>;
+      case "order_received":
+        return <Badge className="bg-purple-100 text-purple-800 border-purple-300">Order Received</Badge>;
+      case "manual_adjustment":
+        return <Badge className="bg-amber-100 text-amber-800 border-amber-300">Manual Adjustment</Badge>;
+      case "subscription_renewal":
+        return <Badge className="bg-cyan-100 text-cyan-800 border-cyan-300">Subscription Renewal</Badge>;
+      case "credit_purchase":
+        return <Badge className="bg-green-100 text-green-800 border-green-300">Credit Purchase</Badge>;
+      // Legacy support for old action types
       case "order_submission":
         return <Badge className="bg-blue-100 text-blue-800 border-blue-300">Order Submission</Badge>;
-      case "credit_purchase":
-        return <Badge className="bg-green-100 text-green-800 border-green-300">Purchase</Badge>;
       case "credit_adjustment":
-        return <Badge className="bg-amber-100 text-amber-800 border-amber-300">Adjustment</Badge>;
+        return <Badge className="bg-amber-100 text-amber-800 border-amber-300">Credit Adjustment</Badge>;
       default:
         return <Badge className="bg-slate-100 text-slate-800 border-slate-300">{actionType}</Badge>;
     }
@@ -419,8 +419,8 @@ const SuperAdminLogs = () => {
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="all">All Providers</SelectItem>
-                            <SelectItem value="anthropic">Anthropic</SelectItem>
-                            <SelectItem value="openai">OpenAI</SelectItem>
+                            <SelectItem value="Anthropic">Anthropic</SelectItem>
+                            <SelectItem value="OpenAI">OpenAI</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
@@ -437,7 +437,7 @@ const SuperAdminLogs = () => {
                             <SelectItem value="last_30_days">Last 30 Days</SelectItem>
                             <SelectItem value="this_month">This Month</SelectItem>
                             <SelectItem value="last_month">Last Month</SelectItem>
-                            <SelectItem value="custom">Custom Range</SelectItem>
+                            <SelectItem value="all">All Time</SelectItem>
                           </SelectContent>
                         </Select>
                         
@@ -447,9 +447,6 @@ const SuperAdminLogs = () => {
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="all">All Organizations</SelectItem>
-                            <SelectItem value="202">Northwest Medical Group</SelectItem>
-                            <SelectItem value="203">Eastside Primary Care</SelectItem>
-                            <SelectItem value="204">Central Radiology Associates</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
@@ -534,52 +531,67 @@ const SuperAdminLogs = () => {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {validationLogs.map(log => (
-                            <TableRow key={log.id}>
-                              <TableCell className="font-medium">
-                                {formatDateTime(log.createdAt)}
-                              </TableCell>
-                              <TableCell>
-                                <div className="space-y-1">
-                                  <div>{log.userName}</div>
-                                  <Badge variant="outline" className="bg-slate-50">
-                                    {log.organizationName}
-                                  </Badge>
-                                </div>
-                              </TableCell>
-                              <TableCell>
-                                {getValidationStatusBadge(log.status)}
-                                {log.errorMessage && (
-                                  <div className="mt-1 text-xs text-red-600">{log.errorMessage}</div>
-                                )}
-                              </TableCell>
-                              <TableCell>
-                                <div className="space-y-1">
-                                  <div>{log.llmProvider}</div>
-                                  <div className="text-xs text-slate-500">{log.modelName}</div>
-                                </div>
-                              </TableCell>
-                              <TableCell>
-                                <span className={`font-medium ${log.latencyMs > 3000 ? 'text-amber-600' : log.latencyMs > 5000 ? 'text-red-600' : ''}`}>
-                                  {formatLatency(log.latencyMs)}
-                                </span>
-                              </TableCell>
-                              <TableCell>
-                                <div className="space-y-1">
-                                  <div>{log.totalTokens.toLocaleString()}</div>
-                                  <div className="text-xs text-slate-500">
-                                    {log.promptTokens.toLocaleString()} in / {log.completionTokens.toLocaleString()} out
-                                  </div>
-                                </div>
-                              </TableCell>
-                              <TableCell className="text-right">
-                                <Button variant="ghost" size="sm">
-                                  <FileJson className="h-4 w-4 mr-1" />
-                                  Details
-                                </Button>
+                          {validationLoading ? (
+                            <TableRow>
+                              <TableCell colSpan={7} className="text-center py-8">
+                                <Loader2 className="h-6 w-6 animate-spin mx-auto" />
+                                <p className="mt-2 text-slate-500">Loading validation logs...</p>
                               </TableCell>
                             </TableRow>
-                          ))}
+                          ) : validationLogs.length === 0 ? (
+                            <TableRow>
+                              <TableCell colSpan={7} className="text-center py-8">
+                                <p className="text-slate-500">No validation logs found</p>
+                              </TableCell>
+                            </TableRow>
+                          ) : (
+                            validationLogs.map(log => (
+                              <TableRow key={log.id}>
+                                <TableCell className="font-medium">
+                                  {formatDateTime(log.created_at)}
+                                </TableCell>
+                                <TableCell>
+                                  <div className="space-y-1">
+                                    <div>{log.user_name}</div>
+                                    <Badge variant="outline" className="bg-slate-50">
+                                      {log.organization_name}
+                                    </Badge>
+                                  </div>
+                                </TableCell>
+                                <TableCell>
+                                  {getValidationStatusBadge(log.status)}
+                                  {log.error_message && (
+                                    <div className="mt-1 text-xs text-red-600">{log.error_message}</div>
+                                  )}
+                                </TableCell>
+                                <TableCell>
+                                  <div className="space-y-1">
+                                    <div>{log.llm_provider}</div>
+                                    <div className="text-xs text-slate-500">{log.model_name}</div>
+                                  </div>
+                                </TableCell>
+                                <TableCell>
+                                  <span className={`font-medium ${log.latency_ms > 3000 ? 'text-amber-600' : log.latency_ms > 5000 ? 'text-red-600' : ''}`}>
+                                    {formatLatency(log.latency_ms)}
+                                  </span>
+                                </TableCell>
+                                <TableCell>
+                                  <div className="space-y-1">
+                                    <div>{log.total_tokens.toLocaleString()}</div>
+                                    <div className="text-xs text-slate-500">
+                                      {log.prompt_tokens.toLocaleString()} in / {log.completion_tokens.toLocaleString()} out
+                                    </div>
+                                  </div>
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  <Button variant="ghost" size="sm">
+                                    <FileJson className="h-4 w-4 mr-1" />
+                                    Details
+                                  </Button>
+                                </TableCell>
+                              </TableRow>
+                            ))
+                          )}
                         </TableBody>
                       </Table>
                     </div>
@@ -587,14 +599,24 @@ const SuperAdminLogs = () => {
                     {/* Pagination */}
                     <div className="flex items-center justify-between">
                       <div className="text-sm text-slate-500">
-                        Showing 1-5 of 127 logs
+                        Showing {validationPagination.offset + 1}-{Math.min(validationPagination.offset + validationPagination.limit, validationPagination.total)} of {validationPagination.total} logs
                       </div>
                       <div className="flex items-center space-x-2">
-                        <Button variant="outline" size="sm" disabled>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          disabled={validationPagination.offset === 0}
+                          onClick={() => loadValidationLogs(Math.max(0, validationPagination.offset - validationPagination.limit))}
+                        >
                           <ChevronLeft className="h-4 w-4 mr-1" />
                           Previous
                         </Button>
-                        <Button variant="outline" size="sm">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          disabled={!validationPagination.has_more}
+                          onClick={() => loadValidationLogs(validationPagination.offset + validationPagination.limit)}
+                        >
                           Next
                           <ChevronRight className="h-4 w-4 ml-1" />
                         </Button>
@@ -606,7 +628,7 @@ const SuperAdminLogs = () => {
                 {/* Basic Validation Logs View */}
                 <TabsContent value="basic">
                   <div className="text-center py-8">
-                    <p className="text-slate-500">Basic view is similar to enhanced view but with fewer filtering options and details.</p>
+                    <p className="text-slate-500">Basic view uses the same data as enhanced view but with fewer filtering options.</p>
                   </div>
                 </TabsContent>
               </Tabs>
@@ -645,9 +667,11 @@ const SuperAdminLogs = () => {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all">All Actions</SelectItem>
-                        <SelectItem value="order_submission">Order Submission</SelectItem>
+                        <SelectItem value="order_submitted">Order Submitted</SelectItem>
+                        <SelectItem value="order_received">Order Received</SelectItem>
+                        <SelectItem value="manual_adjustment">Manual Adjustment</SelectItem>
+                        <SelectItem value="subscription_renewal">Subscription Renewal</SelectItem>
                         <SelectItem value="credit_purchase">Credit Purchase</SelectItem>
-                        <SelectItem value="credit_adjustment">Credit Adjustment</SelectItem>
                       </SelectContent>
                     </Select>
                     
@@ -657,8 +681,6 @@ const SuperAdminLogs = () => {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all">All Organizations</SelectItem>
-                        <SelectItem value="202">Northwest Medical Group</SelectItem>
-                        <SelectItem value="203">Eastside Primary Care</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -696,37 +718,52 @@ const SuperAdminLogs = () => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {creditUsageLogs.map(log => (
-                        <TableRow key={log.id}>
-                          <TableCell className="font-medium">
-                            {formatDateTime(log.createdAt)}
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="outline" className="bg-slate-50">
-                              {log.organizationName}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            {log.userName || "System"}
-                          </TableCell>
-                          <TableCell>
-                            {getCreditActionBadge(log.actionType)}
-                          </TableCell>
-                          <TableCell className={log.actionType === 'order_submission' ? 'text-red-600 font-medium' : 'text-green-600 font-medium'}>
-                            {log.actionType === 'order_submission' ? '-' : '+'}
-                            {log.tokensBurned}
-                          </TableCell>
-                          <TableCell>
-                            {log.orderId ? `#${log.orderId}` : "-"}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <Button variant="ghost" size="sm">
-                              <FileJson className="h-4 w-4 mr-1" />
-                              Details
-                            </Button>
+                      {creditLoading ? (
+                        <TableRow>
+                          <TableCell colSpan={7} className="text-center py-8">
+                            <Loader2 className="h-6 w-6 animate-spin mx-auto" />
+                            <p className="mt-2 text-slate-500">Loading credit usage logs...</p>
                           </TableCell>
                         </TableRow>
-                      ))}
+                      ) : creditUsageLogs.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={7} className="text-center py-8">
+                            <p className="text-slate-500">No credit usage logs found</p>
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        creditUsageLogs.map(log => (
+                          <TableRow key={log.id}>
+                            <TableCell className="font-medium">
+                              {formatDateTime(log.created_at)}
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className="bg-slate-50">
+                                {log.organization_name}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              {log.user_name || "System"}
+                            </TableCell>
+                            <TableCell>
+                              {getCreditActionBadge(log.action_type)}
+                            </TableCell>
+                            <TableCell className={(log.tokens_burned * -1) < 0 ? 'text-red-600 font-medium' : 'text-green-600 font-medium'}>
+                              {(log.tokens_burned * -1) < 0 ? '' : '+'}
+                              {log.tokens_burned * -1}
+                            </TableCell>
+                            <TableCell>
+                              {log.order_id ? `#${log.order_id}` : "-"}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <Button variant="ghost" size="sm">
+                                <FileJson className="h-4 w-4 mr-1" />
+                                Details
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
                     </TableBody>
                   </Table>
                 </div>
@@ -734,14 +771,24 @@ const SuperAdminLogs = () => {
                 {/* Pagination */}
                 <div className="flex items-center justify-between">
                   <div className="text-sm text-slate-500">
-                    Showing 1-5 of 89 logs
+                    Showing {creditPagination.offset + 1}-{Math.min(creditPagination.offset + creditPagination.limit, creditPagination.total)} of {creditPagination.total} logs
                   </div>
                   <div className="flex items-center space-x-2">
-                    <Button variant="outline" size="sm" disabled>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={creditPagination.offset === 0}
+                      onClick={() => loadCreditUsageLogs(Math.max(0, creditPagination.offset - creditPagination.limit))}
+                    >
                       <ChevronLeft className="h-4 w-4 mr-1" />
                       Previous
                     </Button>
-                    <Button variant="outline" size="sm">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={!creditPagination.has_more}
+                      onClick={() => loadCreditUsageLogs(creditPagination.offset + creditPagination.limit)}
+                    >
                       Next
                       <ChevronRight className="h-4 w-4 ml-1" />
                     </Button>
@@ -818,54 +865,69 @@ const SuperAdminLogs = () => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {purgatoryEvents.map(event => (
-                        <TableRow key={event.id}>
-                          <TableCell className="font-medium">
-                            {formatDateTime(event.createdAt)}
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="outline" className="bg-slate-50">
-                              {event.organizationName}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            {getPurgatoryStatusBadge(event.status)}
-                          </TableCell>
-                          <TableCell>
-                            {event.reason}
-                          </TableCell>
-                          <TableCell>
-                            {event.triggeredByName}
-                          </TableCell>
-                          <TableCell>
-                            {event.resolvedAt ? (
-                              <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                                <Clock className="h-3 w-3 mr-1" />
-                                {formatDateShort(event.resolvedAt)}
-                              </Badge>
-                            ) : (
-                              <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
-                                <AlertCircle className="h-3 w-3 mr-1" />
-                                Active
-                              </Badge>
-                            )}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            {!event.resolvedAt && (
-                              <Button variant="outline" size="sm" className="text-green-600 border-green-300 hover:bg-green-50">
-                                <Check className="h-4 w-4 mr-1" />
-                                Resolve
-                              </Button>
-                            )}
-                            {event.resolvedAt && (
-                              <Button variant="ghost" size="sm">
-                                <FileJson className="h-4 w-4 mr-1" />
-                                Details
-                              </Button>
-                            )}
+                      {purgatoryLoading ? (
+                        <TableRow>
+                          <TableCell colSpan={7} className="text-center py-8">
+                            <Loader2 className="h-6 w-6 animate-spin mx-auto" />
+                            <p className="mt-2 text-slate-500">Loading purgatory events...</p>
                           </TableCell>
                         </TableRow>
-                      ))}
+                      ) : purgatoryEvents.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={7} className="text-center py-8">
+                            <p className="text-slate-500">No purgatory events found</p>
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        purgatoryEvents.map(event => (
+                          <TableRow key={event.id}>
+                            <TableCell className="font-medium">
+                              {formatDateTime(event.created_at)}
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className="bg-slate-50">
+                                {event.organization_name}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              {getPurgatoryStatusBadge(event.status)}
+                            </TableCell>
+                            <TableCell>
+                              {event.reason}
+                            </TableCell>
+                            <TableCell>
+                              {event.triggered_by_name}
+                            </TableCell>
+                            <TableCell>
+                              {event.resolved_at ? (
+                                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                                  <Clock className="h-3 w-3 mr-1" />
+                                  {formatDateShort(event.resolved_at)}
+                                </Badge>
+                              ) : (
+                                <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
+                                  <AlertCircle className="h-3 w-3 mr-1" />
+                                  Active
+                                </Badge>
+                              )}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {!event.resolved_at && (
+                                <Button variant="outline" size="sm" className="text-green-600 border-green-300 hover:bg-green-50">
+                                  <Check className="h-4 w-4 mr-1" />
+                                  Resolve
+                                </Button>
+                              )}
+                              {event.resolved_at && (
+                                <Button variant="ghost" size="sm">
+                                  <FileJson className="h-4 w-4 mr-1" />
+                                  Details
+                                </Button>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
                     </TableBody>
                   </Table>
                 </div>
@@ -873,14 +935,24 @@ const SuperAdminLogs = () => {
                 {/* Pagination */}
                 <div className="flex items-center justify-between">
                   <div className="text-sm text-slate-500">
-                    Showing 1-3 of 3 events
+                    Showing {purgatoryPagination.offset + 1}-{Math.min(purgatoryPagination.offset + purgatoryPagination.limit, purgatoryPagination.total)} of {purgatoryPagination.total} events
                   </div>
                   <div className="flex items-center space-x-2">
-                    <Button variant="outline" size="sm" disabled>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={purgatoryPagination.offset === 0}
+                      onClick={() => loadPurgatoryEvents(Math.max(0, purgatoryPagination.offset - purgatoryPagination.limit))}
+                    >
                       <ChevronLeft className="h-4 w-4 mr-1" />
                       Previous
                     </Button>
-                    <Button variant="outline" size="sm" disabled>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={!purgatoryPagination.has_more}
+                      onClick={() => loadPurgatoryEvents(purgatoryPagination.offset + purgatoryPagination.limit)}
+                    >
                       Next
                       <ChevronRight className="h-4 w-4 ml-1" />
                     </Button>

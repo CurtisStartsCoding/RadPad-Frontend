@@ -572,3 +572,429 @@ export async function updateUserStatus(
     throw error;
   }
 }
+
+// System Logs Types and Functions
+
+// Validation log types
+export interface ValidationLog {
+  id: number;
+  order_id: number;
+  validation_attempt_id: number;
+  user_id: number;
+  organization_id: number;
+  llm_provider: string;
+  model_name: string;
+  prompt_template_id: number;
+  prompt_tokens: number;
+  completion_tokens: number;
+  total_tokens: number;
+  latency_ms: number;
+  status: string;
+  error_message?: string;
+  created_at: string;
+  user_name: string;
+  organization_name: string;
+}
+
+// Credit usage log types
+export interface CreditUsageLog {
+  id: number;
+  organization_id: number;
+  user_id?: number;
+  order_id?: number;
+  validation_attempt_id?: number;
+  tokens_burned: number;
+  action_type: string;
+  created_at: string;
+  user_name?: string;
+  organization_name: string;
+}
+
+// Purgatory event types
+export interface PurgatoryEvent {
+  id: number;
+  organization_id: number;
+  reason: string;
+  triggered_by: string;
+  triggered_by_id?: number;
+  status: string;
+  created_at: string;
+  resolved_at?: string;
+  organization_name: string;
+  triggered_by_name: string;
+}
+
+// Pagination type
+export interface LogsPagination {
+  total: number;
+  limit: number;
+  offset: number;
+  has_more: boolean;
+}
+
+/**
+ * Get validation logs with basic filtering
+ *
+ * @param params Optional filter parameters
+ * @returns Promise with validation logs and pagination
+ */
+export async function getValidationLogs(params?: {
+  organization_id?: number;
+  user_id?: number;
+  date_range_start?: string;
+  date_range_end?: string;
+  status?: string;
+  llm_provider?: string;
+  model_name?: string;
+  limit?: number;
+  offset?: number;
+}): Promise<{
+  logs: ValidationLog[];
+  pagination: LogsPagination;
+}> {
+  try {
+    // Build query parameters
+    const queryParams = new URLSearchParams();
+    
+    if (params?.organization_id) {
+      queryParams.append('organization_id', params.organization_id.toString());
+    }
+    
+    if (params?.user_id) {
+      queryParams.append('user_id', params.user_id.toString());
+    }
+    
+    if (params?.date_range_start) {
+      queryParams.append('date_range_start', params.date_range_start);
+    }
+    
+    if (params?.date_range_end) {
+      queryParams.append('date_range_end', params.date_range_end);
+    }
+    
+    if (params?.status) {
+      queryParams.append('status', params.status);
+    }
+    
+    if (params?.llm_provider) {
+      queryParams.append('llm_provider', params.llm_provider);
+    }
+    
+    if (params?.model_name) {
+      queryParams.append('model_name', params.model_name);
+    }
+    
+    if (params?.limit) {
+      queryParams.append('limit', params.limit.toString());
+    }
+    
+    if (params?.offset) {
+      queryParams.append('offset', params.offset.toString());
+    }
+    
+    const queryString = queryParams.toString();
+    const url = `/api/superadmin/logs/validation${queryString ? `?${queryString}` : ''}`;
+    
+    const response = await apiRequest('GET', url);
+    const data = await response.json();
+    
+    if (data.success && Array.isArray(data.data)) {
+      return {
+        logs: data.data,
+        pagination: data.pagination
+      };
+    }
+    
+    return {
+      logs: [],
+      pagination: {
+        total: 0,
+        limit: 50,
+        offset: 0,
+        has_more: false
+      }
+    };
+  } catch (error) {
+    console.error('Error getting validation logs:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get enhanced validation logs with advanced filtering
+ *
+ * @param params Optional filter parameters
+ * @returns Promise with validation logs and pagination
+ */
+export async function getEnhancedValidationLogs(params?: {
+  organization_id?: number;
+  user_id?: number;
+  date_range_start?: string;
+  date_range_end?: string;
+  status?: string;
+  statuses?: string;
+  llm_provider?: string;
+  llm_providers?: string;
+  model_name?: string;
+  model_names?: string;
+  search_text?: string;
+  date_preset?: string;
+  sort_by?: string;
+  sort_direction?: string;
+  limit?: number;
+  offset?: number;
+}): Promise<{
+  logs: ValidationLog[];
+  pagination: LogsPagination;
+}> {
+  try {
+    // Build query parameters
+    const queryParams = new URLSearchParams();
+    
+    if (params?.organization_id) {
+      queryParams.append('organization_id', params.organization_id.toString());
+    }
+    
+    if (params?.user_id) {
+      queryParams.append('user_id', params.user_id.toString());
+    }
+    
+    if (params?.date_range_start) {
+      queryParams.append('date_range_start', params.date_range_start);
+    }
+    
+    if (params?.date_range_end) {
+      queryParams.append('date_range_end', params.date_range_end);
+    }
+    
+    if (params?.status) {
+      queryParams.append('status', params.status);
+    }
+    
+    if (params?.statuses) {
+      queryParams.append('statuses', params.statuses);
+    }
+    
+    if (params?.llm_provider) {
+      queryParams.append('llm_provider', params.llm_provider);
+    }
+    
+    if (params?.llm_providers) {
+      queryParams.append('llm_providers', params.llm_providers);
+    }
+    
+    if (params?.model_name) {
+      queryParams.append('model_name', params.model_name);
+    }
+    
+    if (params?.model_names) {
+      queryParams.append('model_names', params.model_names);
+    }
+    
+    if (params?.search_text) {
+      queryParams.append('search_text', params.search_text);
+    }
+    
+    if (params?.date_preset) {
+      queryParams.append('date_preset', params.date_preset);
+    }
+    
+    if (params?.sort_by) {
+      queryParams.append('sort_by', params.sort_by);
+    }
+    
+    if (params?.sort_direction) {
+      queryParams.append('sort_direction', params.sort_direction);
+    }
+    
+    if (params?.limit) {
+      queryParams.append('limit', params.limit.toString());
+    }
+    
+    if (params?.offset) {
+      queryParams.append('offset', params.offset.toString());
+    }
+    
+    const queryString = queryParams.toString();
+    const url = `/api/superadmin/logs/validation/enhanced${queryString ? `?${queryString}` : ''}`;
+    
+    const response = await apiRequest('GET', url);
+    const data = await response.json();
+    
+    if (data.success && Array.isArray(data.data)) {
+      return {
+        logs: data.data,
+        pagination: data.pagination
+      };
+    }
+    
+    return {
+      logs: [],
+      pagination: {
+        total: 0,
+        limit: 50,
+        offset: 0,
+        has_more: false
+      }
+    };
+  } catch (error) {
+    console.error('Error getting enhanced validation logs:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get credit usage logs
+ *
+ * @param params Optional filter parameters
+ * @returns Promise with credit usage logs and pagination
+ */
+export async function getCreditUsageLogs(params?: {
+  organization_id?: number;
+  user_id?: number;
+  date_range_start?: string;
+  date_range_end?: string;
+  action_type?: string;
+  limit?: number;
+  offset?: number;
+}): Promise<{
+  logs: CreditUsageLog[];
+  pagination: LogsPagination;
+}> {
+  try {
+    // Build query parameters
+    const queryParams = new URLSearchParams();
+    
+    if (params?.organization_id) {
+      queryParams.append('organization_id', params.organization_id.toString());
+    }
+    
+    if (params?.user_id) {
+      queryParams.append('user_id', params.user_id.toString());
+    }
+    
+    if (params?.date_range_start) {
+      queryParams.append('date_range_start', params.date_range_start);
+    }
+    
+    if (params?.date_range_end) {
+      queryParams.append('date_range_end', params.date_range_end);
+    }
+    
+    if (params?.action_type) {
+      queryParams.append('action_type', params.action_type);
+    }
+    
+    if (params?.limit) {
+      queryParams.append('limit', params.limit.toString());
+    }
+    
+    if (params?.offset) {
+      queryParams.append('offset', params.offset.toString());
+    }
+    
+    const queryString = queryParams.toString();
+    const url = `/api/superadmin/logs/credits${queryString ? `?${queryString}` : ''}`;
+    
+    const response = await apiRequest('GET', url);
+    const data = await response.json();
+    
+    if (data.success && Array.isArray(data.data)) {
+      return {
+        logs: data.data,
+        pagination: data.pagination
+      };
+    }
+    
+    return {
+      logs: [],
+      pagination: {
+        total: 0,
+        limit: 50,
+        offset: 0,
+        has_more: false
+      }
+    };
+  } catch (error) {
+    console.error('Error getting credit usage logs:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get purgatory events
+ *
+ * @param params Optional filter parameters
+ * @returns Promise with purgatory events and pagination
+ */
+export async function getPurgatoryEvents(params?: {
+  organization_id?: number;
+  date_range_start?: string;
+  date_range_end?: string;
+  status?: string;
+  reason?: string;
+  limit?: number;
+  offset?: number;
+}): Promise<{
+  events: PurgatoryEvent[];
+  pagination: LogsPagination;
+}> {
+  try {
+    // Build query parameters
+    const queryParams = new URLSearchParams();
+    
+    if (params?.organization_id) {
+      queryParams.append('organization_id', params.organization_id.toString());
+    }
+    
+    if (params?.date_range_start) {
+      queryParams.append('date_range_start', params.date_range_start);
+    }
+    
+    if (params?.date_range_end) {
+      queryParams.append('date_range_end', params.date_range_end);
+    }
+    
+    if (params?.status) {
+      queryParams.append('status', params.status);
+    }
+    
+    if (params?.reason) {
+      queryParams.append('reason', params.reason);
+    }
+    
+    if (params?.limit) {
+      queryParams.append('limit', params.limit.toString());
+    }
+    
+    if (params?.offset) {
+      queryParams.append('offset', params.offset.toString());
+    }
+    
+    const queryString = queryParams.toString();
+    const url = `/api/superadmin/logs/purgatory${queryString ? `?${queryString}` : ''}`;
+    
+    const response = await apiRequest('GET', url);
+    const data = await response.json();
+    
+    if (data.success && Array.isArray(data.data)) {
+      return {
+        events: data.data,
+        pagination: data.pagination
+      };
+    }
+    
+    return {
+      events: [],
+      pagination: {
+        total: 0,
+        limit: 50,
+        offset: 0,
+        has_more: false
+      }
+    };
+  } catch (error) {
+    console.error('Error getting purgatory events:', error);
+    throw error;
+  }
+}
