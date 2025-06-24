@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Table,
   TableBody,
@@ -20,11 +20,13 @@ import {
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, Filter, Calendar, Clock, ArrowUpDown, FileText, CheckCircle2, Calendar as CalendarIcon, Loader2 } from "lucide-react";
+import { Search, Filter, Calendar, Clock, ArrowUpDown, FileText, CheckCircle2, Calendar as CalendarIcon, Loader2, AlertCircle } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { formatDateShort } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import PageHeader from "@/components/layout/PageHeader";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { useAuth } from "@/lib/useAuth";
 
 // Define the Order type based on actual API response
 interface ApiRadiologyOrder {
@@ -45,11 +47,31 @@ interface ApiRadiologyOrder {
   patient_mrn?: string | null;
   referring_physician_name: string | null;
   referring_organization_id?: number;
+  radiology_organization_id?: number;
+  radiology_organization_name?: string;
 }
 
 const RadiologyQueue = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFilter, setSelectedFilter] = useState("all");
+  const queryClient = useQueryClient();
+  const { user: authUser } = useAuth();
+  
+  // Get current user info - try multiple sources
+  const sessionData = queryClient.getQueryData(['session']) as any;
+  const userFromCache = queryClient.getQueryData(['user']) as any;
+  const userFromStorage = localStorage.getItem('rad_order_pad_user_data');
+  const parsedUserFromStorage = userFromStorage ? JSON.parse(userFromStorage) : null;
+  
+  // Try to get user from different sources, including useAuth hook
+  const currentUser = authUser || sessionData?.user || userFromCache || parsedUserFromStorage;
+  
+  // Log for debugging
+  console.log('🔍 Debug - Auth User:', authUser);
+  console.log('🔍 Debug - Session Data:', sessionData);
+  console.log('🔍 Debug - User from Cache:', userFromCache);
+  console.log('🔍 Debug - User from Storage:', parsedUserFromStorage);
+  console.log('🔍 Debug - Current User:', currentUser);
   
   // Fetch orders from the API
   const { data, isLoading, error } = useQuery<{orders: ApiRadiologyOrder[]} | ApiRadiologyOrder[]>({
@@ -60,6 +82,7 @@ const RadiologyQueue = () => {
         throw new Error('Failed to fetch radiology orders');
       }
       const data = await response.json();
+      console.log('📋 Radiology Orders Response:', data);
       return data;
     },
     staleTime: 60000, // 1 minute
@@ -124,6 +147,40 @@ const RadiologyQueue = () => {
           View Schedule
         </Button>
       </PageHeader>
+      
+      {/* Debug Information - Temporarily always show for debugging */}
+      {true && (
+        <Alert className="mb-4 border-blue-200 bg-blue-50">
+          <AlertCircle className="h-4 w-4 text-blue-600" />
+          <AlertTitle className="text-blue-900">Debug Information (Scheduler View)</AlertTitle>
+          <AlertDescription className="text-blue-800">
+            <div className="space-y-1 mt-2">
+              <p><strong>Current User:</strong> {currentUser?.email || 'Not logged in'}</p>
+              <p><strong>User Role:</strong> {currentUser?.role || 'Unknown'}</p>
+              <p><strong>Organization ID:</strong> {currentUser?.organizationId || currentUser?.organization_id || 'None'}</p>
+              <p><strong>API Endpoint:</strong> /api/radiology/orders</p>
+              <p><strong>Orders Found:</strong> {orders.length}</p>
+              <p><strong>Response Data:</strong> {data ? JSON.stringify(data).substring(0, 100) + '...' : 'No data'}</p>
+              {orders.length > 0 && (
+                <details className="mt-2">
+                  <summary className="cursor-pointer text-sm font-medium">Order Details (click to expand)</summary>
+                  <div className="mt-2 space-y-2 text-xs">
+                    {orders.slice(0, 5).map((order, idx) => (
+                      <div key={order.id} className="p-2 bg-gray-50 rounded">
+                        <p><strong>Order #{idx + 1}:</strong> {order.order_number || `ID: ${order.id}`}</p>
+                        <p>Status: {order.status}</p>
+                        <p>Created: {new Date(order.created_at).toLocaleDateString()}</p>
+                        <p>Radiology Org ID: {order.radiology_organization_id || 'NULL'}</p>
+                        <p>Referring Org ID: {order.referring_organization_id || 'NULL'}</p>
+                      </div>
+                    ))}
+                  </div>
+                </details>
+              )}
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
       
       <Card>
         <CardHeader className="pb-3">
