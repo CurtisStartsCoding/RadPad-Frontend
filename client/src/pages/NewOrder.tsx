@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/lib/useAuth";
-import { Patient } from "@/lib/types";
+import { Patient, ProcessedDictation } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -23,7 +23,7 @@ const NewOrder = ({ userRole = UserRole.Physician }: NewOrderProps) => {
   const { user, isAuthenticated, isLoading } = useAuth();
   const [orderStep, setOrderStep] = useState<'dictation' | 'validation' | 'signature'>('dictation');
   const [dictationText, setDictationText] = useState("");
-  const [validationResult, setValidationResult] = useState<any>(null);
+  const [validationResult, setValidationResult] = useState<ProcessedDictation | null>(null);
   const [validationFeedback, setValidationFeedback] = useState<string | null>(null);
   const [attemptCount, setAttemptCount] = useState(0);
   const [characterCount, setCharacterCount] = useState(0);
@@ -211,7 +211,7 @@ const NewOrder = ({ userRole = UserRole.Physician }: NewOrderProps) => {
         // Check if we have the expected structure from the remote API
         if (apiResult.validationResult) {
           // Remote API format
-          const result = {
+          const result: ProcessedDictation = {
             validationStatus: apiResult.validationResult.validationStatus === 'appropriate' ? 'valid' : 'invalid',
             feedback: apiResult.validationResult.feedback || 'No feedback provided',
             complianceScore: apiResult.validationResult.complianceScore,

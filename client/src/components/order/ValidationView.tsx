@@ -9,6 +9,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ProcessedDictation } from '@/lib/types';
 
 // Define types for the validation data
 interface MedicalCode {
@@ -16,16 +17,6 @@ interface MedicalCode {
   description: string;
   type: 'ICD-10' | 'CPT';
   isPrimary?: boolean;
-}
-
-export interface ProcessedDictation {
-  orderId?: string | number; // Order ID is not returned by validation endpoint, but may be set later in the workflow
-  validationStatus: 'valid' | 'incomplete' | 'invalid';
-  feedback?: string;
-  complianceScore?: number; // On a scale of 0-9
-  suggestedCodes?: MedicalCode[];
-  overridden?: boolean;
-  overrideJustification?: string;
 }
 
 interface ValidationViewProps {

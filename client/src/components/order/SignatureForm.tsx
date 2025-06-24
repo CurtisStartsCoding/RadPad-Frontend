@@ -266,7 +266,7 @@ const SignatureForm = ({
         });
       }
       
-      onSubmitted(orderId);
+      onSubmitted(typeof orderId === 'string' ? parseInt(orderId, 10) : orderId);
     } catch (error) {
       console.error("Error submitting order:", error);
       toast({

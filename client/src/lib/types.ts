@@ -56,7 +56,7 @@ export interface MedicalCode {
 
 // Processed dictation result
 export interface ProcessedDictation {
-  validationStatus: 'valid' | 'invalid' | 'warning';
+  validationStatus: 'valid' | 'invalid' | 'warning' | 'incomplete';
   feedback: string;
   patientContext?: any;
   cptCode?: string;
@@ -76,7 +76,14 @@ export interface ProcessedDictation {
   diagnosisCodes?: MedicalCode[];
   procedureCodes?: MedicalCode[];
   keywords?: string[];
-  orderId?: number;
+  orderId?: number | string;
+  suggestedCodes?: Array<{
+    code: string;
+    description: string;
+    type: 'ICD-10' | 'CPT';
+    confidence?: number;
+    isPrimary?: boolean;
+  }>;
 }
 
 // Organization types
