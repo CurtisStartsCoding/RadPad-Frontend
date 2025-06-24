@@ -12,6 +12,7 @@ import { getUserRoleFromStorage } from "@/lib/navigation";
 import AppHeader from "@/components/layout/AppHeader";
 import Dashboard from "@/pages/Dashboard";
 import NewOrder from "@/pages/NewOrder";
+import NewOrderMockup from "@/pages/NewOrderMockup";
 import OrderList from "@/pages/OrderList";
 import OrderDetailsView from "@/pages/OrderDetailsView";
 import PatientHistoryView from "@/pages/PatientHistoryView";
@@ -376,6 +377,24 @@ function App() {
                   />
                   <main className="h-full pt-16">
                     <NewOrder userRole={(user?.role as UserRole) || currentRole} />
+                  </main>
+                </div>
+              </div>
+            ) : (
+              <AuthPage />
+            )}
+          </Route>
+          <Route path="/new-order-mockup">
+            {shouldBeAuthenticated ? (
+              <div className="h-screen flex flex-col">
+                <div className="w-full flex-1 overflow-auto">
+                  <AppHeader
+                    title="New Order (Mockup)"
+                    subtitle="Testing prototype validation UI"
+                    onNavigate={handleNavigate}
+                  />
+                  <main className="h-full pt-16">
+                    <NewOrderMockup userRole={(user?.role as UserRole) || currentRole} />
                   </main>
                 </div>
               </div>
