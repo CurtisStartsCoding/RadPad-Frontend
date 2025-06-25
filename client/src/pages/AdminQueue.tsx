@@ -99,10 +99,10 @@ const AdminQueue: React.FC<AdminQueueProps> = ({ navigateTo }) => {
   
   // Fetch orders from the API with pagination
   const { data, isLoading, error } = useQuery<ApiOrdersResponse>({
-    queryKey: ['/api/orders', currentPage, itemsPerPage, selectedFilter, debouncedSearchQuery],
+    queryKey: ['/api/admin/orders/queue', currentPage, itemsPerPage, selectedFilter, debouncedSearchQuery],
     queryFn: async () => {
-      console.log('Fetching orders from /api/orders');
-      let url = `/api/orders?page=${currentPage}&limit=${itemsPerPage}`;
+      console.log('Fetching orders from /api/admin/orders/queue');
+      let url = `/api/admin/orders/queue?page=${currentPage}&limit=${itemsPerPage}`;
       
       // Add filter parameter - admin queue only shows pending orders
       if (selectedFilter === "pending_admin") {
