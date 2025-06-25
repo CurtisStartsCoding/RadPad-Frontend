@@ -49,10 +49,10 @@ const ScheduleOrderDialog = ({
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Generate time slots for the day (8 AM to 6 PM in 30-minute intervals)
+  // Generate time slots for the full day (midnight to midnight in 30-minute intervals)
   const generateTimeSlots = () => {
     const slots = [];
-    for (let hour = 8; hour < 18; hour++) {
+    for (let hour = 0; hour < 24; hour++) {
       for (let minute = 0; minute < 60; minute += 30) {
         const time = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
         const displayTime = new Date(2000, 0, 1, hour, minute).toLocaleTimeString('en-US', {
@@ -168,7 +168,11 @@ const ScheduleOrderDialog = ({
                     setSelectedDate(date);
                     setIsCalendarOpen(false);
                   }}
-                  disabled={(date) => date < new Date() || date < new Date("1900-01-01")}
+                  disabled={(date) => {
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0); // Set to start of today
+                    return date < today || date < new Date("1900-01-01");
+                  }}
                   initialFocus
                 />
               </PopoverContent>
@@ -178,7 +182,7 @@ const ScheduleOrderDialog = ({
           {/* Time Selection */}
           <div className="grid gap-2">
             <Label htmlFor="time">Appointment Time</Label>
-            <div className="grid grid-cols-3 gap-2 max-h-48 overflow-y-auto p-2 border rounded-md">
+            <div className="grid grid-cols-4 gap-2 max-h-64 overflow-y-auto p-2 border rounded-md">
               {timeSlots.map((slot) => (
                 <Button
                   key={slot.value}
