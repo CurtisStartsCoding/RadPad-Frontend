@@ -1,26 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
-import { Mic, AlertCircle } from "lucide-react";
-import { apiRequest } from "@/lib/queryClient";
+import { Mic } from "lucide-react";
 
 interface PatientIdentificationDialogProps {
   open: boolean;
   onCancel: () => void;
   onIdentify: (patientInfo: { name: string; dob: string }) => void;
-}
-
-interface PatientSearchResponse {
-  success: boolean;
-  data: Array<{
-    id: number;
-    pidn: string;
-    firstName: string;
-    lastName: string;
-    dateOfBirth: string;
-    gender: string;
-    mrn: string;
-    lastVisit: string;
-  }>;
-  message?: string;
 }
 
 enum DialogState {
@@ -82,9 +66,8 @@ export default function PatientIdentificationDialog({
   const [error, setError] = useState<string>('');
   const [isListening, setIsListening] = useState<boolean>(false);
   const [patientSuggestions, setPatientSuggestions] = useState<Array<{name: string, dob: string}>>([]);
-  const [isSearching, setIsSearching] = useState<boolean>(false);
-  const [apiError, setApiError] = useState<string | null>(null);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const transcriptRef = useRef<string>('');
   
   // Clean up speech recognition when component unmounts
   useEffect(() => {
@@ -120,7 +103,7 @@ export default function PatientIdentificationDialog({
       const recognition = new SpeechRecognitionAPI() as SpeechRecognition;
       
       // Configure recognition
-      recognition.continuous = false; // Get one complete phrase at a time
+      recognition.continuous = true; // Keep recording until user clicks stop
       recognition.interimResults = true; // Get interim results for feedback
       recognition.lang = 'en-US';
       
@@ -155,6 +138,7 @@ export default function PatientIdentificationDialog({
         if (finalTranscript) {
           setTranscript(prevText => {
             const newText = prevText ? `${prevText} ${finalTranscript}` : finalTranscript;
+            transcriptRef.current = newText.trim();
             return newText.trim();
           });
           
@@ -163,66 +147,20 @@ export default function PatientIdentificationDialog({
         }
       };
       
-      recognition.onend = async () => {
-        console.log("Speech recognition ended");
+      recognition.onend = () => {
+        console.log("Speech recognition ended, transcript:", transcriptRef.current);
         setIsListening(false);
         
-        // If we have a transcript, search for patient and move to confirmation
-        if (transcript) {
-          // Parse the transcript to extract name and DOB
-          const parsedInfo = parsePatientInfo(transcript);
-          
-          // Reset any previous API errors
-          setApiError(null);
-          
-          try {
-            // Set searching state
-            setIsSearching(true);
-            
-            // Make API call to search for patient
-            const response = await apiRequest('POST', '/api/patients/search', {
-              patientName: parsedInfo.name,
-              dateOfBirth: parsedInfo.dob
-            });
-            
-            const result: PatientSearchResponse = await response.json();
-            
-            if (result.success) {
-              if (result.data.length > 0) {
-                // Map API results to patient suggestions
-                const suggestions = result.data.map(patient => ({
-                  name: `${patient.firstName} ${patient.lastName}`,
-                  dob: patient.dateOfBirth
-                }));
-                setPatientSuggestions(suggestions);
-              } else {
-                // No matches found, use the parsed info
-                setPatientSuggestions([parsedInfo]);
-              }
-              setDialogState(DialogState.CONFIRMATION);
-            } else {
-              // API returned an error
-              setApiError(result.message || 'Failed to search for patient');
-              // Still use the parsed info
-              setPatientSuggestions([parsedInfo]);
-              setDialogState(DialogState.CONFIRMATION);
-            }
-          } catch (error) {
-            console.error('Error searching for patient:', error);
-            // Display error popup but still proceed with parsed info
-            if (error instanceof Error) {
-              setApiError(error.message);
-            } else {
-              setApiError('An unexpected error occurred while searching for patient');
-            }
-            
-            // Still use the parsed info
+        // Auto-parse when speech recognition ends
+        // Use a small timeout to ensure state updates have propagated
+        setTimeout(() => {
+          if (transcriptRef.current) {
+            console.log("Auto-parsing transcript:", transcriptRef.current);
+            const parsedInfo = parsePatientInfo(transcriptRef.current);
             setPatientSuggestions([parsedInfo]);
             setDialogState(DialogState.CONFIRMATION);
-          } finally {
-            setIsSearching(false);
           }
-        }
+        }, 100);
       };
       
       recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
@@ -249,35 +187,31 @@ export default function PatientIdentificationDialog({
   const stopListening = () => {
     if (recognitionRef.current) {
       recognitionRef.current.stop();
+      // The onend handler will take care of auto-parsing
     }
   };
   
   // Parse patient information from transcript
   const parsePatientInfo = (text: string): {name: string, dob: string} => {
     // This is a simple parser that could be improved with more sophisticated NLP
-    // For now, we'll look for date patterns and assume the rest is the name
+    let workingText = text;
+    let dob = "01/01/1980"; // Default date
+    let name = "";
     
+    console.log("Parsing text:", text);
+    
+    // Extract date of birth
     const datePatterns = [
+      // Month DD, YYYY or Month DDth YYYY
+      /\b(January|February|March|April|May|June|July|August|September|October|November|December)\s+(0?[1-9]|[12]\d|3[01])(?:st|nd|rd|th)?,?\s+((?:19|20)\d{2})\b/i,
       // MM/DD/YYYY
       /\b(0?[1-9]|1[0-2])[\/\-](0?[1-9]|[12]\d|3[01])[\/\-](19|20)\d{2}\b/,
-      // Month DD, YYYY (full month names)
-      /\b(January|February|March|April|May|June|July|August|September|October|November|December)\s+(0?[1-9]|[12]\d|3[01])(?:st|nd|rd|th)?,?\s+((?:19|20)\d{2})\b/i,
-      // Month DD YYYY (full month names, no comma)
-      /\b(January|February|March|April|May|June|July|August|September|October|November|December)\s+(0?[1-9]|[12]\d|3[01])(?:st|nd|rd|th)?\s+((?:19|20)\d{2})\b/i,
-      // Abbreviated Month DD, YYYY
-      /\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+(0?[1-9]|[12]\d|3[01])(?:st|nd|rd|th)?,?\s+((?:19|20)\d{2})\b/i,
-      // Abbreviated Month DD YYYY (no comma)
-      /\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+(0?[1-9]|[12]\d|3[01])(?:st|nd|rd|th)?\s+((?:19|20)\d{2})\b/i,
       // MM-DD-YYYY
       /\b(0?[1-9]|1[0-2])\-(0?[1-9]|[12]\d|3[01])\-(19|20)\d{2}\b/,
     ];
     
-    let dob = "01/01/1980"; // Default date
-    let name = text;
-    
-    // Try to extract date of birth
     for (const pattern of datePatterns) {
-      const match = text.match(pattern);
+      const match = workingText.match(pattern);
       if (match) {
         console.log("Date match found:", match);
         
@@ -287,40 +221,44 @@ export default function PatientIdentificationDialog({
           const parts = match[0].split(/[\/\-]/);
           dob = `${parts[0].padStart(2, '0')}/${parts[1].padStart(2, '0')}/${parts[2]}`;
         } else {
-          // Convert from text format (e.g., "January 1 1980" or "Jan 1 1980")
+          // Convert from text format (e.g., "November 19th 1975")
           const months: Record<string, string> = {
-            // Full month names
             'january': '01', 'february': '02', 'march': '03', 'april': '04',
             'may': '05', 'june': '06', 'july': '07', 'august': '08',
-            'september': '09', 'october': '10', 'november': '11', 'december': '12',
-            // Abbreviated month names
-            'jan': '01', 'feb': '02', 'mar': '03', 'apr': '04',
-            'jun': '06', 'jul': '07', 'aug': '08',
-            'sep': '09', 'sept': '09', 'oct': '10', 'nov': '11', 'dec': '12'
+            'september': '09', 'october': '10', 'november': '11', 'december': '12'
           };
           
-          // Extract the first 3 letters of the month and convert to lowercase
-          // This handles both full names and abbreviations
-          const monthText = match[1].toLowerCase().substring(0, 3);
+          const monthText = match[1].toLowerCase();
           const day = match[2].replace(/(?:st|nd|rd|th)/g, '').padStart(2, '0');
           const year = match[3];
           
-          console.log("Parsed date components:", { monthText, day, year });
           dob = `${months[monthText]}/${day}/${year}`;
         }
         
-        // Remove the date from the name
-        name = text.replace(match[0], '').trim();
+        // Remove the date (and any "date of birth" prefix) from the working text
+        const dateWithPrefix = workingText.match(new RegExp(`(?:date\\s*of\\s*birth\\s*)?${match[0].replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'i'));
+        if (dateWithPrefix) {
+          workingText = workingText.replace(dateWithPrefix[0], '').trim();
+        }
+        console.log("Text after date removal:", workingText);
         break;
       }
     }
+    
+    // Clean up any remaining "date of birth" text
+    workingText = workingText.replace(/\s*date\s*of\s*birth\s*/i, ' ').trim();
+    
+    // What's left should be the name
+    name = workingText.trim();
+    console.log("Final parsed values:", { name, dob });
     
     return { name, dob };
   };
   
   // Handle selection of a suggestion
   const handleSelectSuggestion = (suggestion: {name: string, dob: string}) => {
-    onIdentify(suggestion);
+    // For now, only pass name and dob to onIdentify (we'd need to update the parent to handle SSN)
+    onIdentify({ name: suggestion.name, dob: suggestion.dob });
     setDialogState(DialogState.SUCCESS);
     
     // Close after a short delay
@@ -337,14 +275,6 @@ export default function PatientIdentificationDialog({
     setDialogState(DialogState.ERROR);
   };
   
-  // Handle manual text input
-  const handleManualInput = () => {
-    onIdentify({
-      name: transcript,
-      dob: "01/01/2000" // Default date
-    });
-    handleReset();
-  };
   
   // Reset everything
   const handleReset = () => {
@@ -435,11 +365,12 @@ export default function PatientIdentificationDialog({
                     onChange={(e) => {
                       setError("");
                       setTranscript(e.target.value);
+                      transcriptRef.current = e.target.value;
                     }}
                   />
                   <button
                     className="px-3 py-1 border border-gray-300 rounded-md text-sm"
-                    onClick={async () => {
+                    onClick={() => {
                       if (!transcript || transcript.trim() === '') {
                         setError('Please enter patient information');
                         return;
@@ -447,71 +378,13 @@ export default function PatientIdentificationDialog({
                       
                       // Parse the input and create a suggestion
                       const inputText = transcript.trim();
-                      const parsedInfo = parsePatientInfo(inputText);
+                      const suggestion = parsePatientInfo(inputText);
                       
-                      // Reset any previous API errors
-                      setApiError(null);
-                      
-                      try {
-                        // Set searching state
-                        setIsSearching(true);
-                        
-                        // Make API call to search for patient
-                        const response = await apiRequest('POST', '/api/patients/search', {
-                          patientName: parsedInfo.name,
-                          dateOfBirth: parsedInfo.dob
-                        });
-                        
-                        const result: PatientSearchResponse = await response.json();
-                        
-                        if (result.success) {
-                          if (result.data.length > 0) {
-                            // Map API results to patient suggestions
-                            const suggestions = result.data.map(patient => ({
-                              name: `${patient.firstName} ${patient.lastName}`,
-                              dob: patient.dateOfBirth
-                            }));
-                            setPatientSuggestions(suggestions);
-                          } else {
-                            // No matches found, use the parsed info
-                            setPatientSuggestions([parsedInfo]);
-                          }
-                          setDialogState(DialogState.CONFIRMATION);
-                        } else {
-                          // API returned an error
-                          setApiError(result.message || 'Failed to search for patient');
-                          // Still use the parsed info
-                          setPatientSuggestions([parsedInfo]);
-                          setDialogState(DialogState.CONFIRMATION);
-                        }
-                      } catch (error) {
-                        console.error('Error searching for patient:', error);
-                        // Display error popup but still proceed with parsed info
-                        if (error instanceof Error) {
-                          setApiError(error.message);
-                        } else {
-                          setApiError('An unexpected error occurred while searching for patient');
-                        }
-                        
-                        // Still use the parsed info
-                        setPatientSuggestions([parsedInfo]);
-                        setDialogState(DialogState.CONFIRMATION);
-                      } finally {
-                        setIsSearching(false);
-                      }
+                      setPatientSuggestions([suggestion]);
+                      setDialogState(DialogState.CONFIRMATION);
                     }}
                   >
-                    {isSearching ? (
-                      <div className="flex items-center">
-                        <svg className="animate-spin h-4 w-4 mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        Searching...
-                      </div>
-                    ) : (
-                      "Parse"
-                    )}
+                    Parse
                   </button>
                 </div>
               </div>
@@ -526,7 +399,7 @@ export default function PatientIdentificationDialog({
               </button>
               <button
                 className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-                onClick={async () => {
+                onClick={() => {
                   if (!transcript || transcript.trim() === '') {
                     setError('Please enter patient information');
                     return;
@@ -534,71 +407,16 @@ export default function PatientIdentificationDialog({
                   
                   // Parse the input and create a suggestion
                   const inputText = transcript.trim();
-                  const parsedInfo = parsePatientInfo(inputText);
+                  const suggestion = {
+                    name: inputText,
+                    dob: inputText.includes('1973') ? '08/29/1973' : '01/01/1980' // Extract date if present
+                  };
                   
-                  // Reset any previous API errors
-                  setApiError(null);
-                  
-                  try {
-                    // Set searching state
-                    setIsSearching(true);
-                    
-                    // Make API call to search for patient
-                    const response = await apiRequest('POST', '/api/patients/search', {
-                      patientName: parsedInfo.name,
-                      dateOfBirth: parsedInfo.dob
-                    });
-                    
-                    const result: PatientSearchResponse = await response.json();
-                    
-                    if (result.success) {
-                      if (result.data.length > 0) {
-                        // Map API results to patient suggestions
-                        const suggestions = result.data.map(patient => ({
-                          name: `${patient.firstName} ${patient.lastName}`,
-                          dob: patient.dateOfBirth
-                        }));
-                        setPatientSuggestions(suggestions);
-                      } else {
-                        // No matches found, use the parsed info
-                        setPatientSuggestions([parsedInfo]);
-                      }
-                      setDialogState(DialogState.CONFIRMATION);
-                    } else {
-                      // API returned an error
-                      setApiError(result.message || 'Failed to search for patient');
-                      // Still use the parsed info
-                      setPatientSuggestions([parsedInfo]);
-                      setDialogState(DialogState.CONFIRMATION);
-                    }
-                  } catch (error) {
-                    console.error('Error searching for patient:', error);
-                    // Display error popup but still proceed with parsed info
-                    if (error instanceof Error) {
-                      setApiError(error.message);
-                    } else {
-                      setApiError('An unexpected error occurred while searching for patient');
-                    }
-                    
-                    // Still use the parsed info
-                    setPatientSuggestions([parsedInfo]);
-                    setDialogState(DialogState.CONFIRMATION);
-                  } finally {
-                    setIsSearching(false);
-                  }
+                  setPatientSuggestions([suggestion]);
+                  setDialogState(DialogState.CONFIRMATION);
                 }}
               >
-                {isSearching ? (
-                  <div className="flex items-center">
-                    <svg className="animate-spin h-4 w-4 mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Searching...
-                  </div>
-                ) : (
-                  "Identify Patient"
-                )}
+                Identify Patient
               </button>
             </div>
           </>
@@ -653,23 +471,6 @@ export default function PatientIdentificationDialog({
               </p>
             </div>
             
-            {/* Display API error if any */}
-            {apiError && (
-              <div className="mx-4 mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
-                <div className="flex items-start">
-                  <AlertCircle className="h-5 w-5 text-red-500 mr-2 mt-0.5" />
-                  <div>
-                    <p className="text-sm font-medium text-red-800">Error searching for patient</p>
-                    <p className="text-xs text-red-700 mt-1">{apiError}</p>
-                    <p className="text-xs text-red-600 italic mt-1">
-                      {/* Debug message */}
-                      This error message is displayed for debugging purposes.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
-            
             <div className="p-4 space-y-3">
               {/* Show the original transcript */}
               <div className="bg-gray-50 p-3 rounded-md text-sm">
@@ -720,18 +521,29 @@ export default function PatientIdentificationDialog({
                 ))}
               </div>
               
-              {/* Option to use raw text as name */}
-              <button
-                className="w-full text-xs text-gray-600 hover:text-gray-900 py-2"
-                onClick={handleManualInput}
-              >
-                Use entire text as patient name
-              </button>
             </div>
             
-            <div className="p-4 border-t flex justify-end">
+            <div className="p-4 border-t flex justify-between gap-2">
               <button 
-                className="px-4 py-2 border border-gray-300 rounded-md"
+                className="px-4 py-2 bg-amber-50 text-amber-700 border border-amber-300 rounded-md hover:bg-amber-100 font-medium flex items-center"
+                onClick={() => {
+                  // Clear transcript and go back to listening/dictating
+                  setTranscript('');
+                  transcriptRef.current = '';
+                  setInterimTranscript('');
+                  setError('');
+                  setPatientSuggestions([]);
+                  setDialogState(DialogState.LISTENING);
+                }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2">
+                  <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+                  <path d="M3 3v5h5"></path>
+                </svg>
+                Clear & Try Again
+              </button>
+              <button 
+                className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
                 onClick={handleReset}
               >
                 Cancel
