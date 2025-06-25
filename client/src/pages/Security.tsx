@@ -82,7 +82,7 @@ const Security = () => {
         };
       } else {
         // For regular users, include currentPassword
-        endpoint = '/api/auth/update-password';
+        endpoint = '/auth/update-password';
         requestBody = {
           email,
           currentPassword,
