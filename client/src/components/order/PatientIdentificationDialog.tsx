@@ -102,7 +102,7 @@ export default function PatientIdentificationDialog({
       const recognition = new SpeechRecognitionAPI() as SpeechRecognition;
       
       // Configure recognition
-      recognition.continuous = false; // Get one complete phrase at a time
+      recognition.continuous = true; // Keep recording until user clicks stop
       recognition.interimResults = true; // Get interim results for feedback
       recognition.lang = 'en-US';
       
@@ -148,14 +148,7 @@ export default function PatientIdentificationDialog({
       recognition.onend = () => {
         console.log("Speech recognition ended");
         setIsListening(false);
-        
-        // If we have a transcript, move to confirmation
-        if (transcript) {
-          // Parse the transcript to extract name and DOB
-          const parsedInfo = parsePatientInfo(transcript);
-          setPatientSuggestions([parsedInfo]);
-          setDialogState(DialogState.CONFIRMATION);
-        }
+        // Don't automatically process - user will click a button to process
       };
       
       recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
@@ -183,38 +176,36 @@ export default function PatientIdentificationDialog({
     if (recognitionRef.current) {
       recognitionRef.current.stop();
     }
+    
+    // Process the transcript when user stops recording
+    if (transcript) {
+      const parsedInfo = parsePatientInfo(transcript);
+      setPatientSuggestions([parsedInfo]);
+      setDialogState(DialogState.CONFIRMATION);
+    }
   };
   
   // Parse patient information from transcript
-  const parsePatientInfo = (text: string): {name: string, dob: string, ssn?: string} => {
+  const parsePatientInfo = (text: string): {name: string, dob: string} => {
     // This is a simple parser that could be improved with more sophisticated NLP
-    // For now, we'll look for date patterns and SSN patterns, and assume the rest is the name
+    let workingText = text;
+    let dob = "01/01/1980"; // Default date
+    let name = "";
     
+    console.log("Parsing text:", text);
+    
+    // Extract date of birth
     const datePatterns = [
+      // Month DD, YYYY or Month DDth YYYY
+      /\b(January|February|March|April|May|June|July|August|September|October|November|December)\s+(0?[1-9]|[12]\d|3[01])(?:st|nd|rd|th)?,?\s+((?:19|20)\d{2})\b/i,
       // MM/DD/YYYY
       /\b(0?[1-9]|1[0-2])[\/\-](0?[1-9]|[12]\d|3[01])[\/\-](19|20)\d{2}\b/,
-      // Month DD, YYYY
-      /\b(January|February|March|April|May|June|July|August|September|October|November|December)\s+(0?[1-9]|[12]\d|3[01])(?:st|nd|rd|th)?,?\s+((?:19|20)\d{2})\b/i,
-      // Month DD YYYY (no comma)
-      /\b(January|February|March|April|May|June|July|August|September|October|November|December)\s+(0?[1-9]|[12]\d|3[01])(?:st|nd|rd|th)?\s+((?:19|20)\d{2})\b/i,
       // MM-DD-YYYY
       /\b(0?[1-9]|1[0-2])\-(0?[1-9]|[12]\d|3[01])\-(19|20)\d{2}\b/,
     ];
     
-    // SSN patterns - looking for "last 4" or "last four" followed by 4 digits
-    const ssnPatterns = [
-      /last\s*(?:four|4)\s*(?:of\s*)?(?:social\s*)?(?:is\s*)?(\d{4})/i,
-      /(?:social\s*(?:security\s*)?(?:number\s*)?(?:is\s*)?)?(\d{4})(?:\s*social)?/i,
-      /last\s*(?:four|4)\s*(\d{4})/i,
-    ];
-    
-    let dob = "01/01/1980"; // Default date
-    let name = text;
-    let ssn: string | undefined;
-    
-    // Try to extract date of birth
     for (const pattern of datePatterns) {
-      const match = text.match(pattern);
+      const match = workingText.match(pattern);
       if (match) {
         console.log("Date match found:", match);
         
@@ -224,7 +215,7 @@ export default function PatientIdentificationDialog({
           const parts = match[0].split(/[\/\-]/);
           dob = `${parts[0].padStart(2, '0')}/${parts[1].padStart(2, '0')}/${parts[2]}`;
         } else {
-          // Convert from text format (e.g., "January 1 1980")
+          // Convert from text format (e.g., "November 19th 1975")
           const months: Record<string, string> = {
             'january': '01', 'february': '02', 'march': '03', 'april': '04',
             'may': '05', 'june': '06', 'july': '07', 'august': '08',
@@ -235,22 +226,33 @@ export default function PatientIdentificationDialog({
           const day = match[2].replace(/(?:st|nd|rd|th)/g, '').padStart(2, '0');
           const year = match[3];
           
-          console.log("Parsed date components:", { monthText, day, year });
           dob = `${months[monthText]}/${day}/${year}`;
         }
         
-        // Remove the date from the name
-        name = text.replace(match[0], '').trim();
+        // Remove the date (and any "date of birth" prefix) from the working text
+        const dateWithPrefix = workingText.match(new RegExp(`(?:date\\s*of\\s*birth\\s*)?${match[0].replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'i'));
+        if (dateWithPrefix) {
+          workingText = workingText.replace(dateWithPrefix[0], '').trim();
+        }
+        console.log("Text after date removal:", workingText);
         break;
       }
     }
+    
+    // Clean up any remaining "date of birth" text
+    workingText = workingText.replace(/\s*date\s*of\s*birth\s*/i, ' ').trim();
+    
+    // What's left should be the name
+    name = workingText.trim();
+    console.log("Final parsed values:", { name, dob });
     
     return { name, dob };
   };
   
   // Handle selection of a suggestion
   const handleSelectSuggestion = (suggestion: {name: string, dob: string}) => {
-    onIdentify(suggestion);
+    // For now, only pass name and dob to onIdentify (we'd need to update the parent to handle SSN)
+    onIdentify({ name: suggestion.name, dob: suggestion.dob });
     setDialogState(DialogState.SUCCESS);
     
     // Close after a short delay
@@ -296,7 +298,7 @@ export default function PatientIdentificationDialog({
             <div className="p-4 border-b">
               <h2 className="text-lg font-medium">Patient Identification</h2>
               <p className="text-sm text-gray-600">
-                Please speak or type the patient's name, date of birth, and last 4 of social.
+                Please speak or type the patient's name and date of birth.
               </p>
             </div>
             
@@ -359,7 +361,7 @@ export default function PatientIdentificationDialog({
                 <div className="flex gap-2">
                   <input 
                     type="text" 
-                    placeholder="Type name, date of birth, and last 4 of SSN" 
+                    placeholder="Type name and date of birth" 
                     className="px-3 py-1 border border-gray-300 rounded-md text-sm flex-1"
                     value={transcript}
                     onChange={(e) => {
