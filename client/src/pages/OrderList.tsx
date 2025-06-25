@@ -369,7 +369,6 @@ const OrderList = () => {
             {!isLoading && !error && pagination.total > 0 && (
               <div className="flex items-center justify-between space-x-6 py-4 border-b">
                 <div className="flex items-center space-x-2">
-                  <p className="text-sm font-medium">Orders per page</p>
                   <Select
                     value={itemsPerPage.toString()}
                     onValueChange={handleItemsPerPageChange}
@@ -385,12 +384,6 @@ const OrderList = () => {
                       ))}
                     </SelectContent>
                   </Select>
-                </div>
-                
-                <div className="flex items-center space-x-2">
-                  <div className="text-sm text-muted-foreground">
-                    ({pagination.total} total orders)
-                  </div>
                 </div>
                 
                 <Pagination>
@@ -569,7 +562,6 @@ const OrderList = () => {
                 {/* Bottom Pagination Controls */}
                 <div className="flex items-center justify-between space-x-6 py-4 border-t">
                   <div className="flex items-center space-x-2">
-                    <p className="text-sm font-medium">Orders per page</p>
                     <Select
                       value={itemsPerPage.toString()}
                       onValueChange={handleItemsPerPageChange}
@@ -585,12 +577,6 @@ const OrderList = () => {
                         ))}
                       </SelectContent>
                     </Select>
-                  </div>
-                  
-                  <div className="flex items-center space-x-2">
-                    <div className="text-sm text-muted-foreground">
-                      ({pagination.total} total orders)
-                    </div>
                   </div>
                   
                   <Pagination>
