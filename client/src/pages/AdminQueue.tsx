@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import {
@@ -19,8 +19,18 @@ import {
   SelectValue
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 import { Search, Filter, Calendar, Clock, ArrowUpDown, FileText, CheckCircle2, Loader2 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { formatDateShort } from "@/lib/utils";
@@ -50,10 +60,15 @@ interface ApiAdminOrder {
   };
 }
 
-// Define the API response type which might be an array or an object with orders property
+// Define the API response type with pagination
 interface ApiOrdersResponse {
-  orders?: ApiAdminOrder[];
-  [key: string]: any;
+  orders: ApiAdminOrder[];
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    pages: number;
+  };
 }
 
 interface AdminQueueProps {
@@ -65,12 +80,43 @@ const AdminQueue: React.FC<AdminQueueProps> = ({ navigateTo }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFilter, setSelectedFilter] = useState("all");
   
-  // Fetch orders from the API - using /api/orders for admin_staff role
-  const { data, isLoading, error } = useQuery<ApiAdminOrder[] | ApiOrdersResponse>({
-    queryKey: ['/api/orders'],
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
+  
+  // Debounce search query to avoid too many API calls
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+      setCurrentPage(1); // Reset to first page when search changes
+    }, 500);
+    
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+  
+  // Fetch orders from the API with pagination
+  const { data, isLoading, error } = useQuery<ApiOrdersResponse>({
+    queryKey: ['/api/orders', currentPage, itemsPerPage, selectedFilter, debouncedSearchQuery],
     queryFn: async () => {
       console.log('Fetching orders from /api/orders');
-      const response = await apiRequest('GET', '/api/orders', undefined);
+      let url = `/api/orders?page=${currentPage}&limit=${itemsPerPage}`;
+      
+      // Add filter parameter - admin queue only shows pending orders
+      if (selectedFilter === "pending_admin") {
+        url += `&status=pending_admin`;
+      } else if (selectedFilter === "pending_radiology") {
+        url += `&status=pending_radiology`;
+      }
+      // For "all", don't add a status filter - let the API return all orders
+      // and we'll filter on the client side to show only admin-relevant orders
+      
+      // Add search parameter if provided
+      if (debouncedSearchQuery) {
+        url += `&search=${encodeURIComponent(debouncedSearchQuery)}`;
+      }
+      
+      const response = await apiRequest('GET', url, undefined);
       
       if (!response.ok) {
         const errorText = await response.text();
@@ -85,36 +131,40 @@ const AdminQueue: React.FC<AdminQueueProps> = ({ navigateTo }) => {
     staleTime: 60000, // 1 minute
   });
   
-  // Extract orders from the response (handles both array and object with orders property)
-  const orders: ApiAdminOrder[] = Array.isArray(data) ? data : data?.orders || [];
+  // Extract orders and pagination from the response
+  let orders: ApiAdminOrder[] = data?.orders || [];
   
-  // Filter orders by status for admin queue
-  const filteredOrders = orders.filter((order: ApiAdminOrder) => {
-    if (selectedFilter === "all") {
-      return order.status === 'pending_admin' || order.status === 'pending_radiology';
-    } else if (selectedFilter === "pending_admin") {
-      return order.status === 'pending_admin';
-    } else if (selectedFilter === "pending_radiology") {
-      return order.status === 'pending_radiology';
-    }
-    return false;
-  }) || [];
-  
-  // Further filter by search query
-  const searchFilteredOrders = filteredOrders.filter((order: ApiAdminOrder) => {
-    const searchLower = searchQuery.toLowerCase();
-    const patientName = `${order.patient_first_name || ''} ${order.patient_last_name || ''}`.toLowerCase();
-    const mrn = order.patient_mrn?.toLowerCase() || '';
-    const modality = order.modality?.toLowerCase() || '';
-    const radiologyGroup = order.radiology_organization?.name.toLowerCase() || '';
-    
-    return (
-      patientName.includes(searchLower) ||
-      mrn.includes(searchLower) ||
-      modality.includes(searchLower) ||
-      radiologyGroup.includes(searchLower)
+  // If "all" is selected, filter to show only admin-relevant orders (pending_admin and pending_radiology)
+  if (selectedFilter === "all") {
+    orders = orders.filter(order =>
+      order.status === 'pending_admin' || order.status === 'pending_radiology'
     );
-  });
+  }
+  
+  const pagination = data?.pagination || { total: 0, page: 1, limit: 10, pages: 1 };
+  
+  // Handle page change
+  const handlePageChange = (newPage: number) => {
+    if (newPage < 1 || newPage > pagination.pages) return;
+    setCurrentPage(newPage);
+  };
+  
+  // Handle items per page change
+  const handleItemsPerPageChange = (value: string) => {
+    const limit = parseInt(value);
+    setItemsPerPage(limit);
+    setCurrentPage(1); // Reset to first page when changing limit
+  };
+  
+  // Handle filter change
+  const handleFilterChange = (value: string) => {
+    setSelectedFilter(value);
+    setCurrentPage(1); // Reset to first page when changing filter
+  };
+  
+  // Filter orders for tab counts (client-side for display purposes)
+  const pendingAdminOrders = orders.filter(order => order.status === 'pending_admin');
+  const pendingRadiologyOrders = orders.filter(order => order.status === 'pending_radiology');
   
   
   // Format time for display
@@ -156,8 +206,8 @@ const AdminQueue: React.FC<AdminQueueProps> = ({ navigateTo }) => {
           <Tabs defaultValue="orders" className="space-y-4">
             <TabsList>
               <TabsTrigger value="orders">All Orders</TabsTrigger>
-              <TabsTrigger value="incomplete">Pending Admin ({filteredOrders.filter((o: ApiAdminOrder) => o.status === 'pending_admin').length})</TabsTrigger>
-              <TabsTrigger value="pending">Pending Radiology ({filteredOrders.filter((o: ApiAdminOrder) => o.status === 'pending_radiology').length})</TabsTrigger>
+              <TabsTrigger value="incomplete">Pending Admin ({pendingAdminOrders.length})</TabsTrigger>
+              <TabsTrigger value="pending">Pending Radiology ({pendingRadiologyOrders.length})</TabsTrigger>
             </TabsList>
             
             <div className="flex justify-between items-center">
@@ -175,7 +225,7 @@ const AdminQueue: React.FC<AdminQueueProps> = ({ navigateTo }) => {
                 <Filter className="h-4 w-4 text-slate-400" />
                 <Select
                   value={selectedFilter}
-                  onValueChange={setSelectedFilter}
+                  onValueChange={handleFilterChange}
                 >
                   <SelectTrigger className="w-44">
                     <SelectValue placeholder="Filter by status" />
@@ -190,6 +240,134 @@ const AdminQueue: React.FC<AdminQueueProps> = ({ navigateTo }) => {
             </div>
             
             <TabsContent value="orders" className="m-0">
+              {/* Top Pagination Controls */}
+              {!isLoading && !error && pagination.total > 0 && (
+                <div className="flex items-center justify-between space-x-6 py-4 border-b">
+                  <div className="flex items-center space-x-2">
+                    <p className="text-sm font-medium">Rows per page</p>
+                    <Select
+                      value={itemsPerPage.toString()}
+                      onValueChange={handleItemsPerPageChange}
+                    >
+                      <SelectTrigger className="h-8 w-[70px]">
+                        <SelectValue placeholder={itemsPerPage} />
+                      </SelectTrigger>
+                      <SelectContent side="top">
+                        {[5, 10, 20, 30, 40, 50].map((pageSize) => (
+                          <SelectItem key={pageSize} value={pageSize.toString()}>
+                            {pageSize}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="flex items-center space-x-2">
+                    <div className="flex w-[100px] items-center justify-center text-sm font-medium">
+                      Page {pagination.page} of {pagination.pages}
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      ({pagination.total} total orders)
+                    </div>
+                  </div>
+                  
+                  <Pagination>
+                    <PaginationContent>
+                      <PaginationItem>
+                        <PaginationPrevious
+                          href="#"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            handlePageChange(pagination.page - 1);
+                          }}
+                          className={pagination.page <= 1 ? "pointer-events-none opacity-50" : ""}
+                        />
+                      </PaginationItem>
+
+                      {/* First page */}
+                      {pagination.page > 3 && pagination.pages > 5 && (
+                        <PaginationItem>
+                          <PaginationLink
+                            href="#"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              handlePageChange(1);
+                            }}
+                          >
+                            1
+                          </PaginationLink>
+                        </PaginationItem>
+                      )}
+
+                      {/* Ellipsis before current page range */}
+                      {pagination.page > 4 && pagination.pages > 6 && (
+                        <PaginationItem>
+                          <PaginationEllipsis />
+                        </PaginationItem>
+                      )}
+
+                      {/* Page numbers around current page */}
+                      {Array.from({ length: pagination.pages }, (_, i) => i + 1)
+                        .filter(pageNum => {
+                          const distance = Math.abs(pageNum - pagination.page);
+                          if (pagination.pages <= 7) return true;
+                          if (pageNum === 1 || pageNum === pagination.pages) return false;
+                          return distance <= 2;
+                        })
+                        .map(pageNum => {
+                          return (
+                            <PaginationItem key={pageNum}>
+                              <PaginationLink
+                                href="#"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  handlePageChange(pageNum);
+                                }}
+                                isActive={pageNum === pagination.page}
+                              >
+                                {pageNum}
+                              </PaginationLink>
+                            </PaginationItem>
+                          );
+                        })}
+
+                      {/* Ellipsis after current page range */}
+                      {pagination.page < pagination.pages - 3 && pagination.pages > 6 && (
+                        <PaginationItem>
+                          <PaginationEllipsis />
+                        </PaginationItem>
+                      )}
+
+                      {/* Last page */}
+                      {pagination.page < pagination.pages - 2 && pagination.pages > 5 && (
+                        <PaginationItem>
+                          <PaginationLink
+                            href="#"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              handlePageChange(pagination.pages);
+                            }}
+                          >
+                            {pagination.pages}
+                          </PaginationLink>
+                        </PaginationItem>
+                      )}
+
+                      <PaginationItem>
+                        <PaginationNext
+                          href="#"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            handlePageChange(pagination.page + 1);
+                          }}
+                          className={pagination.page >= pagination.pages ? "pointer-events-none opacity-50" : ""}
+                        />
+                      </PaginationItem>
+                    </PaginationContent>
+                  </Pagination>
+                </div>
+              )}
+              
               {isLoading ? (
                 <div className="flex justify-center items-center py-12">
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -203,94 +381,222 @@ const AdminQueue: React.FC<AdminQueueProps> = ({ navigateTo }) => {
                   </Button>
                 </div>
               ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-[180px]">
-                        <Button variant="ghost" className="flex items-center text-slate-600 font-medium p-0 h-auto">
-                          Patient
-                          <ArrowUpDown className="ml-1 h-3 w-3" />
-                        </Button>
-                      </TableHead>
-                      <TableHead>MRN</TableHead>
-                      <TableHead>
-                        <Button variant="ghost" className="flex items-center text-slate-600 font-medium p-0 h-auto">
-                          Date
-                          <ArrowUpDown className="ml-1 h-3 w-3" />
-                        </Button>
-                      </TableHead>
-                      <TableHead>Time</TableHead>
-                      <TableHead>Modality</TableHead>
-                      <TableHead>Radiology Group</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {searchFilteredOrders.length === 0 ? (
+                <>
+                  <Table>
+                    <TableHeader>
                       <TableRow>
-                        <TableCell colSpan={8} className="text-center py-8 text-slate-500">
-                          No orders found matching your search criteria
-                        </TableCell>
+                        <TableHead className="w-[180px]">
+                          <Button variant="ghost" className="flex items-center text-slate-600 font-medium p-0 h-auto">
+                            Patient
+                            <ArrowUpDown className="ml-1 h-3 w-3" />
+                          </Button>
+                        </TableHead>
+                        <TableHead>MRN</TableHead>
+                        <TableHead>
+                          <Button variant="ghost" className="flex items-center text-slate-600 font-medium p-0 h-auto">
+                            Date
+                            <ArrowUpDown className="ml-1 h-3 w-3" />
+                          </Button>
+                        </TableHead>
+                        <TableHead>Time</TableHead>
+                        <TableHead>Modality</TableHead>
+                        <TableHead>Radiology Group</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
-                    ) : (
-                      searchFilteredOrders.map((order: ApiAdminOrder) => (
-                        <TableRow key={order.id}>
-                          <TableCell className="font-medium">{`${order.patient_first_name || ''} ${order.patient_last_name || ''}`}</TableCell>
-                          <TableCell className="font-mono text-xs">{order.patient_mrn || 'N/A'}</TableCell>
-                          <TableCell>
-                            <div className="flex items-center">
-                              <Calendar className="h-3.5 w-3.5 mr-1.5 text-slate-500" />
-                              {formatDateShort(order.created_at)}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center">
-                              <Clock className="h-3.5 w-3.5 mr-1.5 text-slate-500" />
-                              {formatTime(order.created_at)}
-                            </div>
-                          </TableCell>
-                          <TableCell>{order.modality || 'N/A'}</TableCell>
-                          <TableCell>{order.radiology_organization?.name || 'Not assigned'}</TableCell>
-                          <TableCell>{getStatusBadge(order.status)}</TableCell>
-                          <TableCell className="text-right">
-                            {order.status === 'pending_admin' ? (
-                              <Button
-                                variant="default"
-                                size="sm"
-                                onClick={() => {
-                                  console.log('Complete button clicked for order:', order.id);
-                                  // Store the order ID in sessionStorage for the AdminOrderFinalization page
-                                  sessionStorage.setItem('currentOrderId', order.id.toString());
-                                  // Navigate using wouter to change the URL
-                                  setLocation('/admin-order-finalization');
-                                }}
-                              >
-                                <FileText className="h-4 w-4 mr-1" />
-                                Complete
-                              </Button>
-                            ) : (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => {
-                                  console.log('View button clicked for order:', order.id);
-                                  // Store the source page in sessionStorage
-                                  sessionStorage.setItem('orderDetailsSource', 'admin-queue');
-                                  // Navigate to the order details view
-                                  setLocation(`/orders/${order.id}`);
-                                }}
-                              >
-                                <CheckCircle2 className="h-4 w-4 mr-1" />
-                                View
-                              </Button>
-                            )}
+                    </TableHeader>
+                    <TableBody>
+                      {orders.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={8} className="text-center py-8 text-slate-500">
+                            No orders found matching your search criteria
                           </TableCell>
                         </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
+                      ) : (
+                        orders.map((order: ApiAdminOrder) => (
+                          <TableRow key={order.id}>
+                            <TableCell className="font-medium">{`${order.patient_first_name || ''} ${order.patient_last_name || ''}`}</TableCell>
+                            <TableCell className="font-mono text-xs">{order.patient_mrn || 'N/A'}</TableCell>
+                            <TableCell>
+                              <div className="flex items-center">
+                                <Calendar className="h-3.5 w-3.5 mr-1.5 text-slate-500" />
+                                {formatDateShort(order.created_at)}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center">
+                                <Clock className="h-3.5 w-3.5 mr-1.5 text-slate-500" />
+                                {formatTime(order.created_at)}
+                              </div>
+                            </TableCell>
+                            <TableCell>{order.modality || 'N/A'}</TableCell>
+                            <TableCell>{order.radiology_organization?.name || 'Not assigned'}</TableCell>
+                            <TableCell>{getStatusBadge(order.status)}</TableCell>
+                            <TableCell className="text-right">
+                              {order.status === 'pending_admin' ? (
+                                <Button
+                                  variant="default"
+                                  size="sm"
+                                  onClick={() => {
+                                    console.log('Complete button clicked for order:', order.id);
+                                    // Store the order ID in sessionStorage for the AdminOrderFinalization page
+                                    sessionStorage.setItem('currentOrderId', order.id.toString());
+                                    // Navigate using wouter to change the URL
+                                    setLocation('/admin-order-finalization');
+                                  }}
+                                >
+                                  <FileText className="h-4 w-4 mr-1" />
+                                  Complete
+                                </Button>
+                              ) : (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    console.log('View button clicked for order:', order.id);
+                                    // Store the source page in sessionStorage
+                                    sessionStorage.setItem('orderDetailsSource', 'admin-queue');
+                                    // Navigate to the order details view
+                                    setLocation(`/orders/${order.id}`);
+                                  }}
+                                >
+                                  <CheckCircle2 className="h-4 w-4 mr-1" />
+                                  View
+                                </Button>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                  
+                  {/* Bottom Pagination Controls */}
+                  <div className="flex items-center justify-between space-x-6 py-4 border-t">
+                    <div className="flex items-center space-x-2">
+                      <p className="text-sm font-medium">Rows per page</p>
+                      <Select
+                        value={itemsPerPage.toString()}
+                        onValueChange={handleItemsPerPageChange}
+                      >
+                        <SelectTrigger className="h-8 w-[70px]">
+                          <SelectValue placeholder={itemsPerPage} />
+                        </SelectTrigger>
+                        <SelectContent side="top">
+                          {[5, 10, 20, 30, 40, 50].map((pageSize) => (
+                            <SelectItem key={pageSize} value={pageSize.toString()}>
+                              {pageSize}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2">
+                      <div className="flex w-[100px] items-center justify-center text-sm font-medium">
+                        Page {pagination.page} of {pagination.pages}
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        ({pagination.total} total orders)
+                      </div>
+                    </div>
+                    
+                    <Pagination>
+                      <PaginationContent>
+                        <PaginationItem>
+                          <PaginationPrevious
+                            href="#"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              handlePageChange(pagination.page - 1);
+                            }}
+                            className={pagination.page <= 1 ? "pointer-events-none opacity-50" : ""}
+                          />
+                        </PaginationItem>
+
+                        {/* First page */}
+                        {pagination.page > 3 && pagination.pages > 5 && (
+                          <PaginationItem>
+                            <PaginationLink
+                              href="#"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                handlePageChange(1);
+                              }}
+                            >
+                              1
+                            </PaginationLink>
+                          </PaginationItem>
+                        )}
+
+                        {/* Ellipsis before current page range */}
+                        {pagination.page > 4 && pagination.pages > 6 && (
+                          <PaginationItem>
+                            <PaginationEllipsis />
+                          </PaginationItem>
+                        )}
+
+                        {/* Page numbers around current page */}
+                        {Array.from({ length: pagination.pages }, (_, i) => i + 1)
+                          .filter(pageNum => {
+                            const distance = Math.abs(pageNum - pagination.page);
+                            if (pagination.pages <= 7) return true;
+                            if (pageNum === 1 || pageNum === pagination.pages) return false;
+                            return distance <= 2;
+                          })
+                          .map(pageNum => {
+                            return (
+                              <PaginationItem key={pageNum}>
+                                <PaginationLink
+                                  href="#"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    handlePageChange(pageNum);
+                                  }}
+                                  isActive={pageNum === pagination.page}
+                                >
+                                  {pageNum}
+                                </PaginationLink>
+                              </PaginationItem>
+                            );
+                          })}
+
+                        {/* Ellipsis after current page range */}
+                        {pagination.page < pagination.pages - 3 && pagination.pages > 6 && (
+                          <PaginationItem>
+                            <PaginationEllipsis />
+                          </PaginationItem>
+                        )}
+
+                        {/* Last page */}
+                        {pagination.page < pagination.pages - 2 && pagination.pages > 5 && (
+                          <PaginationItem>
+                            <PaginationLink
+                              href="#"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                handlePageChange(pagination.pages);
+                              }}
+                            >
+                              {pagination.pages}
+                            </PaginationLink>
+                          </PaginationItem>
+                        )}
+
+                        <PaginationItem>
+                          <PaginationNext
+                            href="#"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              handlePageChange(pagination.page + 1);
+                            }}
+                            className={pagination.page >= pagination.pages ? "pointer-events-none opacity-50" : ""}
+                          />
+                        </PaginationItem>
+                      </PaginationContent>
+                    </Pagination>
+                  </div>
+                </>
               )}
             </TabsContent>
             
@@ -322,9 +628,7 @@ const AdminQueue: React.FC<AdminQueueProps> = ({ navigateTo }) => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredOrders
-                      .filter((order: ApiAdminOrder) => order.status === 'pending_admin')
-                      .map((order: ApiAdminOrder) => (
+                    {pendingAdminOrders.map((order: ApiAdminOrder) => (
                         <TableRow key={order.id}>
                           <TableCell className="font-medium">{`${order.patient_first_name || ''} ${order.patient_last_name || ''}`}</TableCell>
                           <TableCell className="font-mono text-xs">{order.patient_mrn || 'N/A'}</TableCell>
@@ -394,9 +698,7 @@ const AdminQueue: React.FC<AdminQueueProps> = ({ navigateTo }) => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredOrders
-                      .filter((order: ApiAdminOrder) => order.status === 'pending_radiology')
-                      .map((order: ApiAdminOrder) => (
+                    {pendingRadiologyOrders.map((order: ApiAdminOrder) => (
                         <TableRow key={order.id}>
                           <TableCell className="font-medium">{`${order.patient_first_name || ''} ${order.patient_last_name || ''}`}</TableCell>
                           <TableCell className="font-mono text-xs">{order.patient_mrn || 'N/A'}</TableCell>
