@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   Table,
@@ -18,7 +18,17 @@ import {
   SelectValue
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 import {
   Search,
   Filter,
@@ -77,6 +87,11 @@ const OrderList = () => {
   const [_, setLocation] = useLocation();
   const { user } = useAuth();
   
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
+  
   const userRole = (user?.role as UserRole) || UserRole.Physician;
   
   // Handle navigation to new order page
@@ -86,11 +101,33 @@ const OrderList = () => {
     setLocation(newOrderPath);
   };
   
-  // Fetch orders from the API
+  // Debounce search query to avoid too many API calls
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+      setCurrentPage(1); // Reset to first page when search changes
+    }, 500);
+    
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+  
+  // Fetch orders from the API with pagination
   const { data, isLoading, error } = useQuery<OrdersApiResponse>({
-    queryKey: ['/api/orders'],
+    queryKey: ['/api/orders', currentPage, itemsPerPage, selectedFilter, debouncedSearchQuery],
     queryFn: async () => {
-      const response = await apiRequest('GET', '/api/orders', undefined);
+      let url = `/api/orders?page=${currentPage}&limit=${itemsPerPage}`;
+      
+      // Add filter parameter if not "all"
+      if (selectedFilter !== "all") {
+        url += `&status=${selectedFilter}`;
+      }
+      
+      // Add search parameter if provided
+      if (debouncedSearchQuery) {
+        url += `&search=${encodeURIComponent(debouncedSearchQuery)}`;
+      }
+      
+      const response = await apiRequest('GET', url, undefined);
       if (!response.ok) {
         throw new Error('Failed to fetch orders');
       }
@@ -100,39 +137,28 @@ const OrderList = () => {
     staleTime: 60000, // 1 minute
   });
   
-  // Extract orders array from response
+  // Extract orders array and pagination from response
   const orders = data?.orders || [];
+  const pagination = data?.pagination || { total: 0, page: 1, limit: 10, pages: 1 };
   
-  // Filter orders by status
-  const filteredOrders = orders.filter(order => {
-    if (selectedFilter === "all") {
-      return true;
-    } else if (selectedFilter === "pending") {
-      return order.status === 'pending_admin' || order.status === 'pending_validation' || order.status === 'pending_radiology';
-    } else if (selectedFilter === "scheduled") {
-      return order.status === 'scheduled';
-    } else if (selectedFilter === "completed") {
-      return order.status === 'completed';
-    } else if (selectedFilter === "cancelled") {
-      return order.status === 'cancelled';
-    }
-    return false;
-  });
+  // Handle page change
+  const handlePageChange = (newPage: number) => {
+    if (newPage < 1 || newPage > pagination.pages) return;
+    setCurrentPage(newPage);
+  };
   
-  // Further filter by search query
-  const searchFilteredOrders = filteredOrders.filter(order => {
-    if (!order) return false;
-    
-    const patientName = `${order.patient_first_name || ''} ${order.patient_last_name || ''}`.trim();
-    
-    const searchLower = searchQuery.toLowerCase();
-    return (
-      (patientName.toLowerCase() || '').includes(searchLower) ||
-      (order.patient_mrn?.toLowerCase() || '').includes(searchLower) ||
-      (order.modality?.toLowerCase() || '').includes(searchLower) ||
-      (order.radiology_organization_name?.toLowerCase() || '').includes(searchLower)
-    );
-  });
+  // Handle items per page change
+  const handleItemsPerPageChange = (value: string) => {
+    const limit = parseInt(value);
+    setItemsPerPage(limit);
+    setCurrentPage(1); // Reset to first page when changing limit
+  };
+  
+  // Handle filter change
+  const handleFilterChange = (value: string) => {
+    setSelectedFilter(value);
+    setCurrentPage(1); // Reset to first page when changing filter
+  };
   
   // Format date for display
   
@@ -323,7 +349,7 @@ const OrderList = () => {
                 <Filter className="h-4 w-4 text-slate-400" />
                 <Select
                   value={selectedFilter}
-                  onValueChange={setSelectedFilter}
+                  onValueChange={handleFilterChange}
                 >
                   <SelectTrigger className="w-44">
                     <SelectValue placeholder="Filter by status" />
@@ -339,6 +365,134 @@ const OrderList = () => {
               </div>
             </div>
             
+            {/* Top Pagination Controls */}
+            {!isLoading && !error && pagination.total > 0 && (
+              <div className="flex items-center justify-between space-x-6 py-4 border-b">
+                <div className="flex items-center space-x-2">
+                  <p className="text-sm font-medium">Orders per page</p>
+                  <Select
+                    value={itemsPerPage.toString()}
+                    onValueChange={handleItemsPerPageChange}
+                  >
+                    <SelectTrigger className="h-8 w-[70px]">
+                      <SelectValue placeholder={itemsPerPage} />
+                    </SelectTrigger>
+                    <SelectContent side="top">
+                      {[5, 10, 20, 30, 40, 50].map((pageSize) => (
+                        <SelectItem key={pageSize} value={pageSize.toString()}>
+                          {pageSize}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="flex items-center space-x-2">
+                  <div className="flex w-[100px] items-center justify-center text-sm font-medium">
+                    Page {pagination.page} of {pagination.pages}
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    ({pagination.total} total orders)
+                  </div>
+                </div>
+                
+                <Pagination>
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious
+                        href="#"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          handlePageChange(pagination.page - 1);
+                        }}
+                        className={pagination.page <= 1 ? "pointer-events-none opacity-50" : ""}
+                      />
+                    </PaginationItem>
+
+                    {/* First page */}
+                    {pagination.page > 3 && pagination.pages > 5 && (
+                      <PaginationItem>
+                        <PaginationLink
+                          href="#"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            handlePageChange(1);
+                          }}
+                        >
+                          1
+                        </PaginationLink>
+                      </PaginationItem>
+                    )}
+
+                    {/* Ellipsis before current page range */}
+                    {pagination.page > 4 && pagination.pages > 6 && (
+                      <PaginationItem>
+                        <PaginationEllipsis />
+                      </PaginationItem>
+                    )}
+
+                    {/* Page numbers around current page */}
+                    {Array.from({ length: pagination.pages }, (_, i) => i + 1)
+                      .filter(pageNum => {
+                        const distance = Math.abs(pageNum - pagination.page);
+                        if (pagination.pages <= 7) return true;
+                        if (pageNum === 1 || pageNum === pagination.pages) return false;
+                        return distance <= 2;
+                      })
+                      .map(pageNum => {
+                        return (
+                          <PaginationItem key={pageNum}>
+                            <PaginationLink
+                              href="#"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                handlePageChange(pageNum);
+                              }}
+                              isActive={pageNum === pagination.page}
+                            >
+                              {pageNum}
+                            </PaginationLink>
+                          </PaginationItem>
+                        );
+                      })}
+
+                    {/* Ellipsis after current page range */}
+                    {pagination.page < pagination.pages - 3 && pagination.pages > 6 && (
+                      <PaginationItem>
+                        <PaginationEllipsis />
+                      </PaginationItem>
+                    )}
+
+                    {/* Last page */}
+                    {pagination.page < pagination.pages - 2 && pagination.pages > 5 && (
+                      <PaginationItem>
+                        <PaginationLink
+                          href="#"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            handlePageChange(pagination.pages);
+                          }}
+                        >
+                          {pagination.pages}
+                        </PaginationLink>
+                      </PaginationItem>
+                    )}
+
+                    <PaginationItem>
+                      <PaginationNext
+                        href="#"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          handlePageChange(pagination.page + 1);
+                        }}
+                        className={pagination.page >= pagination.pages ? "pointer-events-none opacity-50" : ""}
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+              </div>
+            )}
+            
             {isLoading ? (
               <div className="flex justify-center items-center py-12">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -352,67 +506,195 @@ const OrderList = () => {
                 </Button>
               </div>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[180px]">
-                      <Button variant="ghost" className="flex items-center text-slate-600 font-medium p-0 h-auto">
-                        Patient
-                        <ArrowUpDown className="ml-1 h-3 w-3" />
-                      </Button>
-                    </TableHead>
-                    <TableHead>MRN</TableHead>
-                    <TableHead>
-                      <Button variant="ghost" className="flex items-center text-slate-600 font-medium p-0 h-auto">
-                        Date
-                        <ArrowUpDown className="ml-1 h-3 w-3" />
-                      </Button>
-                    </TableHead>
-                    <TableHead>Modality</TableHead>
-                    <TableHead>Radiology Group</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {searchFilteredOrders.length === 0 ? (
+              <>
+                <Table>
+                  <TableHeader>
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center py-8 text-slate-500">
-                        No orders found matching your search criteria
-                      </TableCell>
+                      <TableHead className="w-[180px]">
+                        <Button variant="ghost" className="flex items-center text-slate-600 font-medium p-0 h-auto">
+                          Patient
+                          <ArrowUpDown className="ml-1 h-3 w-3" />
+                        </Button>
+                      </TableHead>
+                      <TableHead>MRN</TableHead>
+                      <TableHead>
+                        <Button variant="ghost" className="flex items-center text-slate-600 font-medium p-0 h-auto">
+                          Date
+                          <ArrowUpDown className="ml-1 h-3 w-3" />
+                        </Button>
+                      </TableHead>
+                      <TableHead>Modality</TableHead>
+                      <TableHead>Radiology Group</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
-                  ) : (
-                    searchFilteredOrders.map((order) => (
-                      <TableRow key={order.id}>
-                        <TableCell className="font-medium">
-                          {order.patient_mrn && getAvailableOrderActions(userRole, order.status).canViewPatient ? (
-                            <button 
-                              className="text-left hover:text-blue-600 hover:underline cursor-pointer"
-                              onClick={() => handleViewPatientHistory(order.patient_mrn || null)}
-                              title="View patient history"
-                            >
-                              {`${order.patient_first_name || ''} ${order.patient_last_name || ''}`.trim() || 'Unknown'}
-                            </button>
-                          ) : (
-                            <span>{`${order.patient_first_name || ''} ${order.patient_last_name || ''}`.trim() || 'Unknown'}</span>
-                          )}
+                  </TableHeader>
+                  <TableBody>
+                    {orders.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={7} className="text-center py-8 text-slate-500">
+                          No orders found matching your search criteria
                         </TableCell>
-                        <TableCell className="font-mono text-xs">{order.patient_mrn || 'N/A'}</TableCell>
-                        <TableCell>
-                          <div className="flex items-center">
-                            <Calendar className="h-3.5 w-3.5 mr-1.5 text-slate-500" />
-                            {order.created_at ? formatDateShort(order.created_at) : 'N/A'}
-                          </div>
-                        </TableCell>
-                        <TableCell>{order.modality || 'N/A'}</TableCell>
-                        <TableCell>{order.radiology_organization_name || 'N/A'}</TableCell>
-                        <TableCell>{getStatusBadge(order.status)}</TableCell>
-                        <TableCell>{getActionButtons(order)}</TableCell>
                       </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
+                    ) : (
+                      orders.map((order) => (
+                        <TableRow key={order.id}>
+                          <TableCell className="font-medium">
+                            {order.patient_mrn && getAvailableOrderActions(userRole, order.status).canViewPatient ? (
+                              <button
+                                className="text-left hover:text-blue-600 hover:underline cursor-pointer"
+                                onClick={() => handleViewPatientHistory(order.patient_mrn || null)}
+                                title="View patient history"
+                              >
+                                {`${order.patient_first_name || ''} ${order.patient_last_name || ''}`.trim() || 'Unknown'}
+                              </button>
+                            ) : (
+                              <span>{`${order.patient_first_name || ''} ${order.patient_last_name || ''}`.trim() || 'Unknown'}</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="font-mono text-xs">{order.patient_mrn || 'N/A'}</TableCell>
+                          <TableCell>
+                            <div className="flex items-center">
+                              <Calendar className="h-3.5 w-3.5 mr-1.5 text-slate-500" />
+                              {order.created_at ? formatDateShort(order.created_at) : 'N/A'}
+                            </div>
+                          </TableCell>
+                          <TableCell>{order.modality || 'N/A'}</TableCell>
+                          <TableCell>{order.radiology_organization_name || 'N/A'}</TableCell>
+                          <TableCell>{getStatusBadge(order.status)}</TableCell>
+                          <TableCell>{getActionButtons(order)}</TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+                
+                {/* Bottom Pagination Controls */}
+                <div className="flex items-center justify-between space-x-6 py-4 border-t">
+                  <div className="flex items-center space-x-2">
+                    <p className="text-sm font-medium">Orders per page</p>
+                    <Select
+                      value={itemsPerPage.toString()}
+                      onValueChange={handleItemsPerPageChange}
+                    >
+                      <SelectTrigger className="h-8 w-[70px]">
+                        <SelectValue placeholder={itemsPerPage} />
+                      </SelectTrigger>
+                      <SelectContent side="top">
+                        {[5, 10, 20, 30, 40, 50].map((pageSize) => (
+                          <SelectItem key={pageSize} value={pageSize.toString()}>
+                            {pageSize}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="flex items-center space-x-2">
+                    <div className="flex w-[100px] items-center justify-center text-sm font-medium">
+                      Page {pagination.page} of {pagination.pages}
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      ({pagination.total} total orders)
+                    </div>
+                  </div>
+                  
+                  <Pagination>
+                    <PaginationContent>
+                      <PaginationItem>
+                        <PaginationPrevious
+                          href="#"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            handlePageChange(pagination.page - 1);
+                          }}
+                          className={pagination.page <= 1 ? "pointer-events-none opacity-50" : ""}
+                        />
+                      </PaginationItem>
+
+                      {/* First page */}
+                      {pagination.page > 3 && pagination.pages > 5 && (
+                        <PaginationItem>
+                          <PaginationLink
+                            href="#"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              handlePageChange(1);
+                            }}
+                          >
+                            1
+                          </PaginationLink>
+                        </PaginationItem>
+                      )}
+
+                      {/* Ellipsis before current page range */}
+                      {pagination.page > 4 && pagination.pages > 6 && (
+                        <PaginationItem>
+                          <PaginationEllipsis />
+                        </PaginationItem>
+                      )}
+
+                      {/* Page numbers around current page */}
+                      {Array.from({ length: pagination.pages }, (_, i) => i + 1)
+                        .filter(pageNum => {
+                          const distance = Math.abs(pageNum - pagination.page);
+                          if (pagination.pages <= 7) return true;
+                          if (pageNum === 1 || pageNum === pagination.pages) return false;
+                          return distance <= 2;
+                        })
+                        .map(pageNum => {
+                          return (
+                            <PaginationItem key={pageNum}>
+                              <PaginationLink
+                                href="#"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  handlePageChange(pageNum);
+                                }}
+                                isActive={pageNum === pagination.page}
+                              >
+                                {pageNum}
+                              </PaginationLink>
+                            </PaginationItem>
+                          );
+                        })}
+
+                      {/* Ellipsis after current page range */}
+                      {pagination.page < pagination.pages - 3 && pagination.pages > 6 && (
+                        <PaginationItem>
+                          <PaginationEllipsis />
+                        </PaginationItem>
+                      )}
+
+                      {/* Last page */}
+                      {pagination.page < pagination.pages - 2 && pagination.pages > 5 && (
+                        <PaginationItem>
+                          <PaginationLink
+                            href="#"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              handlePageChange(pagination.pages);
+                            }}
+                          >
+                            {pagination.pages}
+                          </PaginationLink>
+                        </PaginationItem>
+                      )}
+
+                      <PaginationItem>
+                        <PaginationNext
+                          href="#"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            handlePageChange(pagination.page + 1);
+                          }}
+                          className={pagination.page >= pagination.pages ? "pointer-events-none opacity-50" : ""}
+                        />
+                      </PaginationItem>
+                    </PaginationContent>
+                  </Pagination>
+                </div>
+              </>
             )}
           </div>
         </CardContent>
