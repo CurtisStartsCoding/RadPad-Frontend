@@ -63,14 +63,6 @@ interface OrderReviewSummaryProps {
     signedDate: string;
   };
   clinicalSummary: string;
-  authorizationInfo?: {
-    authorizationNumber?: string | null;
-    authorizationStatus?: string | null;
-    authorizationDate?: string | null;
-    insuranceAuthorizationNumber?: string | null;
-    insuranceAuthorizationDate?: string | null;
-    insuranceAuthorizationContact?: string | null;
-  };
   onSendToRadiology: () => void;
   onBack: () => void;
   isSending: boolean;
@@ -84,7 +76,6 @@ export default function OrderReviewSummary({
   hasInsurance,
   referringPhysician,
   clinicalSummary,
-  authorizationInfo,
   onSendToRadiology,
   onBack,
   isSending
@@ -433,41 +424,6 @@ export default function OrderReviewSummary({
                   <p className="whitespace-pre-wrap">{orderDetails.instructions}</p>
                 </div>
               )}
-            </CardContent>
-          </Card>
-          
-          {/* 6. Authorization - New section */}
-          <Card className="print:break-inside-avoid avoid-break">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">Authorization</CardTitle>
-            </CardHeader>
-            <CardContent className="text-sm">
-              <div className="grid grid-cols-2 gap-x-4 gap-y-2">
-                <div>
-                  <span className="text-muted-foreground">Authorization Number: </span>
-                  <span className="font-medium">{authorizationInfo?.authorizationNumber || 'Not provided'}</span>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Insurance Authorization Number: </span>
-                  <span className="font-medium">{authorizationInfo?.insuranceAuthorizationNumber || 'Not provided'}</span>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Authorization Status: </span>
-                  <span className="font-medium">{authorizationInfo?.authorizationStatus || 'Not provided'}</span>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Insurance Authorization Date: </span>
-                  <span className="font-medium">{authorizationInfo?.insuranceAuthorizationDate || 'Not provided'}</span>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Authorization Date: </span>
-                  <span className="font-medium">{authorizationInfo?.authorizationDate || 'Not provided'}</span>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Insurance Authorization Contact: </span>
-                  <span className="font-medium">{authorizationInfo?.insuranceAuthorizationContact || 'Not provided'}</span>
-                </div>
-              </div>
             </CardContent>
           </Card>
           
