@@ -477,6 +477,17 @@ const AdminOrderFinalization: React.FC<AdminOrderFinalizationProps> = ({ navigat
         };
       }
 
+      // Add order details including facility and radiology organization
+      updateData.orderDetails = {
+        targetFacilityId: selectedFacilityId,
+        priority: orderDetails.priority,
+        specialInstructions: orderDetails.instructions,
+        schedulingTimeframe: orderDetails.scheduling
+      };
+
+      // Add radiology organization ID at the root level
+      updateData.radiologyOrganizationId = selectedRadiologyOrgId;
+
       // Save all data using unified endpoint
       const saveResponse = await apiRequest('PUT', `/api/admin/orders/${orderId}`, updateData);
 
