@@ -263,9 +263,6 @@ const AdminQueue: React.FC<AdminQueueProps> = ({ navigateTo }) => {
                   </div>
                   
                   <div className="flex items-center space-x-2">
-                    <div className="flex w-[100px] items-center justify-center text-sm font-medium">
-                      Page {pagination.page} of {pagination.pages}
-                    </div>
                     <div className="text-sm text-muted-foreground">
                       ({pagination.total} total orders)
                     </div>
@@ -493,9 +490,6 @@ const AdminQueue: React.FC<AdminQueueProps> = ({ navigateTo }) => {
                     </div>
                     
                     <div className="flex items-center space-x-2">
-                      <div className="flex w-[100px] items-center justify-center text-sm font-medium">
-                        Page {pagination.page} of {pagination.pages}
-                      </div>
                       <div className="text-sm text-muted-foreground">
                         ({pagination.total} total orders)
                       </div>
