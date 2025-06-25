@@ -27,6 +27,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import PageHeader from "@/components/layout/PageHeader";
 import DebugRadiologyUserInfo from "@/components/debug/DebugRadiologyUserInfo";
 import ScheduleOrderDialog from "@/components/order/ScheduleOrderDialog";
+import { UserRole } from "@/lib/roles";
 
 // Define the Order type based on actual API response
 interface ApiRadiologyOrder {
@@ -99,11 +100,18 @@ const RadiologyQueue = () => {
   const [selectedOrderForScheduling, setSelectedOrderForScheduling] = useState<ApiRadiologyOrder | null>(null);
   
   // Get the user's role to determine which API endpoint to use
-  const userRole = localStorage.getItem('rad_order_pad_user_role');
+  const userRole = localStorage.getItem('rad_order_pad_user_role') as UserRole;
   
   // Use the appropriate API endpoint based on the user's role
   // Scheduler role should use /api/orders, other roles use /api/radiology/orders
-  const apiEndpoint = userRole === 'scheduler' ? '/api/orders' : '/api/radiology/orders';
+  const apiEndpoint = userRole === UserRole.Scheduler ? '/api/orders' : '/api/radiology/orders';
+  
+  // Helper function to check if the current user can schedule orders
+  const canScheduleOrders = (role: UserRole): boolean => {
+    // Only scheduler and admin_radiology roles can schedule orders
+    // Radiologists should NOT be able to schedule orders
+    return role === UserRole.Scheduler || role === UserRole.AdminRadiology;
+  };
   
   // Fetch orders from the API
   const { data, isLoading, error } = useQuery<{orders: ApiRadiologyOrder[]} | ApiRadiologyOrder[]>({
@@ -421,14 +429,20 @@ const RadiologyQueue = () => {
                         </TableCell>
                         <TableCell className="text-right">
                           {order.status === 'pending_radiology' ? (
-                            <Button
-                              variant="default"
-                              size="sm"
-                              onClick={() => handleScheduleClick(order)}
-                            >
-                              <CalendarIcon className="h-4 w-4 mr-1" />
-                              Schedule
-                            </Button>
+                            canScheduleOrders(userRole) ? (
+                              <Button
+                                variant="default"
+                                size="sm"
+                                onClick={() => handleScheduleClick(order)}
+                              >
+                                <CalendarIcon className="h-4 w-4 mr-1" />
+                                Schedule
+                              </Button>
+                            ) : (
+                              <Badge variant="outline" className="bg-blue-50 border-blue-200 text-blue-700">
+                                Awaiting Schedule
+                              </Badge>
+                            )
                           ) : order.status === 'scheduled' ? (
                             <Badge variant="secondary" className="bg-green-50 text-green-700 border-green-200">
                               <CheckCircle2 className="h-3 w-3 mr-1" />
