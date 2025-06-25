@@ -186,14 +186,16 @@ const AppHeader: React.FC<AppHeaderProps> = ({
   };
   const getMenuItems = () => {
     const menuItemsConfig = [
-      // Special handling for Dashboard - don't show for SuperAdmin
+      // Special handling for Dashboard - only show for admin roles
       {
         key: "home",
         page: AppPage.Dashboard,
         icon: <Home className="h-4 w-4 mr-3 text-gray-500" />,
         label: "Dashboard",
         specialHandling: true,
-        condition: effectiveRole !== UserRole.SuperAdmin
+        condition: effectiveRole === UserRole.AdminReferring ||
+                  effectiveRole === UserRole.AdminRadiology ||
+                  effectiveRole === UserRole.SuperAdmin
       },
       { key: "new-order", page: AppPage.NewOrder, icon: <Stethoscope className="h-4 w-4 mr-3 text-gray-500" />, label: "New Order" },
       { key: "orders", page: AppPage.OrderList, icon: <ListChecks className="h-4 w-4 mr-3 text-gray-500" />, label: "Orders" },
