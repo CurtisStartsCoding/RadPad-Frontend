@@ -50,6 +50,45 @@ interface ApiRadiologyOrder {
   referring_organization_id?: number;
 }
 
+// Define modality groups based on the API source code
+const MODALITY_GROUPS = {
+  'xray': {
+    label: 'X-Ray',
+    terms: ['x-ray', 'xray', 'radiograph', 'radiography', 'plain film'],
+    color: 'bg-green-50 border-green-200 text-green-700'
+  },
+  'ct': {
+    label: 'CT',
+    terms: ['ct', 'cat scan', 'computed tomography', 'ct scan', 'ct angiogram', 'cta'],
+    color: 'bg-blue-50 border-blue-200 text-blue-700'
+  },
+  'mri': {
+    label: 'MRI',
+    terms: ['mri', 'magnetic resonance', 'mr', 'fmri', 'mr angiogram', 'mra', 'mrcp'],
+    color: 'bg-purple-50 border-purple-200 text-purple-700'
+  },
+  'ultrasound': {
+    label: 'Ultrasound',
+    terms: ['ultrasound', 'sonogram', 'sonography', 'doppler', 'echocardiogram', 'echo'],
+    color: 'bg-cyan-50 border-cyan-200 text-cyan-700'
+  },
+  'nuclear': {
+    label: 'Nuclear',
+    terms: ['pet', 'pet scan', 'pet-ct', 'nuclear', 'nuclear medicine', 'spect', 'bone scan'],
+    color: 'bg-orange-50 border-orange-200 text-orange-700'
+  },
+  'angiography': {
+    label: 'Angiography',
+    terms: ['angiogram', 'angiography', 'venogram', 'venography', 'arteriogram'],
+    color: 'bg-red-50 border-red-200 text-red-700'
+  },
+  'other': {
+    label: 'Other',
+    terms: ['mammogram', 'mammography', 'dexa', 'bone density', 'fluoroscopy', 'myelogram', 'discogram', 'arthrogram'],
+    color: 'bg-gray-50 border-gray-200 text-gray-700'
+  }
+};
+
 const RadiologyQueue = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFilter, setSelectedFilter] = useState("all");
@@ -89,6 +128,33 @@ const RadiologyQueue = () => {
   // Handle both response formats - either direct array or object with orders property
   const orders = Array.isArray(data) ? data : data?.orders || [];
   
+  // Helper function to check if a modality matches any terms in a group
+  const modalityMatchesGroup = (modality: string | null, groupKey: string): boolean => {
+    if (!modality) return false;
+    const modalityLower = modality.toLowerCase();
+    const group = MODALITY_GROUPS[groupKey as keyof typeof MODALITY_GROUPS];
+    return group.terms.some(term => modalityLower.includes(term));
+  };
+  
+  // Helper function to get the count of orders for a specific modality group
+  const getModalityGroupCount = (groupKey: string): number => {
+    return orders.filter(order => {
+      const validStatus = order.status === 'pending_radiology' || order.status === 'scheduled';
+      return validStatus && modalityMatchesGroup(order.modality, groupKey);
+    }).length;
+  };
+  
+  // Helper function to get the appropriate color class for a modality
+  const getModalityColorClass = (modality: string | null): string => {
+    if (!modality) return 'bg-gray-50 border-gray-200 text-gray-700';
+    
+    const groupEntry = Object.entries(MODALITY_GROUPS).find(([_, group]) =>
+      group.terms.some(term => modality.toLowerCase().includes(term))
+    );
+    
+    return groupEntry ? groupEntry[1].color : 'bg-gray-50 border-gray-200 text-gray-700';
+  };
+  
   // Filter orders by status for radiology queue
   // Include both 'pending_radiology' and 'scheduled' status orders
   const filteredOrders = orders.filter(order => {
@@ -97,14 +163,9 @@ const RadiologyQueue = () => {
     
     if (selectedFilter === "all") {
       return validStatus;
-    } else if (selectedFilter === "mri") {
-      return validStatus && order.modality && order.modality.toLowerCase().includes('mri');
-    } else if (selectedFilter === "ct") {
-      return validStatus && order.modality && order.modality.toLowerCase().includes('ct');
-    } else if (selectedFilter === "xray") {
-      return validStatus && order.modality && order.modality.toLowerCase().includes('x-ray');
+    } else {
+      return validStatus && modalityMatchesGroup(order.modality, selectedFilter);
     }
-    return false;
   }) || [];
   
   // Further filter by search query
@@ -157,12 +218,14 @@ const RadiologyQueue = () => {
           <CardTitle>Pending Orders</CardTitle>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue="all" className="space-y-4">
-            <TabsList>
-              <TabsTrigger value="all">All Orders ({filteredOrders.length})</TabsTrigger>
-              <TabsTrigger value="mri">MRI ({filteredOrders.filter(o => o.modality && o.modality.toLowerCase().includes('mri')).length})</TabsTrigger>
-              <TabsTrigger value="ct">CT ({filteredOrders.filter(o => o.modality && o.modality.toLowerCase().includes('ct')).length})</TabsTrigger>
-              <TabsTrigger value="xray">X-Ray ({filteredOrders.filter(o => o.modality && o.modality.toLowerCase().includes('x-ray')).length})</TabsTrigger>
+          <Tabs defaultValue="all" className="space-y-4" onValueChange={setSelectedFilter}>
+            <TabsList className="grid w-full grid-cols-8">
+              <TabsTrigger value="all">All Orders ({orders.filter(o => o.status === 'pending_radiology' || o.status === 'scheduled').length})</TabsTrigger>
+              {Object.entries(MODALITY_GROUPS).map(([key, group]) => (
+                <TabsTrigger key={key} value={key}>
+                  {group.label} ({getModalityGroupCount(key)})
+                </TabsTrigger>
+              ))}
             </TabsList>
             
             <div className="flex justify-between items-center">
@@ -187,9 +250,11 @@ const RadiologyQueue = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Modalities</SelectItem>
-                    <SelectItem value="mri">MRI</SelectItem>
-                    <SelectItem value="ct">CT Scan</SelectItem>
-                    <SelectItem value="xray">X-Ray</SelectItem>
+                    {Object.entries(MODALITY_GROUPS).map(([key, group]) => (
+                      <SelectItem key={key} value={key}>
+                        {group.label}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -259,7 +324,7 @@ const RadiologyQueue = () => {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <Badge variant="outline" className="bg-blue-50 border-blue-200 text-blue-700">
+                          <Badge variant="outline" className={getModalityColorClass(order.modality)}>
                             {order.modality || 'Not Specified'}
                           </Badge>
                         </TableCell>
