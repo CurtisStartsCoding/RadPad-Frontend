@@ -134,14 +134,7 @@ const AdminQueue: React.FC<AdminQueueProps> = ({ navigateTo }) => {
   });
   
   // Extract orders and pagination from the response
-  let orders: ApiAdminOrder[] = data?.orders || [];
-  
-  // If "all" is selected, filter to show only admin-relevant orders (pending_admin and pending_radiology)
-  if (selectedFilter === "all") {
-    orders = orders.filter(order =>
-      order.status === 'pending_admin' || order.status === 'pending_radiology'
-    );
-  }
+  const orders: ApiAdminOrder[] = data?.orders || [];
   
   const pagination = data?.pagination || { total: 0, page: 1, limit: 10, pages: 1 };
   
