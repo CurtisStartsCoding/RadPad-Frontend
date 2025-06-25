@@ -122,10 +122,13 @@ const PatientHistoryView = () => {
 
   // Fetch all orders and filter by patient MRN
   // Note: This is a workaround since there's no specific patient history API
+  // Check if the MRN is valid (not "Unknown" or other placeholder values)
+  const isValidMrn = patientMrn && patientMrn !== 'Unknown' && patientMrn !== 'unknown' && patientMrn !== 'null' && patientMrn !== 'undefined';
+
   const { data: ordersData, isLoading: ordersLoading, error: ordersError } = useQuery<OrdersApiResponse>({
     queryKey: ['patient-orders', patientMrn],
     queryFn: async () => {
-      if (!patientMrn) throw new Error('Patient MRN is required');
+      if (!patientMrn || !isValidMrn) throw new Error('Valid Patient MRN is required');
       const response = await apiRequest('GET', '/api/orders?limit=100', undefined);
       if (!response.ok) {
         throw new Error('Failed to fetch orders');
@@ -133,13 +136,13 @@ const PatientHistoryView = () => {
       const data = await response.json();
       return data;
     },
-    enabled: !!patientMrn
+    enabled: Boolean(patientMrn && isValidMrn)
   });
 
-  // Filter orders for this specific patient
-  const patientOrders = ordersData?.orders?.filter(order => 
+  // Filter orders for this specific patient (only if MRN is valid)
+  const patientOrders: PatientOrder[] = (isValidMrn && ordersData?.orders?.filter((order: PatientOrder) =>
     order.patient_mrn === patientMrn
-  ) || [];
+  )) || [];
 
   // Extract patient info from the most recent order
   const patientInfo: PatientInfo | null = patientOrders.length > 0 ? {
@@ -231,14 +234,19 @@ const PatientHistoryView = () => {
     );
   }
 
-  if (ordersError || !patientInfo) {
+  if (ordersError || !patientInfo || !isValidMrn) {
     return (
       <div className="p-6">
         <div className="text-center py-12">
           <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">Patient Not Found</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            {!isValidMrn ? 'Invalid Patient MRN' : 'Patient Not Found'}
+          </h3>
           <p className="text-gray-600 mb-4">
-            No patient found with MRN "{patientMrn}" or you don't have permission to view this patient's information.
+            {!isValidMrn
+              ? `The patient MRN "${patientMrn}" is not valid. Please navigate to a patient with a valid MRN.`
+              : `No patient found with MRN "${patientMrn}" or you don't have permission to view this patient's information.`
+            }
           </p>
           <Button onClick={handleBackClick}>
             <ArrowLeft className="h-4 w-4 mr-2" />

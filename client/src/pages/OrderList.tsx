@@ -534,7 +534,7 @@ const OrderList = () => {
                       orders.map((order) => (
                         <TableRow key={order.id}>
                           <TableCell className="font-medium">
-                            {order.patient_mrn && getAvailableOrderActions(userRole, order.status).canViewPatient ? (
+                            {order.patient_mrn && order.patient_mrn !== 'N/A' && order.patient_mrn !== 'Unknown' && getAvailableOrderActions(userRole, order.status).canViewPatient ? (
                               <button
                                 className="text-left hover:text-blue-600 hover:underline cursor-pointer"
                                 onClick={() => handleViewPatientHistory(order.patient_mrn || null)}
