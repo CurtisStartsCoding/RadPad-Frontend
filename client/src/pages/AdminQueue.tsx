@@ -79,6 +79,8 @@ const AdminQueue: React.FC<AdminQueueProps> = ({ navigateTo }) => {
   const [, setLocation] = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFilter, setSelectedFilter] = useState("all");
+  const [sortField, setSortField] = useState<'patient' | 'date' | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -162,9 +164,54 @@ const AdminQueue: React.FC<AdminQueueProps> = ({ navigateTo }) => {
     setCurrentPage(1); // Reset to first page when changing filter
   };
   
+  // Handle sorting
+  const handleSort = (field: 'patient' | 'date') => {
+    if (sortField === field) {
+      // If clicking the same field, toggle direction
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      // If clicking a different field, set new field and default to ascending
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+  
+  // Sort the orders
+  const sortedOrders = [...orders].sort((a, b) => {
+    if (!sortField) return 0;
+    
+    let aValue: string | Date;
+    let bValue: string | Date;
+    
+    if (sortField === 'patient') {
+      // Sort by patient last name, then first name
+      const aLastName = a.patient_last_name || '';
+      const bLastName = b.patient_last_name || '';
+      const aFirstName = a.patient_first_name || '';
+      const bFirstName = b.patient_first_name || '';
+      
+      aValue = `${aLastName}, ${aFirstName}`.toLowerCase();
+      bValue = `${bLastName}, ${bFirstName}`.toLowerCase();
+    } else if (sortField === 'date') {
+      aValue = new Date(a.created_at);
+      bValue = new Date(b.created_at);
+    } else {
+      return 0;
+    }
+    
+    let comparison = 0;
+    if (aValue < bValue) {
+      comparison = -1;
+    } else if (aValue > bValue) {
+      comparison = 1;
+    }
+    
+    return sortDirection === 'desc' ? -comparison : comparison;
+  });
+  
   // Filter orders for tab counts (client-side for display purposes)
-  const pendingAdminOrders = orders.filter(order => order.status === 'pending_admin');
-  const pendingRadiologyOrders = orders.filter(order => order.status === 'pending_radiology');
+  const pendingAdminOrders = sortedOrders.filter(order => order.status === 'pending_admin');
+  const pendingRadiologyOrders = sortedOrders.filter(order => order.status === 'pending_radiology');
   
   
   // Format time for display
@@ -383,14 +430,22 @@ const AdminQueue: React.FC<AdminQueueProps> = ({ navigateTo }) => {
                     <TableHeader>
                       <TableRow>
                         <TableHead className="w-[180px]">
-                          <Button variant="ghost" className="flex items-center text-slate-600 font-medium p-0 h-auto">
+                          <Button
+                            variant="ghost"
+                            className="flex items-center text-slate-600 font-medium p-0 h-auto hover:text-slate-900"
+                            onClick={() => handleSort('patient')}
+                          >
                             Patient
                             <ArrowUpDown className="ml-1 h-3 w-3" />
                           </Button>
                         </TableHead>
                         <TableHead>MRN</TableHead>
                         <TableHead>
-                          <Button variant="ghost" className="flex items-center text-slate-600 font-medium p-0 h-auto">
+                          <Button
+                            variant="ghost"
+                            className="flex items-center text-slate-600 font-medium p-0 h-auto hover:text-slate-900"
+                            onClick={() => handleSort('date')}
+                          >
                             Date
                             <ArrowUpDown className="ml-1 h-3 w-3" />
                           </Button>
@@ -403,14 +458,14 @@ const AdminQueue: React.FC<AdminQueueProps> = ({ navigateTo }) => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {orders.length === 0 ? (
+                      {sortedOrders.length === 0 ? (
                         <TableRow>
                           <TableCell colSpan={8} className="text-center py-8 text-slate-500">
                             No orders found matching your search criteria
                           </TableCell>
                         </TableRow>
                       ) : (
-                        orders.map((order: ApiAdminOrder) => (
+                        sortedOrders.map((order: ApiAdminOrder) => (
                           <TableRow key={order.id}>
                             <TableCell className="font-medium">{`${order.patient_first_name || ''} ${order.patient_last_name || ''}`}</TableCell>
                             <TableCell className="font-mono text-xs">{order.patient_mrn || 'N/A'}</TableCell>
