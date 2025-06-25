@@ -219,14 +219,26 @@ const RadiologyQueue = () => {
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="all" className="space-y-4" onValueChange={setSelectedFilter}>
-            <TabsList className="grid w-full grid-cols-8">
-              <TabsTrigger value="all">All Orders ({orders.filter(o => o.status === 'pending_radiology' || o.status === 'scheduled').length})</TabsTrigger>
-              {Object.entries(MODALITY_GROUPS).map(([key, group]) => (
-                <TabsTrigger key={key} value={key}>
-                  {group.label} ({getModalityGroupCount(key)})
-                </TabsTrigger>
-              ))}
-            </TabsList>
+            <div className="space-y-2">
+              {/* First row - All Orders and first 3 modality groups */}
+              <TabsList className="grid w-full grid-cols-4">
+                <TabsTrigger value="all">All Orders ({orders.filter(o => o.status === 'pending_radiology' || o.status === 'scheduled').length})</TabsTrigger>
+                {Object.entries(MODALITY_GROUPS).slice(0, 3).map(([key, group]) => (
+                  <TabsTrigger key={key} value={key}>
+                    {group.label} ({getModalityGroupCount(key)})
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+              
+              {/* Second row - remaining 4 modality groups */}
+              <TabsList className="grid w-full grid-cols-4">
+                {Object.entries(MODALITY_GROUPS).slice(3).map(([key, group]) => (
+                  <TabsTrigger key={key} value={key}>
+                    {group.label} ({getModalityGroupCount(key)})
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </div>
             
             <div className="flex justify-between items-center">
               <div className="relative w-72">
