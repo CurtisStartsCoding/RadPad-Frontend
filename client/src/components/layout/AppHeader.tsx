@@ -197,7 +197,13 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                   effectiveRole === UserRole.AdminRadiology ||
                   effectiveRole === UserRole.SuperAdmin
       },
-      { key: "new-order", page: AppPage.NewOrder, icon: <Stethoscope className="h-4 w-4 mr-3 text-gray-500" />, label: "New Order" },
+      {
+        key: "new-order",
+        page: AppPage.NewOrder,
+        icon: <Stethoscope className="h-4 w-4 mr-3 text-gray-500" />,
+        label: "New Order",
+        condition: effectiveRole === UserRole.Physician || effectiveRole === UserRole.TrialPhysician
+      },
       { key: "orders", page: AppPage.OrderList, icon: <ListChecks className="h-4 w-4 mr-3 text-gray-500" />, label: "Orders" },
       { key: "admin-queue", page: AppPage.AdminQueue, icon: <FileText className="h-4 w-4 mr-3 text-gray-500" />, label: "Admin Queue" },
       { key: "radiology-queue", page: AppPage.RadiologyQueue, icon: <FileText className="h-4 w-4 mr-3 text-gray-500" />, label: "Radiology Queue" },

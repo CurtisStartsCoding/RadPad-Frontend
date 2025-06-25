@@ -323,10 +323,12 @@ const Dashboard = ({ navigateTo }: DashboardProps) => {
         title="Dashboard"
         description="Welcome back to RadOrderPad"
       >
-        <Button onClick={handleNewOrderClick}>
-          <PlusCircle className="h-4 w-4 mr-2" />
-          New Order
-        </Button>
+        {(user?.role === UserRole.Physician || user?.role === UserRole.TrialPhysician) && (
+          <Button onClick={handleNewOrderClick}>
+            <PlusCircle className="h-4 w-4 mr-2" />
+            New Order
+          </Button>
+        )}
       </PageHeader>
       
       <Tabs defaultValue="overview" value={activeTab} onValueChange={setActiveTab} className="space-y-6">
@@ -549,14 +551,16 @@ const Dashboard = ({ navigateTo }: DashboardProps) => {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <Button
-                  variant="outline"
-                  className="h-auto flex flex-col items-center justify-center py-6 px-4"
-                  onClick={handleNewOrderClick}
-                >
-                  <PlusCircle className="h-6 w-6 mb-2" />
-                  <span>New Order</span>
-                </Button>
+                {(user?.role === UserRole.Physician || user?.role === UserRole.TrialPhysician) && (
+                  <Button
+                    variant="outline"
+                    className="h-auto flex flex-col items-center justify-center py-6 px-4"
+                    onClick={handleNewOrderClick}
+                  >
+                    <PlusCircle className="h-6 w-6 mb-2" />
+                    <span>New Order</span>
+                  </Button>
+                )}
                 <Button
                   variant="outline"
                   className="h-auto flex flex-col items-center justify-center py-6 px-4"

@@ -294,10 +294,12 @@ const OrderList = () => {
               <Eye className="h-4 w-4 mr-1" />
               View
             </Button>
-            <Button variant="outline" size="sm" onClick={handleNewOrderClick}>
-              <PlusCircle className="h-4 w-4 mr-1" />
-              New Order
-            </Button>
+            {(userRole === UserRole.Physician || userRole === UserRole.TrialPhysician) && (
+              <Button variant="outline" size="sm" onClick={handleNewOrderClick}>
+                <PlusCircle className="h-4 w-4 mr-1" />
+                New Order
+              </Button>
+            )}
           </div>
         );
       default:
@@ -322,10 +324,12 @@ const OrderList = () => {
         title="Orders"
         description="View and track all imaging orders"
       >
-        <Button onClick={handleNewOrderClick}>
-          <PlusCircle className="h-4 w-4 mr-2" />
-          New Order
-        </Button>
+        {(userRole === UserRole.Physician || userRole === UserRole.TrialPhysician) && (
+          <Button onClick={handleNewOrderClick}>
+            <PlusCircle className="h-4 w-4 mr-2" />
+            New Order
+          </Button>
+        )}
       </PageHeader>
       
       <Card>
