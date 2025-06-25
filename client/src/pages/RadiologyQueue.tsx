@@ -26,6 +26,7 @@ import { formatDateShort } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import PageHeader from "@/components/layout/PageHeader";
 import DebugRadiologyUserInfo from "@/components/debug/DebugRadiologyUserInfo";
+import ScheduleOrderDialog from "@/components/order/ScheduleOrderDialog";
 
 // Define the Order type based on actual API response
 interface ApiRadiologyOrder {
@@ -94,6 +95,8 @@ const RadiologyQueue = () => {
   const [selectedFilter, setSelectedFilter] = useState("all");
   const [sortField, setSortField] = useState<'patient' | 'date' | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
+  const [selectedOrderForScheduling, setSelectedOrderForScheduling] = useState<ApiRadiologyOrder | null>(null);
   
   // Get the user's role to determine which API endpoint to use
   const userRole = localStorage.getItem('rad_order_pad_user_role');
@@ -244,7 +247,18 @@ const RadiologyQueue = () => {
     }
     return name.substring(0, 2).toUpperCase();
   };
-  
+
+  // Handle opening the schedule dialog
+  const handleScheduleClick = (order: ApiRadiologyOrder) => {
+    setSelectedOrderForScheduling(order);
+    setScheduleDialogOpen(true);
+  };
+
+  // Handle closing the schedule dialog
+  const handleScheduleDialogClose = () => {
+    setScheduleDialogOpen(false);
+    setSelectedOrderForScheduling(null);
+  };
 
   return (
     <div className="p-6">
@@ -406,10 +420,25 @@ const RadiologyQueue = () => {
                           </div>
                         </TableCell>
                         <TableCell className="text-right">
-                          <Button variant="default" size="sm">
-                            <CalendarIcon className="h-4 w-4 mr-1" />
-                            Schedule
-                          </Button>
+                          {order.status === 'pending_radiology' ? (
+                            <Button
+                              variant="default"
+                              size="sm"
+                              onClick={() => handleScheduleClick(order)}
+                            >
+                              <CalendarIcon className="h-4 w-4 mr-1" />
+                              Schedule
+                            </Button>
+                          ) : order.status === 'scheduled' ? (
+                            <Badge variant="secondary" className="bg-green-50 text-green-700 border-green-200">
+                              <CheckCircle2 className="h-3 w-3 mr-1" />
+                              Scheduled
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline">
+                              {order.status}
+                            </Badge>
+                          )}
                         </TableCell>
                       </TableRow>
                     ))
@@ -420,6 +449,21 @@ const RadiologyQueue = () => {
           </Tabs>
         </CardContent>
       </Card>
+
+      {/* Schedule Order Dialog */}
+      {selectedOrderForScheduling && (
+        <ScheduleOrderDialog
+          isOpen={scheduleDialogOpen}
+          onClose={handleScheduleDialogClose}
+          orderId={selectedOrderForScheduling.id}
+          patientName={
+            selectedOrderForScheduling.patient_name ||
+            `${selectedOrderForScheduling.patient_first_name || ''} ${selectedOrderForScheduling.patient_last_name || ''}`.trim() ||
+            'Unknown Patient'
+          }
+          modality={selectedOrderForScheduling.modality}
+        />
+      )}
     </div>
   );
 };
