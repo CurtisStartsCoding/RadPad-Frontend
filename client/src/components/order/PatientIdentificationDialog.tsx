@@ -208,6 +208,14 @@ export default function PatientIdentificationDialog({
       /\b(0?[1-9]|1[0-2])[\/\-](0?[1-9]|[12]\d|3[01])[\/\-](19|20)\d{2}\b/,
       // MM-DD-YYYY
       /\b(0?[1-9]|1[0-2])\-(0?[1-9]|[12]\d|3[01])\-(19|20)\d{2}\b/,
+      // Month DD, YYYY (full month names)
+      /\b(January|February|March|April|May|June|July|August|September|October|November|December)\s+(0?[1-9]|[12]\d|3[01])(?:st|nd|rd|th)?,?\s+((?:19|20)\d{2})\b/i,
+      // Month DD YYYY (full month names, no comma)
+      /\b(January|February|March|April|May|June|July|August|September|October|November|December)\s+(0?[1-9]|[12]\d|3[01])(?:st|nd|rd|th)?\s+((?:19|20)\d{2})\b/i,
+      // Abbreviated Month DD, YYYY
+      /\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+(0?[1-9]|[12]\d|3[01])(?:st|nd|rd|th)?,?\s+((?:19|20)\d{2})\b/i,
+      // Abbreviated Month DD YYYY (no comma)
+      /\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+(0?[1-9]|[12]\d|3[01])(?:st|nd|rd|th)?\s+((?:19|20)\d{2})\b/i,
     ];
     
     for (const pattern of datePatterns) {
