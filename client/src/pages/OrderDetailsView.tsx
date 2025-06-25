@@ -323,12 +323,6 @@ const OrderDetailsView = () => {
             <Download className="h-4 w-4 mr-2" />
             Download
           </Button>
-          {order.patient_mrn && canViewPatientHistory(userRole) && (
-            <Button variant="outline" onClick={handleViewPatientHistory}>
-              <Eye className="h-4 w-4 mr-2" />
-              Patient History
-            </Button>
-          )}
         </div>
       </PageHeader>
 
