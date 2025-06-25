@@ -92,6 +92,8 @@ const MODALITY_GROUPS = {
 const RadiologyQueue = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFilter, setSelectedFilter] = useState("all");
+  const [sortField, setSortField] = useState<'patient' | 'date' | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   
   // Get the user's role to determine which API endpoint to use
   const userRole = localStorage.getItem('rad_order_pad_user_role');
@@ -177,6 +179,51 @@ const RadiologyQueue = () => {
       (order.modality && order.modality.toLowerCase().includes(searchLower)) ||
       searchLower === ''  // Always include all orders when search is empty
     );
+  });
+  
+  // Handle sorting
+  const handleSort = (field: 'patient' | 'date') => {
+    if (sortField === field) {
+      // If clicking the same field, toggle direction
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      // If clicking a different field, set new field and default to ascending
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+  
+  // Sort the filtered orders
+  const sortedOrders = [...searchFilteredOrders].sort((a, b) => {
+    if (!sortField) return 0;
+    
+    let aValue: string | Date;
+    let bValue: string | Date;
+    
+    if (sortField === 'patient') {
+      // Sort by patient last name, then first name
+      const aLastName = a.patient_last_name || a.patient_name?.split(' ').pop() || '';
+      const bLastName = b.patient_last_name || b.patient_name?.split(' ').pop() || '';
+      const aFirstName = a.patient_first_name || a.patient_name?.split(' ')[0] || '';
+      const bFirstName = b.patient_first_name || b.patient_name?.split(' ')[0] || '';
+      
+      aValue = `${aLastName}, ${aFirstName}`.toLowerCase();
+      bValue = `${bLastName}, ${bFirstName}`.toLowerCase();
+    } else if (sortField === 'date') {
+      aValue = new Date(a.created_at);
+      bValue = new Date(b.created_at);
+    } else {
+      return 0;
+    }
+    
+    let comparison = 0;
+    if (aValue < bValue) {
+      comparison = -1;
+    } else if (aValue > bValue) {
+      comparison = 1;
+    }
+    
+    return sortDirection === 'desc' ? -comparison : comparison;
   });
   
   // Format date for display
@@ -289,14 +336,22 @@ const RadiologyQueue = () => {
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-[180px]">
-                      <Button variant="ghost" className="flex items-center text-slate-600 font-medium p-0 h-auto">
+                      <Button
+                        variant="ghost"
+                        className="flex items-center text-slate-600 font-medium p-0 h-auto hover:text-slate-900"
+                        onClick={() => handleSort('patient')}
+                      >
                         Patient
                         <ArrowUpDown className="ml-1 h-3 w-3" />
                       </Button>
                     </TableHead>
                     <TableHead>MRN</TableHead>
                     <TableHead>
-                      <Button variant="ghost" className="flex items-center text-slate-600 font-medium p-0 h-auto">
+                      <Button
+                        variant="ghost"
+                        className="flex items-center text-slate-600 font-medium p-0 h-auto hover:text-slate-900"
+                        onClick={() => handleSort('date')}
+                      >
                         Date
                         <ArrowUpDown className="ml-1 h-3 w-3" />
                       </Button>
@@ -308,14 +363,14 @@ const RadiologyQueue = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {searchFilteredOrders.length === 0 ? (
+                  {sortedOrders.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={7} className="text-center py-8 text-slate-500">
                         No orders found matching your search criteria
                       </TableCell>
                     </TableRow>
                   ) : (
-                    searchFilteredOrders.map((order) => (
+                    sortedOrders.map((order) => (
                       <TableRow key={order.id}>
                         <TableCell className="font-medium">
                           {order.patient_name ||
