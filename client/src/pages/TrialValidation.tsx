@@ -513,7 +513,7 @@ const TrialValidation = () => {
         title="Rad Order Pad"
         onNavigate={handleNavigate}
       />
-      <div className="p-6">
+      <div className="pt-16 px-6 pb-6">
         {/* Trial User Banner */}
         <Card className="mb-4 border-blue-200 bg-blue-50">
           <CardHeader className="pb-2">
