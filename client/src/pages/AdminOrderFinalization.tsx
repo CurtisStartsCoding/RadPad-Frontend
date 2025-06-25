@@ -165,7 +165,8 @@ const AdminOrderFinalization: React.FC<AdminOrderFinalizationProps> = ({ navigat
         zipCode: orderData.patient_zip_code || '',
         phoneNumber: orderData.patient_phone_number || '',
         email: orderData.patient_email || '',
-        mrn: orderData.patient_mrn || ''
+        mrn: orderData.patient_mrn || '',
+        ssn: orderData.patient_ssn || ''
       });
       // Also update insurance info with real data
       setInsuranceInfo({
@@ -223,7 +224,8 @@ const AdminOrderFinalization: React.FC<AdminOrderFinalizationProps> = ({ navigat
     zipCode: orderData?.patient_zip_code || "00000",
     phoneNumber: orderData?.patient_phone_number || "(555) MOCK-DATA",
     email: orderData?.patient_email || "fake.patient@mockdata.test",
-    mrn: orderData?.patient_mrn || "MOCK-" + (order.patient?.mrn || '')
+    mrn: orderData?.patient_mrn || "MOCK-" + (order.patient?.mrn || ''),
+    ssn: orderData?.patient_ssn || ''
   });
   
   // Insurance information state
@@ -457,7 +459,8 @@ const AdminOrderFinalization: React.FC<AdminOrderFinalizationProps> = ({ navigat
           zipCode: patientInfo.zipCode,
           phoneNumber: patientInfo.phoneNumber,
           email: patientInfo.email,
-          mrn: patientInfo.mrn
+          mrn: patientInfo.mrn,
+          ssn: patientInfo.ssn
         }
       };
 

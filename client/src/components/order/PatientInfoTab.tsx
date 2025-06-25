@@ -19,6 +19,7 @@ interface PatientInfo {
   phoneNumber: string;
   email: string;
   mrn: string;
+  ssn?: string;
 }
 
 interface PatientInfoTabProps {
@@ -57,7 +58,8 @@ export default function PatientInfoTab({
           zipCode: patientInfo.zipCode,
           phoneNumber: patientInfo.phoneNumber,
           email: patientInfo.email,
-          mrn: patientInfo.mrn
+          mrn: patientInfo.mrn,
+          ssn: patientInfo.ssn
         }
       };
       
@@ -218,14 +220,53 @@ export default function PatientInfoTab({
         </div>
       </div>
       
-      <div>
-        <Label htmlFor="mrn">Medical Record Number (MRN)</Label>
-        <Input 
-          id="mrn" 
-          name="mrn" 
-          value={patientInfo.mrn} 
-          onChange={(e) => onPatientInfoChange(e.target.name, e.target.value)}
-        />
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="mrn">Medical Record Number (MRN)</Label>
+          <Input 
+            id="mrn" 
+            name="mrn" 
+            value={patientInfo.mrn} 
+            onChange={(e) => onPatientInfoChange(e.target.name, e.target.value)}
+          />
+        </div>
+        <div>
+          <Label htmlFor="ssn">Social Security Number</Label>
+          <Input 
+            id="ssn" 
+            name="ssn" 
+            value={patientInfo.ssn || ''} 
+            onChange={(e) => {
+              const value = e.target.value;
+              // Only allow digits and hyphens
+              const cleaned = value.replace(/[^\d-]/g, '');
+              
+              // Auto-format as user types
+              let formatted = cleaned;
+              if (cleaned.length <= 3) {
+                formatted = cleaned;
+              } else if (cleaned.length <= 5) {
+                formatted = cleaned.slice(0, 3) + '-' + cleaned.slice(3);
+              } else {
+                // Remove any existing hyphens first
+                const digitsOnly = cleaned.replace(/-/g, '');
+                if (digitsOnly.length <= 3) {
+                  formatted = digitsOnly;
+                } else if (digitsOnly.length <= 5) {
+                  formatted = digitsOnly.slice(0, 3) + '-' + digitsOnly.slice(3);
+                } else {
+                  formatted = digitsOnly.slice(0, 3) + '-' + digitsOnly.slice(3, 5) + '-' + digitsOnly.slice(5, 9);
+                }
+              }
+              
+              onPatientInfoChange(e.target.name, formatted);
+            }}
+            placeholder="XXX-XX-XXXX"
+            maxLength={11}
+            pattern="\d{3}-\d{2}-\d{4}"
+            title="Please enter SSN in format XXX-XX-XXXX"
+          />
+        </div>
       </div>
       
       <div className="flex justify-between mt-6">

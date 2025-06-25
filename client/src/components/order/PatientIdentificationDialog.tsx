@@ -186,9 +186,9 @@ export default function PatientIdentificationDialog({
   };
   
   // Parse patient information from transcript
-  const parsePatientInfo = (text: string): {name: string, dob: string} => {
+  const parsePatientInfo = (text: string): {name: string, dob: string, ssn?: string} => {
     // This is a simple parser that could be improved with more sophisticated NLP
-    // For now, we'll look for date patterns and assume the rest is the name
+    // For now, we'll look for date patterns and SSN patterns, and assume the rest is the name
     
     const datePatterns = [
       // MM/DD/YYYY
@@ -201,8 +201,16 @@ export default function PatientIdentificationDialog({
       /\b(0?[1-9]|1[0-2])\-(0?[1-9]|[12]\d|3[01])\-(19|20)\d{2}\b/,
     ];
     
+    // SSN patterns - looking for "last 4" or "last four" followed by 4 digits
+    const ssnPatterns = [
+      /last\s*(?:four|4)\s*(?:of\s*)?(?:social\s*)?(?:is\s*)?(\d{4})/i,
+      /(?:social\s*(?:security\s*)?(?:number\s*)?(?:is\s*)?)?(\d{4})(?:\s*social)?/i,
+      /last\s*(?:four|4)\s*(\d{4})/i,
+    ];
+    
     let dob = "01/01/1980"; // Default date
     let name = text;
+    let ssn: string | undefined;
     
     // Try to extract date of birth
     for (const pattern of datePatterns) {
@@ -288,7 +296,7 @@ export default function PatientIdentificationDialog({
             <div className="p-4 border-b">
               <h2 className="text-lg font-medium">Patient Identification</h2>
               <p className="text-sm text-gray-600">
-                Please speak or type the patient's name and date of birth.
+                Please speak or type the patient's name, date of birth, and last 4 of social.
               </p>
             </div>
             
@@ -351,7 +359,7 @@ export default function PatientIdentificationDialog({
                 <div className="flex gap-2">
                   <input 
                     type="text" 
-                    placeholder="Type name and date of birth" 
+                    placeholder="Type name, date of birth, and last 4 of SSN" 
                     className="px-3 py-1 border border-gray-300 rounded-md text-sm flex-1"
                     value={transcript}
                     onChange={(e) => {
