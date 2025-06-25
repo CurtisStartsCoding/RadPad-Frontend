@@ -67,6 +67,7 @@ export default function PatientIdentificationDialog({
   const [isListening, setIsListening] = useState<boolean>(false);
   const [patientSuggestions, setPatientSuggestions] = useState<Array<{name: string, dob: string}>>([]);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const transcriptRef = useRef<string>('');
   
   // Clean up speech recognition when component unmounts
   useEffect(() => {
@@ -137,6 +138,7 @@ export default function PatientIdentificationDialog({
         if (finalTranscript) {
           setTranscript(prevText => {
             const newText = prevText ? `${prevText} ${finalTranscript}` : finalTranscript;
+            transcriptRef.current = newText.trim();
             return newText.trim();
           });
           
@@ -146,9 +148,19 @@ export default function PatientIdentificationDialog({
       };
       
       recognition.onend = () => {
-        console.log("Speech recognition ended");
+        console.log("Speech recognition ended, transcript:", transcriptRef.current);
         setIsListening(false);
-        // Don't automatically process - user will click a button to process
+        
+        // Auto-parse when speech recognition ends
+        // Use a small timeout to ensure state updates have propagated
+        setTimeout(() => {
+          if (transcriptRef.current) {
+            console.log("Auto-parsing transcript:", transcriptRef.current);
+            const parsedInfo = parsePatientInfo(transcriptRef.current);
+            setPatientSuggestions([parsedInfo]);
+            setDialogState(DialogState.CONFIRMATION);
+          }
+        }, 100);
       };
       
       recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
@@ -175,13 +187,7 @@ export default function PatientIdentificationDialog({
   const stopListening = () => {
     if (recognitionRef.current) {
       recognitionRef.current.stop();
-    }
-    
-    // Process the transcript when user stops recording
-    if (transcript) {
-      const parsedInfo = parsePatientInfo(transcript);
-      setPatientSuggestions([parsedInfo]);
-      setDialogState(DialogState.CONFIRMATION);
+      // The onend handler will take care of auto-parsing
     }
   };
   
@@ -269,14 +275,6 @@ export default function PatientIdentificationDialog({
     setDialogState(DialogState.ERROR);
   };
   
-  // Handle manual text input
-  const handleManualInput = () => {
-    onIdentify({
-      name: transcript,
-      dob: "01/01/2000" // Default date
-    });
-    handleReset();
-  };
   
   // Reset everything
   const handleReset = () => {
@@ -367,6 +365,7 @@ export default function PatientIdentificationDialog({
                     onChange={(e) => {
                       setError("");
                       setTranscript(e.target.value);
+                      transcriptRef.current = e.target.value;
                     }}
                   />
                   <button
@@ -522,18 +521,29 @@ export default function PatientIdentificationDialog({
                 ))}
               </div>
               
-              {/* Option to use raw text as name */}
-              <button
-                className="w-full text-xs text-gray-600 hover:text-gray-900 py-2"
-                onClick={handleManualInput}
-              >
-                Use entire text as patient name
-              </button>
             </div>
             
-            <div className="p-4 border-t flex justify-end">
+            <div className="p-4 border-t flex justify-between gap-2">
               <button 
-                className="px-4 py-2 border border-gray-300 rounded-md"
+                className="px-4 py-2 bg-amber-50 text-amber-700 border border-amber-300 rounded-md hover:bg-amber-100 font-medium flex items-center"
+                onClick={() => {
+                  // Clear transcript and go back to listening/dictating
+                  setTranscript('');
+                  transcriptRef.current = '';
+                  setInterimTranscript('');
+                  setError('');
+                  setPatientSuggestions([]);
+                  setDialogState(DialogState.LISTENING);
+                }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2">
+                  <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+                  <path d="M3 3v5h5"></path>
+                </svg>
+                Clear & Try Again
+              </button>
+              <button 
+                className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
                 onClick={handleReset}
               >
                 Cancel
