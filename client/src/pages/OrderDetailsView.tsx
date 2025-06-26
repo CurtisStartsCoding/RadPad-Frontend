@@ -26,7 +26,7 @@ import {
   Loader2
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
-import { formatDate, formatDateLong } from "@/lib/utils";
+import { formatDate, formatDateLong, formatDateTime } from "@/lib/utils";
 import PageHeader from "@/components/layout/PageHeader";
 import { useAuth } from "@/lib/useAuth";
 import { UserRole, canViewOrderDetails, canViewPatientHistory } from "@/lib/roles";
@@ -292,10 +292,9 @@ const OrderDetailsView = () => {
         {/* Main Content */}
         <div className="lg:col-span-2">
           <Tabs defaultValue="order-details" className="space-y-4">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="order-details">Order Details</TabsTrigger>
               <TabsTrigger value="patient-info">Patient Info</TabsTrigger>
-              <TabsTrigger value="validation">Validation</TabsTrigger>
               <TabsTrigger value="results">Results</TabsTrigger>
             </TabsList>
 
@@ -334,10 +333,29 @@ const OrderDetailsView = () => {
                     <p className="text-sm mt-1 p-3 bg-gray-50 rounded">{order.clinical_indication || 'Not provided'}</p>
                   </div>
 
-                  {order.original_dictation && (
+                  {order.final_validation_notes && (
                     <div>
-                      <label className="text-sm font-medium text-gray-500">Original Dictation</label>
-                      <p className="text-sm mt-1 p-3 bg-gray-50 rounded">{order.original_dictation}</p>
+                      <div className="flex items-center gap-2 mb-2">
+                        <label className="text-sm font-medium text-gray-500">Validation Notes</label>
+                        {order.final_compliance_score !== null && order.final_compliance_score !== undefined && (
+                          <Badge variant="outline" className="bg-blue-50 border-blue-200 text-blue-700 text-xs">
+                            Score: {order.final_compliance_score}/9
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-sm p-3 bg-blue-50 rounded">{order.final_validation_notes}</p>
+                    </div>
+                  )}
+
+                  {order.override_justification && (
+                    <div>
+                      <div className="flex items-center gap-2 mb-2">
+                        <label className="text-sm font-medium text-gray-500">Override Justification</label>
+                        <Badge variant="outline" className="bg-orange-50 border-orange-200 text-orange-700 text-xs">
+                          Overridden
+                        </Badge>
+                      </div>
+                      <p className="text-sm p-3 bg-orange-50 rounded">{order.override_justification}</p>
                     </div>
                   )}
 
@@ -369,29 +387,76 @@ const OrderDetailsView = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="text-sm font-medium text-gray-500">CPT Code</label>
-                      <p className="text-sm">{order.final_cpt_code || 'Not assigned'}</p>
-                      {order.final_cpt_code_description && order.final_cpt_code_description !== 'null' && (
-                        <p className="text-xs text-gray-600">{order.final_cpt_code_description}</p>
-                      )}
+                      <div className="mt-2 bg-gray-50 p-4 rounded-md">
+                        {order.final_cpt_code ? (
+                          <div className="text-sm">
+                            <span className="font-mono text-primary font-bold">{order.final_cpt_code}</span>
+                            {order.final_cpt_code_description && order.final_cpt_code_description !== 'null' && (
+                              <span className="text-gray-700 block mt-1">{order.final_cpt_code_description}</span>
+                            )}
+                          </div>
+                        ) : (
+                          <p className="text-sm text-gray-500">No procedure code assigned.</p>
+                        )}
+                      </div>
                     </div>
                     <div>
                       <label className="text-sm font-medium text-gray-500">ICD-10 Codes</label>
-                      <p className="text-sm">
-                        {order.final_icd10_codes && 
-                         order.final_icd10_codes !== '[]' && 
-                         order.final_icd10_codes !== 'null' && 
-                         order.final_icd10_codes.length > 0 
-                          ? order.final_icd10_codes 
-                          : 'Not assigned'}
-                      </p>
-                      {order.final_icd10_code_descriptions && 
-                       order.final_icd10_code_descriptions !== '[]' && 
-                       order.final_icd10_code_descriptions !== 'null' && (
-                        <p className="text-xs text-gray-600">{order.final_icd10_code_descriptions}</p>
-                      )}
+                      <div className="mt-2 bg-gray-50 p-4 rounded-md">
+                        {(() => {
+                          try {
+                            // Parse ICD-10 codes
+                            let codes: string[] = [];
+                            if (order.final_icd10_codes && order.final_icd10_codes !== 'null') {
+                              if (typeof order.final_icd10_codes === 'string' && order.final_icd10_codes.startsWith('[')) {
+                                codes = JSON.parse(order.final_icd10_codes);
+                              } else if (Array.isArray(order.final_icd10_codes)) {
+                                codes = order.final_icd10_codes;
+                              }
+                            }
+                            
+                            // Parse descriptions
+                            let descriptions: string[] = [];
+                            if (order.final_icd10_code_descriptions && order.final_icd10_code_descriptions !== 'null') {
+                              if (typeof order.final_icd10_code_descriptions === 'string' && order.final_icd10_code_descriptions.startsWith('[')) {
+                                descriptions = JSON.parse(order.final_icd10_code_descriptions);
+                              } else if (Array.isArray(order.final_icd10_code_descriptions)) {
+                                descriptions = order.final_icd10_code_descriptions;
+                              }
+                            }
+                            
+                            if (codes.length > 0) {
+                              return (
+                                <ul className="space-y-2">
+                                  {codes.map((code, index) => (
+                                    <li key={index} className="text-sm">
+                                      <div className="flex items-center gap-2">
+                                        <span className="font-mono text-primary font-bold">{code}</span>
+                                        {index === 0 && (
+                                          <Badge className="bg-green-100 text-green-800 hover:bg-green-200 text-xs">
+                                            Primary
+                                          </Badge>
+                                        )}
+                                      </div>
+                                      {descriptions[index] && (
+                                        <span className="text-gray-700 block">{descriptions[index]}</span>
+                                      )}
+                                    </li>
+                                  ))}
+                                </ul>
+                              );
+                            } else {
+                              return <p className="text-sm text-gray-500">No diagnosis codes assigned.</p>;
+                            }
+                          } catch (error) {
+                            console.error('Error parsing ICD-10 codes:', error);
+                            return <p className="text-sm text-gray-500">Error displaying diagnosis codes.</p>;
+                          }
+                        })()}
+                      </div>
                     </div>
                   </div>
                 </CardContent>
@@ -496,59 +561,6 @@ const OrderDetailsView = () => {
                   </CardContent>
                 </Card>
               )}
-            </TabsContent>
-
-            <TabsContent value="validation" className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <CheckCircle2 className="h-5 w-5 mr-2" />
-                    Validation Status
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-sm font-medium text-gray-500">Status</label>
-                      <div className="flex items-center space-x-2">
-                        {getValidationStatusIcon(order.final_validation_status, order.overridden)}
-                        <span className="text-sm font-medium">
-                          {order.overridden ? 'Overridden' : (order.final_validation_status || 'Not validated')}
-                        </span>
-                      </div>
-                    </div>
-                    {order.final_compliance_score && (
-                      <div>
-                        <label className="text-sm font-medium text-gray-500">Compliance Score</label>
-                        <p className="text-sm">{order.final_compliance_score}/9</p>
-                      </div>
-                    )}
-                  </div>
-
-                  {order.validated_at && (
-                    <div>
-                      <label className="text-sm font-medium text-gray-500">Validated At</label>
-                      <p className="text-sm">{formatDateLong(order.validated_at)}</p>
-                    </div>
-                  )}
-
-                  {order.final_validation_notes && (
-                    <div>
-                      <label className="text-sm font-medium text-gray-500">Validation Notes</label>
-                      <p className="text-sm mt-1 p-3 bg-blue-50 rounded">{order.final_validation_notes}</p>
-                    </div>
-                  )}
-
-                  {order.override_justification && (
-                    <div>
-                      <label className="text-sm font-medium text-gray-500">Override Justification</label>
-                      <p className="text-sm mt-1 p-3 bg-orange-50 rounded border-l-4 border-orange-400">
-                        {order.override_justification}
-                      </p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
             </TabsContent>
 
             <TabsContent value="results" className="space-y-4">
@@ -676,26 +688,26 @@ const OrderDetailsView = () => {
             <CardContent className="space-y-3">
               <div>
                 <label className="text-sm font-medium text-gray-500">Created</label>
-                <p className="text-sm">{formatDateLong(order.created_at)}</p>
+                <p className="text-sm">{formatDateTime(order.created_at)}</p>
               </div>
 
               {order.signature_date && (
                 <div>
                   <label className="text-sm font-medium text-gray-500">Signed</label>
-                  <p className="text-sm">{formatDateLong(order.signature_date)}</p>
+                  <p className="text-sm">{formatDateTime(order.signature_date)}</p>
                 </div>
               )}
 
               {order.scheduled_date && (
                 <div>
                   <label className="text-sm font-medium text-gray-500">Scheduled</label>
-                  <p className="text-sm">{formatDateLong(order.scheduled_date)}</p>
+                  <p className="text-sm">{formatDateTime(order.scheduled_date)}</p>
                 </div>
               )}
 
               <div>
                 <label className="text-sm font-medium text-gray-500">Last Updated</label>
-                <p className="text-sm">{formatDateLong(order.updated_at)}</p>
+                <p className="text-sm">{formatDateTime(order.updated_at)}</p>
               </div>
             </CardContent>
           </Card>

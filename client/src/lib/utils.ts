@@ -43,3 +43,28 @@ export function formatDateLong(dateString: string): string {
     year: 'numeric'
   });
 }
+
+/**
+ * Formats a date string to US format with date and time (January 15, 2024 at 2:35 PM)
+ * @param dateString - ISO date string or any valid date string
+ * @returns Formatted date string with full month name and time
+ */
+export function formatDateTime(dateString: string | null | undefined): string {
+  if (!dateString) return "";
+  
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return "";
+    
+    return date.toLocaleString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true
+    });
+  } catch {
+    return "";
+  }
+}
