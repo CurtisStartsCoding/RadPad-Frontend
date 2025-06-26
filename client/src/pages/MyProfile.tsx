@@ -529,6 +529,11 @@ const MyProfile = () => {
                       <div className="flex items-center text-sm">
                         <Phone className="h-4 w-4 mr-2 text-slate-400" />
                         <span>{phoneNumber || "No phone number"}</span>
+                        {!phoneNumber && (
+                          <span className="ml-2 text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded">
+                            TODO: Fix login API
+                          </span>
+                        )}
                       </div>
                       
                       {shouldShowSpecialty && (
