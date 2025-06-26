@@ -37,13 +37,16 @@ import {
   Upload,
   AtSign,
   AlertCircle,
-  Beaker
+  Beaker,
+  Loader2
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { UserRole } from "@/lib/roles";
 import { getUserRoleFromStorage } from "@/lib/navigation";
 import { roleDisplayNames } from "@/lib/roles";
-import { formatDateLong } from "@/lib/utils";
+import { formatDateLong, formatDateTime, formatPhoneNumber } from "@/lib/utils";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 interface StoredUser {
   id: string;
@@ -59,11 +62,15 @@ interface StoredUser {
   lastLoginAt?: string;
   specialty?: string;
   phone?: string;
+  phone_number?: string; // Backend returns snake_case
   npi?: string;
+  npi_number?: string; // Backend might return snake_case
 }
 
 
 const MyProfile = () => {
+  const { toast } = useToast();
+  
   // Load user data directly from localStorage
   const loadUser = (): StoredUser | null => {
     try {
@@ -91,7 +98,22 @@ const MyProfile = () => {
   // Check if user is a trial user
   const isTrialUser = effectiveRole === UserRole.TrialPhysician;
   
+  // Check if user role should show NPI (only physicians and radiologists have NPI)
+  const shouldShowNPI = [
+    UserRole.Physician,
+    UserRole.TrialPhysician,
+    UserRole.Radiologist
+  ].includes(effectiveRole as UserRole);
+  
+  // Check if user role should show specialty (medical professionals only)
+  const shouldShowSpecialty = [
+    UserRole.Physician,
+    UserRole.TrialPhysician,
+    UserRole.Radiologist
+  ].includes(effectiveRole as UserRole);
+  
   const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   
   // Get user data from localStorage if available
   const getUserData = () => {
@@ -178,7 +200,7 @@ const MyProfile = () => {
     // Then try from other sources
     return userData?.last_name || user?.last_name || user?.name?.split(' ')[1] || "";
   });
-  const [phoneNumber, setPhoneNumber] = useState(userData?.phone || "(555) 123-4567"); // Default as not in JWT
+  const [phoneNumber, setPhoneNumber] = useState(userData?.phone || userData?.phone_number || ""); // Check both phone and phone_number
   
   // Get specialty from user data
   const getSpecialtyFromData = (): string => {
@@ -187,27 +209,21 @@ const MyProfile = () => {
       return formatSpecialty(userData.specialty);
     }
     
-    // Try from auth context
-    if (user?.role) {
-      // This is a fallback, not ideal but better than nothing
-      return user.role.replace(/_/g, ' ');
-    }
-    
-    return "Family Medicine"; // Default
+    return ""; // No default
   };
   
   const [specialty, setSpecialty] = useState(getSpecialtyFromData());
-  const [npiNumber, setNpiNumber] = useState(userData?.npi || "1234567890"); // Use NPI from user data if available
+  const [npiNumber, setNpiNumber] = useState(userData?.npi || userData?.npi_number || ""); // Check both npi and npi_number
   
   // User display data from localStorage, auth context, or defaults
   const userDisplayData = {
     email: userData?.email || user?.email || "",
     role: user?.role ? roleDisplayNames[user.role as UserRole] || user.role : "",
-    organization: isTrialUser ? "Trial Account" : (userData?.organization_name || "Medical Practice"),
+    organization: isTrialUser ? "Trial Account" : (userData?.organization_name || ""),
     joinedDate: userData?.created_at || user?.created_at
       ? formatDateLong(userData?.created_at || user?.created_at)
-      : "Today",
-    lastLogin: user?.lastLoginAt ? formatDateLong(user.lastLoginAt) : "Today",
+      : "",
+    lastLogin: userData?.lastLoginAt ? formatDateTime(userData.lastLoginAt) : "",
   };
   
   // Function to handle profile edit
@@ -216,10 +232,72 @@ const MyProfile = () => {
   };
   
   // Function to handle save
-  const handleSave = () => {
-    // In a real app, this would call an API to update the profile
-    setIsEditing(false);
-    console.log("Profile saved:", { firstName, lastName, phoneNumber, specialty, npiNumber });
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      // Prepare the update data with camelCase fields as expected by the API
+      const updateData: any = {
+        firstName: firstName,
+        lastName: lastName,
+        // Strip formatting from phone number - send only digits
+        phoneNumber: phoneNumber.replace(/\D/g, '')
+      };
+
+      // Only include specialty and NPI for roles that should have them
+      if (shouldShowSpecialty) {
+        updateData.specialty = specialty;
+      }
+      if (shouldShowNPI) {
+        updateData.npi = npiNumber;
+      }
+
+      console.log("Updating profile with data:", updateData);
+
+      const response = await apiRequest('PUT', '/api/users/me', updateData);
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to update profile');
+      }
+
+      const updatedUser = await response.json();
+      console.log("Profile updated successfully:", updatedUser);
+
+      // Update localStorage with the new user data
+      // The API returns the updated user in the 'data' field
+      if (updatedUser.data) {
+        localStorage.setItem('rad_order_pad_user_data', JSON.stringify(updatedUser.data));
+        
+        // Update local state to reflect changes immediately
+        setFirstName(updatedUser.data.first_name || firstName);
+        setLastName(updatedUser.data.last_name || lastName);
+        // Backend returns phone_number in snake_case
+        setPhoneNumber(updatedUser.data.phone_number ? formatPhoneNumber(updatedUser.data.phone_number) : phoneNumber);
+        if (shouldShowSpecialty && updatedUser.data.specialty) {
+          setSpecialty(formatSpecialty(updatedUser.data.specialty));
+        }
+        if (shouldShowNPI && updatedUser.data.npi) {
+          setNpiNumber(updatedUser.data.npi);
+        }
+      }
+
+      // Show success message
+      toast({
+        title: "Profile Updated",
+        description: "Your profile has been updated successfully.",
+      });
+
+      setIsEditing(false);
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      toast({
+        title: "Update Failed",
+        description: error instanceof Error ? error.message : "Failed to update profile",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
   
   // Function to get initials from name
@@ -233,7 +311,7 @@ const MyProfile = () => {
       <div className="p-6">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-semibold">Rad Order Pad</h1>
+            <h1 className="text-2xl font-semibold">My Profile</h1>
             <p className="text-sm text-slate-500">Your trial account information</p>
           </div>
             Trial User
@@ -374,7 +452,7 @@ const MyProfile = () => {
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-semibold">Rad Order Pad</h1>
+          <h1 className="text-2xl font-semibold">My Profile</h1>
           <p className="text-sm text-slate-500">View and edit your profile information</p>
         </div>
         {!isEditing ? (
@@ -387,9 +465,18 @@ const MyProfile = () => {
             <Button variant="outline" onClick={handleEditToggle}>
               Cancel
             </Button>
-            <Button onClick={handleSave}>
-              <CheckCircle className="h-4 w-4 mr-2" />
-              Save Changes
+            <Button onClick={handleSave} disabled={isSaving}>
+              {isSaving ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                  Save Changes
+                </>
+              )}
             </Button>
           </div>
         )}
@@ -441,18 +528,22 @@ const MyProfile = () => {
                       
                       <div className="flex items-center text-sm">
                         <Phone className="h-4 w-4 mr-2 text-slate-400" />
-                        <span>{phoneNumber}</span>
+                        <span>{phoneNumber || "No phone number"}</span>
                       </div>
                       
-                      <div className="flex items-center text-sm">
-                        <Stethoscope className="h-4 w-4 mr-2 text-slate-400" />
-                        <span>{specialty}</span>
-                      </div>
+                      {shouldShowSpecialty && (
+                        <div className="flex items-center text-sm">
+                          <Stethoscope className="h-4 w-4 mr-2 text-slate-400" />
+                          <span>{specialty}</span>
+                        </div>
+                      )}
                       
-                      <div className="flex items-center text-sm">
-                        <AtSign className="h-4 w-4 mr-2 text-slate-400" />
-                        <span>NPI: {npiNumber}</span>
-                      </div>
+                      {shouldShowNPI && (
+                        <div className="flex items-center text-sm">
+                          <AtSign className="h-4 w-4 mr-2 text-slate-400" />
+                          <span>NPI: {npiNumber}</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 ) : (
@@ -491,7 +582,12 @@ const MyProfile = () => {
                       <Input
                         id="phone"
                         value={phoneNumber}
-                        onChange={(e) => setPhoneNumber(e.target.value)}
+                        onChange={(e) => {
+                          const formatted = formatPhoneNumber(e.target.value);
+                          setPhoneNumber(formatted);
+                        }}
+                        placeholder="(555) 123-4567"
+                        maxLength={14}
                       />
                     </div>
                   </div>
@@ -507,15 +603,19 @@ const MyProfile = () => {
               
               {!isEditing ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4">
-                  <div>
-                    <p className="text-xs text-slate-500">Specialty</p>
-                    <p className="text-sm">{specialty}</p>
-                  </div>
+                  {shouldShowSpecialty && (
+                    <div>
+                      <p className="text-xs text-slate-500">Specialty</p>
+                      <p className="text-sm">{specialty}</p>
+                    </div>
+                  )}
                   
-                  <div>
-                    <p className="text-xs text-slate-500">NPI Number</p>
-                    <p className="text-sm">{npiNumber}</p>
-                  </div>
+                  {shouldShowNPI && (
+                    <div>
+                      <p className="text-xs text-slate-500">NPI Number</p>
+                      <p className="text-sm">{npiNumber}</p>
+                    </div>
+                  )}
                   
                   <div>
                     <p className="text-xs text-slate-500">Organization</p>
@@ -529,35 +629,39 @@ const MyProfile = () => {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="specialty">Specialty</Label>
-                    <Select
-                      value={specialty}
-                      onValueChange={setSpecialty}
-                    >
-                      <SelectTrigger id="specialty">
-                        <SelectValue placeholder="Select specialty" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Internal Medicine">Internal Medicine</SelectItem>
-                        <SelectItem value="Family Medicine">Family Medicine</SelectItem>
-                        <SelectItem value="Cardiology">Cardiology</SelectItem>
-                        <SelectItem value="Neurology">Neurology</SelectItem>
-                        <SelectItem value="Orthopedics">Orthopedics</SelectItem>
-                        <SelectItem value="Pediatrics">Pediatrics</SelectItem>
-                        <SelectItem value="Other">Other</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  {shouldShowSpecialty && (
+                    <div className="space-y-2">
+                      <Label htmlFor="specialty">Specialty</Label>
+                      <Select
+                        value={specialty}
+                        onValueChange={setSpecialty}
+                      >
+                        <SelectTrigger id="specialty">
+                          <SelectValue placeholder="Select specialty" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Internal Medicine">Internal Medicine</SelectItem>
+                          <SelectItem value="Family Medicine">Family Medicine</SelectItem>
+                          <SelectItem value="Cardiology">Cardiology</SelectItem>
+                          <SelectItem value="Neurology">Neurology</SelectItem>
+                          <SelectItem value="Orthopedics">Orthopedics</SelectItem>
+                          <SelectItem value="Pediatrics">Pediatrics</SelectItem>
+                          <SelectItem value="Other">Other</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
                   
-                  <div className="space-y-2">
-                    <Label htmlFor="npi">NPI Number</Label>
-                    <Input
-                      id="npi"
-                      value={npiNumber}
-                      onChange={(e) => setNpiNumber(e.target.value)}
-                    />
-                  </div>
+                  {shouldShowNPI && (
+                    <div className="space-y-2">
+                      <Label htmlFor="npi">NPI Number</Label>
+                      <Input
+                        id="npi"
+                        value={npiNumber}
+                        onChange={(e) => setNpiNumber(e.target.value)}
+                      />
+                    </div>
+                  )}
                   
                   <div className="space-y-2">
                     <Label htmlFor="organization">Organization</Label>
@@ -598,30 +702,16 @@ const MyProfile = () => {
                 
                 <div>
                   <p className="text-xs text-slate-500">Last Login</p>
-                  <p className="text-sm">{userDisplayData.lastLogin}</p>
+                  <p className="text-sm">{userDisplayData.lastLogin || "Not available"}</p>
+                </div>
+                
+                <div>
+                  <p className="text-xs text-slate-500">Last Updated</p>
+                  <p className="text-sm">{userData?.updated_at ? formatDateTime(userData.updated_at) : ""}</p>
                 </div>
               </div>
             </div>
           </CardContent>
-          <CardFooter className="bg-slate-50 border-t">
-            <div className="w-full flex items-center justify-between">
-              <p className="text-xs text-slate-500 flex items-center">
-                <AlertCircle className="h-3.5 w-3.5 mr-1.5 text-slate-400" />
-                Last updated on {new Date().toLocaleDateString('en-US', {
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric'
-                })}
-              </p>
-              
-              {isEditing && (
-                <Button onClick={handleSave}>
-                  <CheckCircle className="h-4 w-4 mr-2" />
-                  Save Changes
-                </Button>
-              )}
-            </div>
-          </CardFooter>
         </Card>
         
         {/* Right Column */}

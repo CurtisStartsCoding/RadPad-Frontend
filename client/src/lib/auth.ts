@@ -1,5 +1,6 @@
 import { User } from "./types";
 import { apiRequest, queryClient } from "./queryClient";
+import { FileUploadService } from "./fileUploadService";
 
 // Authentication token keys
 const ACCESS_TOKEN_KEY = 'rad_order_pad_access_token';
@@ -33,10 +34,13 @@ export interface ApiUserResponse {
   organization_id: number;
   npi: string | null;
   specialty: string;
+  phone_number?: string | null;
   is_active: boolean;
   email_verified: boolean;
   created_at: string;
   updated_at: string;
+  organization_name?: string;
+  lastLoginAt?: string;
 }
 
 /**
@@ -90,6 +94,32 @@ export async function loginUser(email: string, password: string): Promise<User> 
       // Store the complete user data in localStorage for profile use
       localStorage.setItem('rad_order_pad_user_data', JSON.stringify(apiUser));
       
+      // If phone_number is missing, try to fetch it from /api/users/me
+      if (!apiUser.phone_number) {
+        try {
+          const meResponse = await apiRequest('GET', '/api/users/me');
+          if (meResponse.ok) {
+            const meData = await meResponse.json();
+            if (meData.success && meData.data) {
+              // Update the stored user data with the complete profile including phone
+              const completeUserData = {
+                ...apiUser,
+                phone_number: meData.data.phone || meData.data.phone_number,
+                // Update any other fields that might be missing
+                npi: meData.data.npi || apiUser.npi,
+                specialty: meData.data.specialty || apiUser.specialty
+              };
+              localStorage.setItem('rad_order_pad_user_data', JSON.stringify(completeUserData));
+            }
+          }
+        } catch (e) {
+          console.log('Could not fetch additional user data:', e);
+        }
+      }
+      
+      // Clear any documents from previous users
+      FileUploadService.clearAllDocuments();
+      
       // Clear any stale queries and reset the cache
       await queryClient.clear();
       
@@ -126,6 +156,9 @@ export async function logoutUser(): Promise<void> {
     localStorage.removeItem(ACCESS_TOKEN_KEY);
     localStorage.removeItem(TOKEN_EXPIRY_KEY);
     
+    // Clear all user documents
+    FileUploadService.clearAllUserDocuments();
+    
     // Clear all queries from the cache to force a fresh state
     await queryClient.clear();
     
@@ -142,6 +175,9 @@ export async function logoutUser(): Promise<void> {
     // Remove tokens from localStorage even if the server request failed
     localStorage.removeItem(ACCESS_TOKEN_KEY);
     localStorage.removeItem(TOKEN_EXPIRY_KEY);
+    
+    // Clear all user documents even on error
+    FileUploadService.clearAllUserDocuments();
         
     // Rethrow to allow proper error handling
     throw error;

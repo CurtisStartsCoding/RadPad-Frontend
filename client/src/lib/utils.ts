@@ -68,3 +68,25 @@ export function formatDateTime(dateString: string | null | undefined): string {
     return "";
   }
 }
+
+/**
+ * Formats a phone number string to US format (XXX) XXX-XXXX
+ * @param value - Phone number string
+ * @returns Formatted phone number
+ */
+export function formatPhoneNumber(value: string): string {
+  // Remove all non-numeric characters
+  const numbers = value.replace(/\D/g, '');
+  
+  // Format based on length
+  if (numbers.length <= 3) {
+    return numbers;
+  } else if (numbers.length <= 6) {
+    return `(${numbers.slice(0, 3)}) ${numbers.slice(3)}`;
+  } else if (numbers.length <= 10) {
+    return `(${numbers.slice(0, 3)}) ${numbers.slice(3, 6)}-${numbers.slice(6, 10)}`;
+  } else {
+    // If more than 10 digits, only use first 10
+    return `(${numbers.slice(0, 3)}) ${numbers.slice(3, 6)}-${numbers.slice(6, 10)}`;
+  }
+}

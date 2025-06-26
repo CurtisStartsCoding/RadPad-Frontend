@@ -4,6 +4,7 @@ import { apiRequest, queryClient } from './queryClient';
 import { User } from './types';
 import { ApiUserResponse, getCurrentSession, isTokenExpired, isTrialTokenExpired } from './auth';
 import { UserRole } from './roles';
+import { FileUploadService } from './fileUploadService';
 
 // Local storage keys for authentication
 const ACCESS_TOKEN_KEY = 'rad_order_pad_access_token';
@@ -63,6 +64,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
     localStorage.removeItem(ACCESS_TOKEN_KEY);
     localStorage.removeItem(TOKEN_EXPIRY_KEY);
     localStorage.removeItem('rad_order_pad_user_role');
+    
+    // Clear all user documents
+    FileUploadService.clearAllUserDocuments();
   };
 
   // Check for existing token on initial load
@@ -270,7 +274,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       const data = await response.json();
       return { ...data, _isTrial: isTrial };
     },
-    onSuccess: (data: LoginResponse & { _isTrial?: boolean }) => {
+    onSuccess: async (data: LoginResponse & { _isTrial?: boolean }) => {
       console.log('Login response:', data);
       
       // Handle the API response format
@@ -295,6 +299,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
           updatedAt: new Date(apiUser.updated_at)
         };
         console.log("** useAuth loginMutation - userData: ", {userData})
+        
+        // Clear any documents from previous users before setting new user
+        FileUploadService.clearAllDocuments();
+        
         setUser(userData);
         
         // Save token and user role
@@ -310,6 +318,31 @@ export function AuthProvider({ children }: AuthProviderProps) {
           // Add any trial-specific data if present
           ...(data.trialInfo && { trialInfo: data.trialInfo })
         }));
+        
+        // If phone_number is missing, try to fetch it from /api/users/me
+        if (!apiUser.phone_number) {
+          try {
+            const meResponse = await apiRequest('GET', '/api/users/me');
+            if (meResponse.ok) {
+              const meData = await meResponse.json();
+              if (meData.success && meData.data) {
+                // Update the stored user data with the complete profile including phone
+                const completeUserData = {
+                  ...apiUser,
+                  phone_number: meData.data.phone || meData.data.phone_number,
+                  // Update any other fields that might be missing
+                  npi: meData.data.npi || apiUser.npi,
+                  specialty: meData.data.specialty || apiUser.specialty,
+                  // Keep trial info if present
+                  ...(data.trialInfo && { trialInfo: data.trialInfo })
+                };
+                localStorage.setItem('rad_order_pad_user_data', JSON.stringify(completeUserData));
+              }
+            }
+          } catch (e) {
+            console.log('Could not fetch additional user data:', e);
+          }
+        }
         
         // If trial info exists, store it separately
         if (data.trialInfo) {

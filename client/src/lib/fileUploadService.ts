@@ -20,6 +20,7 @@ export interface UploadedDocument {
   contentType: string;
   uploadedAt: string;
   documentType?: string;
+  timestamp?: number; // Added for cleanup
 }
 
 export class FileUploadService {
@@ -176,25 +177,148 @@ export class FileUploadService {
     };
   }
 
-  // LocalStorage helpers
+  // LocalStorage helpers with user isolation
+  static getUserId(): string | null {
+    const userDataStr = localStorage.getItem('rad_order_pad_user_data');
+    if (userDataStr) {
+      try {
+        const userData = JSON.parse(userDataStr);
+        const userId = userData.id?.toString() || null;
+        console.log('FileUploadService getUserId:', userId, 'from userData:', userData);
+        return userId;
+      } catch (e) {
+        console.error('Error parsing user data:', e);
+      }
+    }
+    console.warn('FileUploadService: No user data found in localStorage');
+    return null;
+  }
+
   static saveDocumentToLocalStorage(orderId: number, document: UploadedDocument): void {
-    const key = `order_${orderId}_documents`;
+    const userId = this.getUserId();
+    if (!userId) {
+      console.error('No user ID found, cannot save document');
+      return;
+    }
+    
+    const key = `user_${userId}_order_${orderId}_documents`;
+    console.log('Saving document to localStorage with key:', key);
     const existingDocs = this.getDocumentsFromLocalStorage(orderId);
-    const updatedDocs = [...existingDocs, document];
+    // Add timestamp for cleanup
+    const docWithTimestamp = { ...document, timestamp: Date.now() };
+    const updatedDocs = [...existingDocs, docWithTimestamp];
     localStorage.setItem(key, JSON.stringify(updatedDocs));
+    console.log('Saved documents:', updatedDocs);
   }
 
   static getDocumentsFromLocalStorage(orderId: number): UploadedDocument[] {
-    const key = `order_${orderId}_documents`;
+    const userId = this.getUserId();
+    if (!userId) {
+      console.warn('getDocumentsFromLocalStorage: No user ID found');
+      return [];
+    }
+    
+    const key = `user_${userId}_order_${orderId}_documents`;
+    console.log('Getting documents from localStorage with key:', key);
     const stored = localStorage.getItem(key);
-    return stored ? JSON.parse(stored) : [];
+    if (!stored) {
+      console.log('No documents found for key:', key);
+      return [];
+    }
+    
+    try {
+      const docs = JSON.parse(stored);
+      console.log('Found documents:', docs);
+      // Filter out documents older than 24 hours
+      const oneDayAgo = Date.now() - (24 * 60 * 60 * 1000);
+      const filteredDocs = docs.filter((doc: UploadedDocument) => 
+        !doc.timestamp || doc.timestamp > oneDayAgo
+      );
+      console.log('Filtered documents (after 24hr check):', filteredDocs);
+      return filteredDocs;
+    } catch (e) {
+      console.error('Error parsing documents:', e);
+      return [];
+    }
   }
 
   static removeDocumentFromLocalStorage(orderId: number, documentId: number): void {
-    const key = `order_${orderId}_documents`;
+    const userId = this.getUserId();
+    if (!userId) return;
+    
+    const key = `user_${userId}_order_${orderId}_documents`;
     const existingDocs = this.getDocumentsFromLocalStorage(orderId);
     const updatedDocs = existingDocs.filter(doc => doc.id !== documentId);
     localStorage.setItem(key, JSON.stringify(updatedDocs));
+  }
+
+  // Cleanup functions
+  static clearAllUserDocuments(): void {
+    const userId = this.getUserId();
+    if (!userId) return;
+    
+    // Find all keys for this user
+    const keysToRemove: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith(`user_${userId}_order_`) && key.endsWith('_documents')) {
+        keysToRemove.push(key);
+      }
+    }
+    
+    // Remove all user's document keys
+    keysToRemove.forEach(key => localStorage.removeItem(key));
+    console.log(`Cleared ${keysToRemove.length} document storage keys for user ${userId}`);
+  }
+
+  static clearAllDocuments(): void {
+    // Clear ALL document keys (for cleanup on login)
+    const keysToRemove: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.includes('_order_') && key.endsWith('_documents')) {
+        keysToRemove.push(key);
+      }
+    }
+    
+    keysToRemove.forEach(key => localStorage.removeItem(key));
+    console.log(`Cleared ${keysToRemove.length} total document storage keys`);
+  }
+
+  static cleanupOldDocuments(): void {
+    const oneDayAgo = Date.now() - (24 * 60 * 60 * 1000);
+    let cleanedCount = 0;
+    
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.includes('_order_') && key.endsWith('_documents')) {
+        try {
+          const stored = localStorage.getItem(key);
+          if (stored) {
+            const docs = JSON.parse(stored);
+            const filteredDocs = docs.filter((doc: UploadedDocument) => 
+              !doc.timestamp || doc.timestamp > oneDayAgo
+            );
+            
+            if (filteredDocs.length < docs.length) {
+              localStorage.setItem(key, JSON.stringify(filteredDocs));
+              cleanedCount += docs.length - filteredDocs.length;
+            }
+            
+            // If no documents remain, remove the key entirely
+            if (filteredDocs.length === 0) {
+              localStorage.removeItem(key);
+            }
+          }
+        } catch (e) {
+          console.error('Error cleaning up documents for key:', key, e);
+        }
+      }
+    }
+    
+    if (cleanedCount > 0) {
+      console.log(`Cleaned up ${cleanedCount} old documents`);
+    }
   }
 
   // Validation helpers
