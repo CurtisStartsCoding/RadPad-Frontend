@@ -253,7 +253,7 @@ const OrderList = () => {
               onClick={() => handleViewOrder(order.id)}
             >
               <Eye className="h-4 w-4 mr-1" />
-              Track
+              Details
             </Button>
           </div>
         );
@@ -266,7 +266,7 @@ const OrderList = () => {
               onClick={() => handleViewOrder(order.id)}
             >
               <Eye className="h-4 w-4 mr-1" />
-              View
+              Details
             </Button>
             <Button variant="outline" size="sm" onClick={handleNewOrderClick}>
               <PlusCircle className="h-4 w-4 mr-1" />
@@ -283,7 +283,7 @@ const OrderList = () => {
               onClick={() => handleViewOrder(order.id)}
             >
               <Eye className="h-4 w-4 mr-1" />
-              View
+              Details
             </Button>
           </div>
         );
