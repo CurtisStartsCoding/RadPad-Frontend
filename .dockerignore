@@ -1,0 +1,56 @@
+# SECURITY CRITICAL - Contains authentication tokens!
+test-scripts/
+*token*.txt
+*token*.js
+.env
+.env.*
+
+# Documentation and Assets
+*.md
+attached_assets/
+AWS API Docs/
+docs/
+my_profile_content.txt
+
+# Development/Debug Components
+# client/src/components/debug/  # Commented out - needed for build
+test-*.mjs
+generated-icon.png
+
+# Editor/Tool Configurations
+.vscode/
+.claude/
+.git/
+.gitignore
+.replit
+.do/
+.ebignore
+
+# Logs and Temporary Files
+*.log
+*.tmp
+*.bak
+*.swp
+*.orig
+
+# OS Files
+.DS_Store
+Thumbs.db
+
+# TypeScript
+*.tsbuildinfo
+
+# Coverage
+coverage/
+.nyc_output/
+
+# IDE
+.idea/
+*.sublime-*
+*.code-workspace
+
+# Build cache (App Runner builds fresh)
+node_modules/
+.npm/
+.yarn/
+dist/
