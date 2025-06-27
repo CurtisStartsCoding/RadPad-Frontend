@@ -666,8 +666,9 @@ const NewOrder = ({ userRole = UserRole.Physician }: NewOrderProps) => {
                     <div className="mt-3 flex gap-2">
                       <button
                         type="button"
-                        className="h-8 text-xs px-3 py-1 border border-gray-300 rounded-md hover:bg-gray-50"
+                        className="h-8 text-xs px-3 py-1 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                         onClick={addAdditionalClarification}
+                        disabled={attemptCount >= 3}
                       >
                         <Plus className="h-3 w-3 mr-1 inline-block" />
                         Add Clarification
