@@ -226,3 +226,13 @@ Only after ALL checks pass should you stage and commit changes. If any step fail
 5. Only then start implementing the feature
 
 This prevents wasting time on incorrect assumptions about API behavior.
+
+## Known Issues and Investigation Tasks
+
+- Phone number validation is a persistent issue that needs to be addressed
+- File upload service problems:
+  * Documents getting stuck in local storage
+  * Uploaded documents not reaching the server
+  * Need to investigate where uploaded documents are going
+- Recommended action: Document file upload service issues in `C:\Dropbox\Apps\ROP Roo Backend Finalization\final-documentation\frontend\frontend-api-integration-todo.md`
+- Perform a differential review before committing to ensure no missed changes

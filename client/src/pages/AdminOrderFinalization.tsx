@@ -26,7 +26,6 @@ import {
 } from "@/components/ui/alert";
 import { InfoIcon, FileText, ArrowLeft, CheckCircle, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { allOrders } from "@/lib/mock-data";
 import PageHeader from "@/components/layout/PageHeader";
 import OrderReviewSummary from "@/components/order/OrderReviewSummary";
 import EmrPasteTab from "@/components/order/EmrPasteTab";
@@ -99,11 +98,11 @@ const AdminOrderFinalization: React.FC<AdminOrderFinalizationProps> = ({ navigat
     retry: 1
   });
   
-  // Initialize order state with fetched data or mock data
+  // Initialize order state with fetched data or empty object
   const [order, setOrder] = useState(orderData || {
-    ...allOrders[0], 
-    modality: "MOCK-MRI Knee (Test)",
-    radiologyGroup: "" // Add this field for the dropdown
+    id: null,
+    modality: "",
+    radiologyGroup: ""
   });
   
   // Stage 5: Use real connections data instead of hardcoded
@@ -211,60 +210,60 @@ const AdminOrderFinalization: React.FC<AdminOrderFinalizationProps> = ({ navigat
     }
   }, [orderData]);
   
-  // Patient information state - use actual data if available
+  // Patient information state - initialize with empty values
   const [patientInfo, setPatientInfo] = useState({
-    firstName: orderData?.patient_first_name || "TEST_" + (order.patient?.name?.split(' ')[0] || ''),
-    lastName: orderData?.patient_last_name || "MOCK_" + (order.patient?.name?.split(' ')[1] || ''),
-    dateOfBirth: orderData?.patient_dob || order.patient?.dob || '',
-    gender: orderData?.patient_gender || "female",
-    addressLine1: orderData?.patient_address_line1 || "123 FAKE Street",
-    addressLine2: orderData?.patient_address_line2 || "MOCK Suite 456",
-    city: orderData?.patient_city || "TESTVILLE",
-    state: orderData?.patient_state || "ZZ",
-    zipCode: orderData?.patient_zip_code || "00000",
-    phoneNumber: orderData?.patient_phone_number || "(555) MOCK-DATA",
-    email: orderData?.patient_email || "fake.patient@mockdata.test",
-    mrn: orderData?.patient_mrn || "MOCK-" + (order.patient?.mrn || ''),
-    ssn: orderData?.patient_ssn || ''
+    firstName: '',
+    lastName: '',
+    dateOfBirth: '',
+    gender: '',
+    addressLine1: '',
+    addressLine2: '',
+    city: '',
+    state: '',
+    zipCode: '',
+    phoneNumber: '',
+    email: '',
+    mrn: '',
+    ssn: ''
   });
   
   // Insurance information state
   const [hasInsurance, setHasInsurance] = useState(true); // Default to true, can be changed by user
   const [insuranceInfo, setInsuranceInfo] = useState({
-    insurerName: orderData?.insurance_name || "MOCK-Insurance Company (TEST)",
-    planName: orderData?.insurance_plan_name || "FAKE-Care PPO SAMPLE",
-    policyNumber: orderData?.insurance_policy_number || "TEST-POLICY-123456789",
-    groupNumber: orderData?.insurance_group_number || "MOCK-GRP-12345",
-    policyHolderName: orderData ? `${orderData.patient_first_name || ''} ${orderData.patient_last_name || ''}` : "TEST_Patient",
-    policyHolderRelationship: orderData?.insurance_policy_holder_relationship || "self",
-    policyHolderDateOfBirth: orderData?.insurance_policy_holder_dob || orderData?.patient_dob || '',
-    secondaryInsurerName: "",
-    secondaryPlanName: "",
-    secondaryPolicyNumber: "",
-    secondaryGroupNumber: ""
+    insurerName: '',
+    planName: '',
+    policyNumber: '',
+    groupNumber: '',
+    policyHolderName: '',
+    policyHolderRelationship: 'self',
+    policyHolderDateOfBirth: '',
+    secondaryInsurerName: '',
+    secondaryPlanName: '',
+    secondaryPolicyNumber: '',
+    secondaryGroupNumber: ''
   });
   
-  // Supplemental information state
+  // Supplemental information state - starts empty, can be populated via EMR paste
   const [supplementalInfo, setSupplementalInfo] = useState({
-    text: "[MOCK DATA] Patient has fictional history of right knee pain. Previous SAMPLE imaging from 2024 showed no significant findings. TEST patient reports worsening symptoms in the past month. THIS IS FAKE CLINICAL DATA FOR TESTING PURPOSES ONLY."
+    text: ''
   });
   
-  // Clinical Summary for Review Page - Matches the reference image
-  const clinicalSummaryForReview = "[MOCK DATA] Patient has fictional history of right knee pain. Previous SAMPLE imaging from 2024 showed no significant findings. TEST patient reports worsening symptoms in the past month. THIS IS FAKE CLINICAL DATA FOR TESTING PURPOSES ONLY.";
+  // Clinical Summary for Review Page - uses supplemental info text
+  const clinicalSummaryForReview = supplementalInfo.text || 'No clinical summary provided';
   
   // Order details state
   const [orderDetails, setOrderDetails] = useState({
-    orderNumber: orderData?.order_number || `TEST-ROP-${new Date().toISOString().slice(2,4)}${new Date().toISOString().slice(5,7)}${new Date().toISOString().slice(8,10)}-MOCK`,
-    location: "MOCK Imaging Center – TEST Campus",
-    scheduling: "Within 14 days",
-    priority: "routine",
-    primaryIcd10: orderData?.final_icd10_codes?.[0] || "M25.561-MOCK",
-    primaryDescription: orderData?.final_icd10_code_descriptions?.[0] || "FAKE Pain in right knee (TEST)",
-    secondaryIcd10: orderData?.final_icd10_codes?.[1] || "M17.11-MOCK",
-    secondaryDescription: orderData?.final_icd10_code_descriptions?.[1] || "SAMPLE Unilateral primary osteoarthritis, right knee (TEST)",
-    cptCode: orderData?.final_cpt_code || "73721-TEST",
-    cptDescription: orderData?.final_cpt_code_description || "MOCK MRI knee without contrast (SAMPLE)",
-    instructions: ""
+    orderNumber: '',
+    location: '',
+    scheduling: 'Within 14 days',
+    priority: 'routine',
+    primaryIcd10: '',
+    primaryDescription: '',
+    secondaryIcd10: '',
+    secondaryDescription: '',
+    cptCode: '',
+    cptDescription: '',
+    instructions: ''
   });
   
   // Track selected radiology organization
@@ -319,11 +318,11 @@ const AdminOrderFinalization: React.FC<AdminOrderFinalizationProps> = ({ navigat
   
   // Referring physician state
   const [referringPhysician, setReferringPhysician] = useState({
-    name: "Dr. TEST_Sarah MOCK_Johnson",
-    npi: "TEST-1234567890",
-    clinic: "MOCK Internal Medicine Associates (TEST)",
-    phone: "(555) FAKE-TEST",
-    signedDate: "04/15/2025 (MOCK DATE)"
+    name: '',
+    npi: '',
+    clinic: '',
+    phone: '',
+    signedDate: ''
   });
   
   // Handle patient info change

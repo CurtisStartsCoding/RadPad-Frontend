@@ -1,0 +1,57 @@
+# SECURITY CRITICAL - Contains authentication tokens!
+test-scripts/
+*token*.txt
+*token*.js
+.env
+
+# Documentation and Assets
+*.md
+attached_assets/
+AWS API Docs/
+docs/
+my_profile_content.txt
+
+# Development/Debug Components
+client/src/components/debug/
+test-*.mjs
+generated-icon.png
+
+# Editor/Tool Configurations
+.vscode/
+.claude/
+.git/
+.gitignore
+.replit
+.do/
+
+# Build artifacts (EB will build on deploy)
+node_modules/
+dist/
+
+# Logs and Temporary Files
+*.log
+*.tmp
+*.bak
+*.swp
+*.orig
+
+# OS Files
+.DS_Store
+Thumbs.db
+
+# Local Environment
+.env.local
+.env.development
+.env.test
+
+# TypeScript
+*.tsbuildinfo
+
+# Coverage
+coverage/
+.nyc_output/
+
+# IDE
+.idea/
+*.sublime-*
+*.code-workspace
