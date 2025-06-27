@@ -5,12 +5,11 @@ import { Patient, ProcessedDictation } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import OverrideDialog from "@/components/OverrideDialog";
 import PatientInfoCard from "@/components/order/PatientInfoCard";
 import ValidationView from "@/components/order/ValidationView";
 import PatientIdentificationDialog from "@/components/order/PatientIdentificationDialog";
 import SignatureForm from "@/components/order/SignatureForm";
-import { ArrowLeft, AlertCircle, Info, X, Beaker, InfoIcon, Mic, Plus } from "lucide-react";
+import { ArrowLeft, AlertCircle, Info, X, Beaker, InfoIcon, Mic } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { UserRole } from "@/lib/roles";
 import PageHeader from "@/components/layout/PageHeader";
@@ -20,15 +19,13 @@ interface NewOrderProps {
   userRole?: UserRole;
 }
 
-const NewOrderMockup = ({ userRole = UserRole.Physician }: NewOrderProps) => {
+const NewOrder = ({ userRole = UserRole.Physician }: NewOrderProps) => {
   const { user, isAuthenticated, isLoading } = useAuth();
   const [orderStep, setOrderStep] = useState<'dictation' | 'validation' | 'signature'>('dictation');
   const [dictationText, setDictationText] = useState("");
   const [validationResult, setValidationResult] = useState<ProcessedDictation | null>(null);
   const [validationFeedback, setValidationFeedback] = useState<string | null>(null);
   const [attemptCount, setAttemptCount] = useState(0);
-  const [isOverrideDialogOpen, setIsOverrideDialogOpen] = useState(false);
-  const [overrideJustification, setOverrideJustification] = useState<string>("");
   const [characterCount, setCharacterCount] = useState(0);
   const [remainingCredits, setRemainingCredits] = useState(5);
   const [isPatientDialogOpen, setIsPatientDialogOpen] = useState(false);
@@ -132,102 +129,6 @@ const NewOrderMockup = ({ userRole = UserRole.Physician }: NewOrderProps) => {
   };
   
   // Process order
-  const handleProcessOrderWithOverride = async (justification: string) => {
-    // Do one final validation pass with current dictation text
-    try {
-      setIsProcessing(true);
-      
-      const endpoint = isTrialUser ? '/api/orders/validate/trial' : '/api/orders/validate';
-      
-      // First, try one more validation with the current dictation text
-      // The physician may have added clarifying information
-      const requestPayload = {
-        dictationText,
-        attemptCount: 4 // Final attempt
-      };
-      
-      const response = await apiRequest('POST', endpoint, requestPayload);
-      const apiResult = await response.json();
-      
-      // Check if the final validation passed
-      if (apiResult.validationResult && apiResult.validationResult.validationStatus === 'valid') {
-        // Great! The additional information resolved the issues
-        const result: ProcessedDictation = {
-          validationStatus: 'valid',
-          feedback: apiResult.validationResult.feedback || 'Order validated successfully',
-          complianceScore: apiResult.validationResult.complianceScore,
-          suggestedCodes: [
-            ...(apiResult.validationResult.suggestedICD10Codes?.map((icd: any) => ({
-              code: icd.code,
-              description: icd.description,
-              type: 'ICD-10' as const,
-              confidence: icd.confidence || 0.8,
-              isPrimary: icd.isPrimary || false
-            })) || []),
-            ...(apiResult.validationResult.suggestedCPTCodes?.map((cpt: any) => ({
-              code: cpt.code,
-              description: cpt.description,
-              type: 'CPT' as const,
-              confidence: cpt.confidence || 0.8,
-              isPrimary: cpt.isPrimary || false
-            })) || [])
-          ],
-          overridden: true,
-          overrideJustification: justification
-        };
-        
-        setValidationResult(result);
-        setOrderStep('validation');
-        setValidationFeedback(null); // Clear any previous feedback
-      } else {
-        // Final validation still failed, proceed with override
-        const overridePayload = {
-          dictationText,
-          isOverrideValidation: true,
-          overrideJustification: justification
-        };
-        
-        const overrideResponse = await apiRequest('POST', endpoint, overridePayload);
-        const overrideResult = await overrideResponse.json();
-        
-        if (overrideResult.validationResult) {
-          const result: ProcessedDictation = {
-            validationStatus: 'valid', // Force valid for override
-            feedback: overrideResult.validationResult.feedback || 'Order overridden by physician',
-            complianceScore: overrideResult.validationResult.complianceScore,
-            suggestedCodes: [
-              ...(overrideResult.validationResult.suggestedICD10Codes?.map((icd: any) => ({
-                code: icd.code,
-                description: icd.description,
-                type: 'ICD-10' as const,
-                confidence: icd.confidence || 0.8,
-                isPrimary: icd.isPrimary || false
-              })) || []),
-              ...(overrideResult.validationResult.suggestedCPTCodes?.map((cpt: any) => ({
-                code: cpt.code,
-                description: cpt.description,
-                type: 'CPT' as const,
-                confidence: cpt.confidence || 0.8,
-                isPrimary: cpt.isPrimary || false
-              })) || [])
-            ],
-            overridden: true,
-            overrideJustification: justification
-          };
-          
-          setValidationResult(result);
-          setOrderStep('validation');
-          setValidationFeedback(null); // Clear any previous feedback
-        }
-      }
-    } catch (error) {
-      console.error("Override error:", error);
-      setValidationFeedback("An error occurred while processing the override. Please try again.");
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
   const handleProcessOrder = async () => {
     // Check if user is authenticated
     if (!isLoading && !isAuthenticated) {
@@ -572,7 +473,7 @@ const NewOrderMockup = ({ userRole = UserRole.Physician }: NewOrderProps) => {
   };
 
   return (
-    <div className="p-4 sm:p-6">
+    <div className="p-6">
       <PageHeader
         title={`Radiology Order - ${patient.name}`}
       >
@@ -587,7 +488,7 @@ const NewOrderMockup = ({ userRole = UserRole.Physician }: NewOrderProps) => {
         {/* Trial User Banner */}
         {isTrialUser && (
           <Card className="mb-4 border-blue-200 bg-blue-50">
-            <CardHeader className="pb-2 px-4 sm:px-6">
+            <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center">
                   <Beaker className="h-5 w-5 text-blue-500 mr-2" />
@@ -640,98 +541,99 @@ const NewOrderMockup = ({ userRole = UserRole.Physician }: NewOrderProps) => {
               </div>
               <p className="text-sm text-gray-600 mt-1">
                 Include clinical indications, relevant history, and requested study details.
-                <span className="ml-1 text-primary font-medium">
+                <span className="ml-1 text-blue-600 font-medium">
                   You may edit or append to your existing text.
                 </span>
               </p>
               
-              {/* Validation feedback - prototype style */}
-              {validationFeedback && !isProcessing && (
-                <div className="mt-3 border border-red-300 rounded-md overflow-hidden">
-                  <div className="bg-red-100 px-4 py-2 flex justify-between items-center">
-                    <div className="flex items-center">
-                      <AlertCircle className="h-4 w-4 text-red-600 mr-2" />
-                      <h3 className="text-sm font-medium text-red-800">Issues with Dictation</h3>
-                    </div>
-                    <button 
-                      onClick={() => setValidationFeedback(null)}
-                      className="text-red-500 hover:text-red-700"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-                  </div>
-                  <div className="bg-white px-4 py-3 text-sm text-gray-700 border-t border-red-200">
-                    <p>{validationFeedback}</p>
-                    
-                    <div className="mt-3 flex gap-2">
-                      <button
-                        type="button"
-                        className="h-8 text-xs px-3 py-1 border border-gray-300 rounded-md hover:bg-gray-50"
-                        onClick={addAdditionalClarification}
-                      >
-                        <Plus className="h-3 w-3 mr-1 inline-block" />
-                        Add Clarification
-                      </button>
-                      
-                      {attemptCount >= 3 && (
-                        <button
-                          type="button"
-                          className="h-8 text-xs px-3 py-1 bg-amber-50 text-amber-800 border border-amber-200 rounded-md hover:bg-amber-100 hover:text-amber-900 hover:border-amber-300"
-                          onClick={() => setIsOverrideDialogOpen(true)}
-                        >
-                          Override
-                        </button>
-                      )}
-                    </div>
+              {/* Processing indicator */}
+              {isProcessing && (
+                <div className="mt-3 bg-blue-50 border border-blue-200 rounded-md p-3">
+                  <div className="flex items-center">
+                    <svg className="animate-spin h-4 w-4 text-blue-600 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span className="text-sm text-blue-700 font-medium">Processing your order...</span>
                   </div>
                 </div>
               )}
               
-              <div className="mt-3 border border-gray-200 rounded-md bg-white overflow-hidden focus-within:outline focus-within:outline-1 focus-within:outline-primary">
-                <div className="relative">
-                  <textarea
-                    className="w-full min-h-[200px] sm:h-48 p-3 sm:p-4 border-0 shadow-none focus:outline-none resize-none rounded-none"
-                    placeholder="Examples: '55-year-old female with newly diagnosed breast cancer. Request CT chest, abdomen and pelvis for staging.'"
-                    value={dictationText}
-                    onChange={handleDictationChange}
-                  />
-                  {/* Always render the interim transcript div, but only show content when there is interim text */}
-                  <div className={`absolute bottom-0 left-0 right-0 bg-blue-50 px-3 py-2 text-blue-700 text-sm border-t border-blue-200 ${interimTranscript ? 'block' : 'hidden'}`}>
-                    <span className="opacity-70">{interimTranscript}</span>
-                    <span className="ml-1 animate-pulse">...</span>
+              {/* Validation feedback - only shown for actual issues */}
+              {validationFeedback && !isProcessing && (
+                <Alert variant="destructive" className="mt-3 bg-red-50 border-red-200 text-red-800">
+                  <div className="flex justify-between">
+                    <div className="flex items-start">
+                      <AlertCircle className="h-4 w-4 mt-0.5 mr-2 flex-shrink-0" />
+                      <AlertDescription className="text-sm">
+                        <div className="font-medium mb-1">Issues with Dictation</div>
+                        {validationFeedback}
+                      </AlertDescription>
+                    </div>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-6 w-6 p-0 text-gray-400 hover:text-gray-500"
+                      onClick={() => setValidationFeedback(null)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
                   </div>
+                  <div className="mt-2 ml-6">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-2 text-xs bg-white border border-gray-200 hover:bg-gray-50 hover:text-gray-800"
+                      onClick={addAdditionalClarification}
+                    >
+                      + Add Clarification
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-2 text-xs bg-amber-50 text-amber-800 border border-amber-200 ml-2 hover:bg-amber-100 hover:text-amber-900 hover:border-amber-300"
+                      onClick={() => {
+                        // Force validation to proceed by setting attemptCount to 3 and resubmitting
+                        setAttemptCount(3);
+                        handleProcessOrder();
+                      }}
+                    >
+                      Override
+                    </Button>
+                  </div>
+                </Alert>
+              )}
+              
+              <div className="mt-3 relative">
+                <textarea
+                  className="w-full h-48 p-3 border border-gray-200 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-none"
+                  placeholder="Examples: '55-year-old female with newly diagnosed breast cancer. Request CT chest, abdomen and pelvis for staging.'"
+                  value={dictationText}
+                  onChange={handleDictationChange}
+                />
+                {/* Always render the interim transcript div, but only show content when there is interim text */}
+                <div className={`absolute bottom-12 left-0 right-0 bg-blue-50 px-3 py-2 text-blue-700 text-sm border-t border-blue-200 ${interimTranscript ? 'block' : 'hidden'}`}>
+                  <span className="opacity-70">{interimTranscript}</span>
+                  <span className="ml-1 animate-pulse">...</span>
                 </div>
-                <div className="flex items-center justify-between px-3 py-2 bg-gray-50 border-t border-gray-200">
+                <div className="flex justify-between items-center mt-2">
                   <div className="flex space-x-2">
                     <button
-                      type="button"
-                      className="h-8 px-2 text-xs border border-gray-300 rounded-md hover:bg-gray-50"
+                      className="flex items-center justify-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50"
                       onClick={handleClearText}
                     >
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1 inline-block">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="mr-2">
                         <rect x="4" y="4" width="16" height="16" rx="1" stroke="currentColor" strokeWidth="2"/>
                         <path d="M9 9L15 15M15 9L9 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
                       </svg>
-                      <span className="hidden sm:inline">Clear</span>
-                      <span className="sm:hidden">Clear</span>
+                      Clear
                     </button>
                     <button
-                      type="button"
-                      className={`h-8 px-2 text-xs border ${isRecording ? 'border-red-300 bg-red-50 text-red-700' : 'border-gray-300'} rounded-md hover:bg-gray-50`}
+                      className={`flex items-center justify-center px-4 py-2 ml-2 text-sm font-medium ${isRecording ? 'text-red-700 bg-red-50 border-red-300' : 'text-gray-700 bg-white border-gray-300'} rounded-md shadow-sm hover:bg-gray-50`}
                       onClick={handleVoiceInput}
                     >
-                      <Mic className={`h-3 w-3 mr-1 inline-block ${isRecording ? 'animate-pulse text-red-600' : ''}`} />
-                      {isRecording ? (
-                        <>
-                          <span className="hidden sm:inline">Stop Recording</span>
-                          <span className="sm:hidden">Stop</span>
-                        </>
-                      ) : (
-                        <>
-                          <span className="hidden sm:inline">Voice Input</span>
-                          <span className="sm:hidden">Voice</span>
-                        </>
-                      )}
+                      <Mic className={`h-4 w-4 mr-2 ${isRecording ? 'animate-pulse text-red-600' : ''}`} />
+                      {isRecording ? 'Stop Recording' : 'Voice Input'}
                     </button>
                   </div>
                   <div className="text-xs text-gray-500">
@@ -742,6 +644,7 @@ const NewOrderMockup = ({ userRole = UserRole.Physician }: NewOrderProps) => {
             </div>
             <div className="flex justify-end p-4 border-t border-gray-200">
               <Button
+                className="bg-blue-700 hover:bg-blue-800 text-white font-medium px-4 py-2 h-auto"
                 disabled={dictationText.trim().length < 10 || isProcessing}
                 onClick={handleProcessOrder}
               >
@@ -764,7 +667,7 @@ const NewOrderMockup = ({ userRole = UserRole.Physician }: NewOrderProps) => {
         {/* Validation View */}
         {orderStep === 'validation' && validationResult && (
           <Card>
-            <CardContent className="p-4 sm:p-6">
+            <CardContent className="p-6">
               <ValidationView 
                 dictationText={dictationText} 
                 validationResult={validationResult}
@@ -828,19 +731,8 @@ const NewOrderMockup = ({ userRole = UserRole.Physician }: NewOrderProps) => {
           )
         )}
       </div>
-      
-      {/* Override Dialog */}
-      <OverrideDialog
-        isOpen={isOverrideDialogOpen}
-        onClose={() => setIsOverrideDialogOpen(false)}
-        onConfirm={(justification) => {
-          setOverrideJustification(justification);
-          setIsOverrideDialogOpen(false);
-          handleProcessOrderWithOverride(justification);
-        }}
-      />
     </div>
   );
 };
 
-export default NewOrderMockup;
+export default NewOrder;

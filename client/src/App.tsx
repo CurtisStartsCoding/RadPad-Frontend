@@ -12,7 +12,6 @@ import { getUserRoleFromStorage } from "@/lib/navigation";
 import AppHeader from "@/components/layout/AppHeader";
 import Dashboard from "@/pages/Dashboard";
 import NewOrder from "@/pages/NewOrder";
-import NewOrderMockup from "@/pages/NewOrderMockup";
 import OrderList from "@/pages/OrderList";
 import OrderDetailsView from "@/pages/OrderDetailsView";
 import PatientHistoryView from "@/pages/PatientHistoryView";
@@ -394,7 +393,7 @@ function App() {
                     onNavigate={handleNavigate}
                   />
                   <main className="h-full pt-16">
-                    <NewOrderMockup userRole={(user?.role as UserRole) || currentRole} />
+                    <NewOrder userRole={(user?.role as UserRole) || currentRole} />
                   </main>
                 </div>
               </div>
