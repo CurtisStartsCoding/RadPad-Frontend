@@ -51,27 +51,61 @@ export default function InsuranceInfoTab({
   };
 
   const handleSave = async () => {
+    // Validate policy holder date of birth if insurance is enabled and relationship is not self
+    if (hasInsurance && insuranceInfo.policyHolderRelationship !== 'self' && insuranceInfo.policyHolderDateOfBirth) {
+      const dobDate = new Date(insuranceInfo.policyHolderDateOfBirth);
+      const today = new Date();
+      
+      if (isNaN(dobDate.getTime())) {
+        toast({
+          title: "Invalid Date",
+          description: "Please enter a valid date for Policy Holder Date of Birth",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      if (dobDate > today) {
+        toast({
+          title: "Invalid Date",
+          description: "Policy Holder Date of Birth cannot be in the future",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+    
     setIsSaving(true);
     try {
       // Use the unified endpoint
-      const payload = {
-        insurance: hasInsurance ? {
-          hasInsurance: true,
+      const payload: any = {
+        hasInsurance: hasInsurance
+      };
+      
+      // Only include insurance object if patient has insurance
+      if (hasInsurance) {
+        payload.insurance = {
           insurerName: insuranceInfo.insurerName,
-          planName: insuranceInfo.planName,
+          planType: insuranceInfo.planName,  // API expects planType, not planName
           policyNumber: insuranceInfo.policyNumber,
           groupNumber: insuranceInfo.groupNumber,
           policyHolderName: insuranceInfo.policyHolderName,
           policyHolderRelationship: insuranceInfo.policyHolderRelationship,
           policyHolderDateOfBirth: insuranceInfo.policyHolderDateOfBirth,
-          secondaryInsurerName: insuranceInfo.secondaryInsurerName,
-          secondaryPlanName: insuranceInfo.secondaryPlanName,
-          secondaryPolicyNumber: insuranceInfo.secondaryPolicyNumber,
-          secondaryGroupNumber: insuranceInfo.secondaryGroupNumber
-        } : {
-          hasInsurance: false
+          isPrimary: true  // Add isPrimary flag as expected by API
+        };
+        
+        // Only add secondary insurance if it exists
+        if (insuranceInfo.secondaryInsurerName) {
+          payload.secondaryInsurance = {
+            insurerName: insuranceInfo.secondaryInsurerName,
+            planType: insuranceInfo.secondaryPlanName,
+            policyNumber: insuranceInfo.secondaryPolicyNumber,
+            groupNumber: insuranceInfo.secondaryGroupNumber,
+            isPrimary: false
+          };
         }
-      };
+      }
       
       console.log('Sending insurance data to unified endpoint:', payload);
       
@@ -213,8 +247,11 @@ export default function InsuranceInfoTab({
               <Input 
                 id="policyHolderDateOfBirth" 
                 name="policyHolderDateOfBirth" 
+                type="date"
                 value={insuranceInfo.policyHolderDateOfBirth} 
                 onChange={handleInputChange}
+                max={new Date().toISOString().split('T')[0]} // Can't be future date
+                placeholder="MM/DD/YYYY"
               />
             </div>
           </div>
