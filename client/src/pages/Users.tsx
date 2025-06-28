@@ -147,7 +147,12 @@ const Users = () => {
         throw new Error('Failed to fetch locations');
       }
       const data = await response.json();
-      return data.locations || [];
+      console.log('Organization locations response:', data);
+      // Handle different response formats
+      if (data.success && data.data) {
+        return data.data;
+      }
+      return data.locations || data || [];
     },
     staleTime: 300000, // 5 minutes
   });
@@ -247,10 +252,15 @@ const Users = () => {
   const fetchUserLocations = async (userId: number) => {
     setLoadingLocations(true);
     try {
-      const response = await apiRequest('GET', `/api/users/${userId}/locations`, undefined);
+      const response = await apiRequest('GET', `/api/user-locations/${userId}/locations`, undefined);
       if (response.ok) {
         const data = await response.json();
-        const locationIds = data.locations.map((loc: any) => loc.id);
+        console.log('User locations response:', data);
+        // Handle different response formats
+        const locations = data.locations || data.data || data || [];
+        const locationIds = Array.isArray(locations) 
+          ? locations.map((loc: any) => loc.id)
+          : [];
         setUserLocations(locationIds);
       } else if (response.status === 404) {
         // User-location endpoint might not be implemented yet
@@ -381,14 +391,14 @@ const Users = () => {
     // Add new locations
     for (const locationId of locationsToAdd) {
       promises.push(
-        apiRequest('POST', `/api/users/${userId}/locations/${locationId}`, {})
+        apiRequest('POST', `/api/user-locations/${userId}/locations/${locationId}`, {})
       );
     }
     
     // Remove unassigned locations
     for (const locationId of locationsToRemove) {
       promises.push(
-        apiRequest('DELETE', `/api/users/${userId}/locations/${locationId}`, undefined)
+        apiRequest('DELETE', `/api/user-locations/${userId}/locations/${locationId}`, undefined)
       );
     }
     
@@ -423,8 +433,7 @@ const Users = () => {
       error: null
     });
     // Fetch user's current locations
-    // TODO: Uncomment when user-location endpoints are implemented
-    // fetchUserLocations(user.id);
+    fetchUserLocations(user.id);
     
     // If user has an NPI, validate it
     if (user.npi && user.npi.length === 10) {
@@ -982,19 +991,18 @@ const Users = () => {
               await updateMutation.mutateAsync({ userId: editingUser.id, data: editForm });
               
               // Then update location assignments
-              // TODO: Uncomment when user-location endpoints are implemented
-              // const locationResult = await updateUserLocations(editingUser.id, userLocations);
-              // 
-              // if (!locationResult.success) {
-              //   toast({
-              //     title: "Warning",
-              //     description: "User updated but location assignments failed",
-              //     variant: "destructive",
-              //   });
-              // } else {
-              //   // Refresh the user list to show updated locations
-              //   queryClient.invalidateQueries({ queryKey: ['/api/users'] });
-              // }
+              const locationResult = await updateUserLocations(editingUser.id, userLocations);
+              
+              if (!locationResult.success) {
+                toast({
+                  title: "Warning",
+                  description: "User updated but location assignments failed",
+                  variant: "destructive",
+                });
+              } else {
+                // Refresh the user list to show updated locations
+                queryClient.invalidateQueries({ queryKey: ['/api/users'] });
+              }
             }
           }}>
             <DialogHeader>
@@ -1199,8 +1207,7 @@ const Users = () => {
               </div>
               
               {/* Location Assignments */}
-              {/* TODO: Enable when user-location endpoints are implemented */}
-              {/* {orgLocations && orgLocations.length > 0 && (
+              {orgLocations && orgLocations.length > 0 && (
                 <div className="grid gap-2">
                   <Label>Assigned Locations</Label>
                   {loadingLocations ? (
@@ -1242,7 +1249,7 @@ const Users = () => {
                     </div>
                   )}
                 </div>
-              )} */}
+              )}
             </div>
             
             <DialogFooter>
