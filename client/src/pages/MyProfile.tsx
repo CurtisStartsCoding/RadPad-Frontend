@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { 
   Card, 
   CardContent, 
@@ -38,7 +38,9 @@ import {
   AtSign,
   AlertCircle,
   Beaker,
-  Loader2
+  Loader2,
+  Printer,
+  RefreshCw
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { UserRole } from "@/lib/roles";
@@ -70,6 +72,7 @@ interface StoredUser {
 
 const MyProfile = () => {
   const { toast } = useToast();
+  const [isRefreshing, setIsRefreshing] = useState(false);
   
   // Load user data directly from localStorage
   const loadUser = (): StoredUser | null => {
@@ -201,6 +204,12 @@ const MyProfile = () => {
     return userData?.last_name || user?.last_name || user?.name?.split(' ')[1] || "";
   });
   const [phoneNumber, setPhoneNumber] = useState(userData?.phone || userData?.phone_number || ""); // Check both phone and phone_number
+  const [faxNumber, setFaxNumber] = useState(userData?.fax || userData?.fax_number || "");
+  const [officeAddress, setOfficeAddress] = useState(userData?.address_line1 || "");
+  const [officeAddress2, setOfficeAddress2] = useState(userData?.address_line2 || "");
+  const [officeCity, setOfficeCity] = useState(userData?.city || "");
+  const [officeState, setOfficeState] = useState(userData?.state || "");
+  const [officeZip, setOfficeZip] = useState(userData?.zip_code || "");
   
   // Get specialty from user data
   const getSpecialtyFromData = (): string => {
@@ -226,6 +235,72 @@ const MyProfile = () => {
     lastLogin: userData?.lastLoginAt ? formatDateTime(userData.lastLoginAt) : "",
   };
   
+  // Function to refresh user profile data from server
+  const refreshProfile = async () => {
+    setIsRefreshing(true);
+    try {
+      console.log("🔄 Refreshing profile data from server...");
+      const response = await apiRequest('GET', '/api/users/me');
+      
+      if (response.ok) {
+        const result = await response.json();
+        console.log("📋 Fresh profile data:", result);
+        
+        if (result.success && result.data) {
+          // Update localStorage with fresh data
+          localStorage.setItem('rad_order_pad_user_data', JSON.stringify(result.data));
+          
+          // Update state with new values
+          setFirstName(result.data.first_name || firstName);
+          setLastName(result.data.last_name || lastName);
+          setPhoneNumber(result.data.phone_number ? formatPhoneNumber(result.data.phone_number) : phoneNumber);
+          setFaxNumber(result.data.fax_number ? formatPhoneNumber(result.data.fax_number) : "");
+          setOfficeAddress(result.data.address_line1 || "");
+          setOfficeAddress2(result.data.address_line2 || "");
+          setOfficeCity(result.data.city || "");
+          setOfficeState(result.data.state || "");
+          setOfficeZip(result.data.zip_code || "");
+          
+          if (shouldShowSpecialty && result.data.specialty) {
+            setSpecialty(formatSpecialty(result.data.specialty));
+          }
+          if (shouldShowNPI && result.data.npi) {
+            setNpiNumber(result.data.npi);
+          }
+          
+          toast({
+            title: "Profile Refreshed",
+            description: "Your profile has been updated with the latest data.",
+          });
+          
+          console.log("✅ Profile data refreshed successfully");
+        }
+      } else {
+        throw new Error("Failed to fetch profile data");
+      }
+    } catch (error) {
+      console.error("❌ Error refreshing profile:", error);
+      toast({
+        title: "Refresh Failed",
+        description: "Could not refresh profile data. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+  
+  // Refresh profile data on component mount
+  useEffect(() => {
+    console.log("🚀 MyProfile component mounted, checking if refresh needed...");
+    
+    // Only refresh if we don't have the new fields in localStorage
+    if (!userData?.fax_number && !userData?.address_line1 && !isTrialUser) {
+      console.log("📍 Missing office fields, refreshing profile...");
+      refreshProfile();
+    }
+  }, []);
+  
   // Function to handle profile edit
   const handleEditToggle = () => {
     setIsEditing(!isEditing);
@@ -240,7 +315,13 @@ const MyProfile = () => {
         firstName: firstName,
         lastName: lastName,
         // Strip formatting from phone number - send only digits
-        phoneNumber: phoneNumber.replace(/\D/g, '')
+        phoneNumber: phoneNumber.replace(/\D/g, ''),
+        faxNumber: faxNumber.replace(/\D/g, ''),
+        addressLine1: officeAddress,
+        addressLine2: officeAddress2,
+        city: officeCity,
+        state: officeState,
+        zipCode: officeZip
       };
 
       // Only include specialty and NPI for roles that should have them
@@ -273,6 +354,12 @@ const MyProfile = () => {
         setLastName(updatedUser.data.last_name || lastName);
         // Backend returns phone_number in snake_case
         setPhoneNumber(updatedUser.data.phone_number ? formatPhoneNumber(updatedUser.data.phone_number) : phoneNumber);
+        setFaxNumber(updatedUser.data.fax_number ? formatPhoneNumber(updatedUser.data.fax_number) : faxNumber);
+        setOfficeAddress(updatedUser.data.address_line1 || officeAddress);
+        setOfficeAddress2(updatedUser.data.address_line2 || officeAddress2);
+        setOfficeCity(updatedUser.data.city || officeCity);
+        setOfficeState(updatedUser.data.state || officeState);
+        setOfficeZip(updatedUser.data.zip_code || officeZip);
         if (shouldShowSpecialty && updatedUser.data.specialty) {
           setSpecialty(formatSpecialty(updatedUser.data.specialty));
         }
@@ -456,10 +543,29 @@ const MyProfile = () => {
           <p className="text-sm text-slate-500">View and edit your profile information</p>
         </div>
         {!isEditing ? (
-          <Button onClick={handleEditToggle}>
-            <Edit className="h-4 w-4 mr-2" />
-            Edit Profile
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              onClick={refreshProfile}
+              disabled={isRefreshing}
+            >
+              {isRefreshing ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Refreshing...
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Refresh
+                </>
+              )}
+            </Button>
+            <Button onClick={handleEditToggle}>
+              <Edit className="h-4 w-4 mr-2" />
+              Edit Profile
+            </Button>
+          </div>
         ) : (
           <div className="space-x-2">
             <Button variant="outline" onClick={handleEditToggle}>
@@ -484,7 +590,7 @@ const MyProfile = () => {
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Profile Summary */}
-        <Card className="md:col-span-2">
+        <Card className="md:col-span-2" data-testid="profile-card">
           <CardHeader className="pb-4">
             <CardTitle>Profile Information</CardTitle>
             <CardDescription>
@@ -516,14 +622,14 @@ const MyProfile = () => {
                   <div>
                     <h2 className="text-xl font-semibold">{firstName} {lastName}</h2>
                     <div className="mt-1 flex items-center">
-                      <Badge variant="secondary">{userDisplayData.role}</Badge>
-                      <span className="text-sm text-slate-500 ml-2">{userDisplayData.organization}</span>
+                      <Badge variant="secondary" data-testid="user-role-badge">{userDisplayData.role}</Badge>
+                      <span className="text-sm text-slate-500 ml-2" data-testid="user-organization">{userDisplayData.organization}</span>
                     </div>
                     
                     <div className="mt-3 grid grid-cols-2 gap-y-2">
                       <div className="flex items-center text-sm">
                         <Mail className="h-4 w-4 mr-2 text-slate-400" />
-                        <span>{userDisplayData.email}</span>
+                        <span data-testid="user-email">{userDisplayData.email}</span>
                       </div>
                       
                       <div className="flex items-center text-sm">
@@ -531,9 +637,14 @@ const MyProfile = () => {
                         <span>{phoneNumber || "No phone number"}</span>
                         {!phoneNumber && (
                           <span className="ml-2 text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded">
-                            TODO: Fix login API
+                            Click Refresh to load
                           </span>
                         )}
+                      </div>
+                      
+                      <div className="flex items-center text-sm">
+                        <Printer className="h-4 w-4 mr-2 text-slate-400" />
+                        <span>Fax: {faxNumber || "Not provided"}</span>
                       </div>
                       
                       {shouldShowSpecialty && (
@@ -592,6 +703,20 @@ const MyProfile = () => {
                           setPhoneNumber(formatted);
                         }}
                         placeholder="(555) 123-4567"
+                        maxLength={14}
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="fax">Fax Number</Label>
+                      <Input
+                        id="fax"
+                        value={faxNumber}
+                        onChange={(e) => {
+                          const formatted = formatPhoneNumber(e.target.value);
+                          setFaxNumber(formatted);
+                        }}
+                        placeholder="(555) 123-4568"
                         maxLength={14}
                       />
                     </div>
@@ -694,6 +819,99 @@ const MyProfile = () => {
             </div>
             
             <Separator />
+            
+            {/* Office Contact Information - Only for physicians */}
+            {shouldShowNPI && (
+              <>
+                <div>
+                  <h3 className="text-sm font-medium mb-3">Office Contact Information</h3>
+                  
+                  {!isEditing ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4">
+                      <div>
+                        <p className="text-xs text-slate-500">Fax Number</p>
+                        <p className="text-sm">{faxNumber || "Not provided"}</p>
+                      </div>
+                      
+                      <div className="md:col-span-2">
+                        <p className="text-xs text-slate-500">Office Address</p>
+                        <p className="text-sm">
+                          {officeAddress ? (
+                            <>
+                              {officeAddress}
+                              {officeAddress2 && <><br />{officeAddress2}</>}
+                              {officeCity && officeState && officeZip && (
+                                <><br />{officeCity}, {officeState} {officeZip}</>
+                              )}
+                            </>
+                          ) : (
+                            "Not provided"
+                          )}
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="office-address">Office Address Line 1</Label>
+                        <Input
+                          id="office-address"
+                          value={officeAddress}
+                          onChange={(e) => setOfficeAddress(e.target.value)}
+                          placeholder="123 Medical Plaza"
+                        />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="office-address-2">Office Address Line 2</Label>
+                        <Input
+                          id="office-address-2"
+                          value={officeAddress2}
+                          onChange={(e) => setOfficeAddress2(e.target.value)}
+                          placeholder="Suite 100 (Optional)"
+                        />
+                      </div>
+                      
+                      <div className="grid grid-cols-3 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="office-city">City</Label>
+                          <Input
+                            id="office-city"
+                            value={officeCity}
+                            onChange={(e) => setOfficeCity(e.target.value)}
+                            placeholder="Springfield"
+                          />
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor="office-state">State</Label>
+                          <Input
+                            id="office-state"
+                            value={officeState}
+                            onChange={(e) => setOfficeState(e.target.value.toUpperCase())}
+                            placeholder="IL"
+                            maxLength={2}
+                          />
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor="office-zip">ZIP Code</Label>
+                          <Input
+                            id="office-zip"
+                            value={officeZip}
+                            onChange={(e) => setOfficeZip(e.target.value)}
+                            placeholder="62701"
+                            maxLength={10}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                
+                <Separator />
+              </>
+            )}
             
             {/* Account Info */}
             <div>

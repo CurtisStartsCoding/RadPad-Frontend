@@ -94,27 +94,43 @@ export async function loginUser(email: string, password: string): Promise<User> 
       // Store the complete user data in localStorage for profile use
       localStorage.setItem('rad_order_pad_user_data', JSON.stringify(apiUser));
       
-      // If phone_number is missing, try to fetch it from /api/users/me
-      if (!apiUser.phone_number) {
-        try {
-          const meResponse = await apiRequest('GET', '/api/users/me');
-          if (meResponse.ok) {
-            const meData = await meResponse.json();
-            if (meData.success && meData.data) {
-              // Update the stored user data with the complete profile including phone
-              const completeUserData = {
-                ...apiUser,
-                phone_number: meData.data.phone || meData.data.phone_number,
-                // Update any other fields that might be missing
-                npi: meData.data.npi || apiUser.npi,
-                specialty: meData.data.specialty || apiUser.specialty
-              };
-              localStorage.setItem('rad_order_pad_user_data', JSON.stringify(completeUserData));
-            }
+      // Always fetch complete profile from /api/users/me to ensure all fields are present
+      // The login endpoint returns limited fields, but /api/users/me returns everything
+      console.log('🔍 Fetching complete user profile with all fields...');
+      try {
+        const meResponse = await apiRequest('GET', '/api/users/me');
+        if (meResponse.ok) {
+          const meData = await meResponse.json();
+          console.log('📋 Complete profile response:', meData);
+          
+          if (meData.success && meData.data) {
+            // Update the stored user data with the complete profile including all new fields
+            const completeUserData = {
+              ...apiUser,
+              // Preserve any other fields from the complete profile
+              ...meData.data,
+              // IMPORTANT: Preserve organization_name from login response as /api/users/me doesn't include it
+              organization_name: apiUser.organization_name,
+              // Also preserve lastLoginAt from login response
+              lastLoginAt: apiUser.lastLoginAt
+            };
+            
+            console.log('✅ Storing complete user profile with office fields:', {
+              ...completeUserData,
+              // Log a subset for security
+              has_fax: !!completeUserData.fax_number,
+              has_address: !!completeUserData.address_line1,
+              has_city: !!completeUserData.city
+            });
+            
+            localStorage.setItem('rad_order_pad_user_data', JSON.stringify(completeUserData));
           }
-        } catch (e) {
-          console.log('Could not fetch additional user data:', e);
+        } else {
+          console.warn('⚠️ Could not fetch complete profile, login data may be incomplete');
         }
+      } catch (e) {
+        console.error('❌ Error fetching complete user profile:', e);
+        console.log('⚠️ Using partial user data from login response');
       }
       
       // Clear any documents from previous users
