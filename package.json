@@ -8,7 +8,13 @@
     "build": "vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
     "start": "node dist/index.js",
     "check": "tsc",
-    "db:push": "drizzle-kit push"
+    "db:push": "drizzle-kit push",
+    "test:e2e": "cypress run",
+    "test:e2e:open": "cypress open",
+    "test:hipaa": "cypress run --spec 'cypress/e2e/hipaa-compliance.cy.ts'",
+    "test:all": "npm run test:e2e",
+    "lint": "eslint . --ext .ts,.tsx",
+    "lint:fix": "eslint . --ext .ts,.tsx --fix"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
