@@ -136,12 +136,22 @@ const OrderDetailsView = () => {
         throw new Error('Failed to fetch order details');
       }
       const data = await response.json();
-      return data;
+      console.log('Order API Response:', data);
+      
+      // Handle different response structures
+      if (data.data) {
+        return data.data; // If response has { data: {...} } structure
+      }
+      return data; // If response is direct object
     },
     enabled: !!orderId
   });
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (status: string | undefined) => {
+    if (!status) {
+      return <Badge variant="outline" className="bg-gray-50 border-gray-200 text-gray-700">Unknown</Badge>;
+    }
+    
     switch (status) {
       case 'pending_admin':
         return <Badge variant="outline" className="bg-amber-50 border-amber-200 text-amber-700">Pending Admin</Badge>;
@@ -164,7 +174,11 @@ const OrderDetailsView = () => {
     }
   };
 
-  const getPriorityBadge = (priority: string) => {
+  const getPriorityBadge = (priority: string | undefined) => {
+    if (!priority) {
+      return <Badge variant="outline" className="bg-gray-50 border-gray-200 text-gray-700">Unknown</Badge>;
+    }
+    
     switch (priority) {
       case 'stat':
         return <Badge variant="destructive">STAT</Badge>;
