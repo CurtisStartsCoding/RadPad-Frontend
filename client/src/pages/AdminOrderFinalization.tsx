@@ -693,40 +693,78 @@ const AdminOrderFinalization: React.FC<AdminOrderFinalizationProps> = ({ navigat
                   <EmrPasteTab 
                     orderId={orderId!}
                     onParseComplete={(patientData, insuranceData) => {
+                      console.log('=== ADMIN ORDER FINALIZATION - onParseComplete ===');
+                      console.log('Received patientData:', patientData);
+                      console.log('Received insuranceData:', insuranceData);
+                      
                       // Update patient info with parsed data
                       if (patientData) {
-                        setPatientInfo(prev => ({
-                          ...prev,
-                          addressLine1: patientData.address || prev.addressLine1,
-                          city: patientData.city || prev.city,
-                          state: patientData.state || prev.state,
-                          zipCode: patientData.zipCode || prev.zipCode,
-                          phoneNumber: patientData.phone || prev.phoneNumber,
-                          email: patientData.email || prev.email
-                        }));
+                        console.log('=== UPDATING PATIENT INFO ===');
+                        console.log('Previous patient info state:', patientInfo);
+                        
+                        const newPatientInfo = {
+                          ...patientInfo,
+                          // Basic demographics - backend now extracts these
+                          firstName: patientData.firstName || patientInfo.firstName,
+                          lastName: patientData.lastName || patientInfo.lastName,
+                          dateOfBirth: patientData.dateOfBirth || patientInfo.dateOfBirth,
+                          gender: patientData.gender || patientInfo.gender,
+                          mrn: patientData.mrn || patientInfo.mrn,
+                          ssn: patientData.ssn || patientInfo.ssn,
+                          
+                          // Contact information
+                          addressLine1: patientData.address || patientInfo.addressLine1,
+                          city: patientData.city || patientInfo.city,
+                          state: patientData.state || patientInfo.state,
+                          zipCode: patientData.zipCode || patientInfo.zipCode,
+                          phoneNumber: patientData.phone || patientInfo.phoneNumber,
+                          email: patientData.email || patientInfo.email
+                        };
+                        
+                        console.log('New patient info to be set:', newPatientInfo);
+                        console.log('Field updates:');
+                        console.log('  - firstName:', patientData.firstName, '→', newPatientInfo.firstName);
+                        console.log('  - lastName:', patientData.lastName, '→', newPatientInfo.lastName);
+                        console.log('  - city:', patientData.city, '→', newPatientInfo.city);
+                        console.log('  - state:', patientData.state, '→', newPatientInfo.state);
+                        console.log('  - gender:', patientData.gender, '→', newPatientInfo.gender);
+                        
+                        setPatientInfo(newPatientInfo);
                       }
                       
                       // Update insurance info with parsed data
                       if (insuranceData) {
-                        setInsuranceInfo(prev => ({
-                          ...prev,
-                          insurerName: insuranceData.insurerName || prev.insurerName,
-                          planName: insuranceData.planName || prev.planName,
-                          policyNumber: insuranceData.policyNumber || prev.policyNumber,
-                          groupNumber: insuranceData.groupNumber || prev.groupNumber,
-                          policyHolderName: insuranceData.policyHolderName || prev.policyHolderName,
-                          policyHolderRelationship: insuranceData.policyHolderRelationship || prev.policyHolderRelationship,
-                          policyHolderDateOfBirth: insuranceData.policyHolderDateOfBirth || prev.policyHolderDateOfBirth,
-                          secondaryInsurerName: insuranceData.secondaryInsurerName || prev.secondaryInsurerName,
-                          secondaryPlanName: insuranceData.secondaryPlanName || prev.secondaryPlanName,
-                          secondaryPolicyNumber: insuranceData.secondaryPolicyNumber || prev.secondaryPolicyNumber,
-                          secondaryGroupNumber: insuranceData.secondaryGroupNumber || prev.secondaryGroupNumber
-                        }));
+                        console.log('=== UPDATING INSURANCE INFO ===');
+                        console.log('Previous insurance info state:', insuranceInfo);
+                        
+                        const newInsuranceInfo = {
+                          ...insuranceInfo,
+                          insurerName: insuranceData.insurerName || insuranceInfo.insurerName,
+                          planName: insuranceData.planName || insuranceInfo.planName,
+                          policyNumber: insuranceData.policyNumber || insuranceInfo.policyNumber,
+                          groupNumber: insuranceData.groupNumber || insuranceInfo.groupNumber,
+                          policyHolderName: insuranceData.policyHolderName || insuranceInfo.policyHolderName,
+                          policyHolderRelationship: insuranceData.relationship || insuranceData.policyHolderRelationship || insuranceInfo.policyHolderRelationship,
+                          policyHolderDateOfBirth: insuranceData.policyHolderDateOfBirth || insuranceInfo.policyHolderDateOfBirth,
+                          secondaryInsurerName: insuranceData.secondaryInsurerName || insuranceInfo.secondaryInsurerName,
+                          secondaryPlanName: insuranceData.secondaryPlanName || insuranceInfo.secondaryPlanName,
+                          secondaryPolicyNumber: insuranceData.secondaryPolicyNumber || insuranceInfo.secondaryPolicyNumber,
+                          secondaryGroupNumber: insuranceData.secondaryGroupNumber || insuranceInfo.secondaryGroupNumber
+                        };
+                        
+                        console.log('New insurance info to be set:', newInsuranceInfo);
+                        
+                        setInsuranceInfo(newInsuranceInfo);
                         
                         if (insuranceData.insurerName) {
+                          console.log('Setting hasInsurance to true');
                           setHasInsurance(true);
                         }
+                      } else {
+                        console.log('No insurance data received');
                       }
+                      
+                      console.log('=== onParseComplete END ===');
                     }}
                     onContinue={handleNextTab}
                   />
