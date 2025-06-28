@@ -29,12 +29,16 @@ interface DocumentManagerProps {
   orderId?: number;
   patientId?: number;
   className?: string;
+  initialDocuments?: any[]; // Documents from server/order response
+  onDocumentUploaded?: () => void; // Callback to refresh order data
 }
 
 export default function DocumentManager({ 
   orderId, 
   patientId,
-  className 
+  className,
+  initialDocuments,
+  onDocumentUploaded 
 }: DocumentManagerProps) {
   const [activeTab, setActiveTab] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -42,18 +46,33 @@ export default function DocumentManager({
   const [isDownloading, setIsDownloading] = useState<number | null>(null);
   const { toast } = useToast();
 
-  // Load documents on mount and when orderId changes
+  // Load documents on mount and when orderId or initialDocuments changes
   useEffect(() => {
-    if (orderId) {
-      loadDocuments();
-    }
-  }, [orderId]);
+    loadDocuments();
+  }, [orderId, initialDocuments]);
 
   const loadDocuments = () => {
-    if (orderId) {
-      const docs = FileUploadService.getDocumentsFromLocalStorage(orderId);
-      setDocuments(docs);
+    const allDocuments: Document[] = [];
+    
+    // ONLY use documents from server - NO localStorage
+    if (initialDocuments && Array.isArray(initialDocuments)) {
+      initialDocuments.forEach(doc => {
+        // Map server document format to our Document interface
+        const mappedDoc = {
+          id: doc.id,
+          fileName: doc.filename || doc.file_name || 'Unknown',
+          fileKey: doc.file_path || doc.fileKey || '',
+          // Backend doesn't return file_size, so default to 0 which will show "Size not available"
+          fileSize: doc.file_size || 0,
+          contentType: doc.mime_type || doc.content_type || 'application/octet-stream',
+          uploadedAt: doc.uploaded_at || new Date().toISOString(),
+          documentType: doc.document_type || 'general'
+        };
+        allDocuments.push(mappedDoc);
+      });
     }
+    
+    setDocuments(allDocuments);
   };
 
   // Categories based on actual documents
@@ -90,12 +109,25 @@ export default function DocumentManager({
   const handleDownload = async (document: Document) => {
     try {
       setIsDownloading(document.id);
-      const downloadUrl = await FileUploadService.getDownloadUrl(document.id);
-      window.open(downloadUrl, '_blank');
-      toast({
-        title: "Download started",
-        description: `Downloading ${document.fileName}`
-      });
+      
+      // Check if this document has a presigned URL from server
+      const serverDoc = initialDocuments?.find(doc => doc.id === document.id);
+      if (serverDoc?.s3_url) {
+        // Use the presigned URL directly
+        window.open(serverDoc.s3_url, '_blank');
+        toast({
+          title: "Download started",
+          description: `Downloading ${document.fileName}`
+        });
+      } else {
+        // Fall back to getting download URL via API
+        const downloadUrl = await FileUploadService.getDownloadUrl(document.id);
+        window.open(downloadUrl, '_blank');
+        toast({
+          title: "Download started",
+          description: `Downloading ${document.fileName}`
+        });
+      }
     } catch (error) {
       toast({
         title: "Download failed",
@@ -107,16 +139,15 @@ export default function DocumentManager({
     }
   };
 
-  // Remove document from view (localStorage only)
+  // Remove document from view
   const handleRemove = (documentId: number) => {
-    if (orderId) {
-      FileUploadService.removeDocumentFromLocalStorage(orderId, documentId);
-      loadDocuments();
-      toast({
-        title: "Document removed",
-        description: "Document removed from view"
-      });
-    }
+    // For now, just remove from local state
+    // TODO: Add API call to delete document from server if needed
+    setDocuments(prev => prev.filter(doc => doc.id !== documentId));
+    toast({
+      title: "Document removed",
+      description: "Document removed from view"
+    });
   };
 
   return (
@@ -239,7 +270,14 @@ export default function DocumentManager({
       <FileUpload 
         orderId={orderId || 0} 
         patientId={patientId || 0}
-        onUploadComplete={loadDocuments}
+        onUploadComplete={() => {
+          // Notify parent to refresh order data from server
+          if (onDocumentUploaded) {
+            onDocumentUploaded();
+          }
+          // Also refresh local view
+          loadDocuments();
+        }}
       />
     </div>
   );

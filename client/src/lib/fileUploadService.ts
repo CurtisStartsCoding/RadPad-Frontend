@@ -346,6 +346,7 @@ export class FileUploadService {
   }
 
   static getFileSizeString(bytes: number): string {
+    if (bytes === 0 || !bytes) return 'Size not available';
     if (bytes < 1024) return bytes + ' B';
     if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
     return (bytes / (1024 * 1024)).toFixed(1) + ' MB';

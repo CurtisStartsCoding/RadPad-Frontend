@@ -5,6 +5,8 @@ import DocumentManager from '@/components/upload/DocumentManager';
 interface DocumentsTabProps {
   orderId: number;
   patientId: number;
+  documents?: any[]; // Documents from order response
+  onDocumentUploaded?: () => void; // Callback to refresh order data
   onBack: () => void;
   onContinue: () => void;
 }
@@ -12,6 +14,8 @@ interface DocumentsTabProps {
 export default function DocumentsTab({
   orderId,
   patientId,
+  documents,
+  onDocumentUploaded,
   onBack,
   onContinue
 }: DocumentsTabProps) {
@@ -27,7 +31,9 @@ export default function DocumentsTab({
           
           <DocumentManager 
             orderId={orderId} 
-            patientId={patientId} 
+            patientId={patientId}
+            initialDocuments={documents}
+            onDocumentUploaded={onDocumentUploaded}
           />
         </div>
       </div>

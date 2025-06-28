@@ -60,7 +60,7 @@ const AdminOrderFinalization: React.FC<AdminOrderFinalizationProps> = ({ navigat
   const orderId = sessionStorage.getItem('currentOrderId');
   
   // Fetch order data from API
-  const { data: orderData, isLoading, error } = useQuery({
+  const { data: orderData, isLoading, error, refetch: refetchOrder } = useQuery({
     queryKey: ['/api/orders', orderId],
     queryFn: async () => {
       if (!orderId) throw new Error('No order ID found');
@@ -780,6 +780,11 @@ const AdminOrderFinalization: React.FC<AdminOrderFinalizationProps> = ({ navigat
                   <DocumentsTab
                     orderId={order.id}
                     patientId={Number(order.patient_id || order.patient?.id || 0)}
+                    documents={orderData?.documents || order.documents}
+                    onDocumentUploaded={() => {
+                      // Refetch order data to get updated documents list
+                      refetchOrder();
+                    }}
                     onBack={handlePreviousTab}
                     onContinue={handleNextTab}
                   />

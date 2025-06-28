@@ -135,15 +135,15 @@ export default function FileUpload({
         }
       );
       
-      // Save to localStorage
-      FileUploadService.saveDocumentToLocalStorage(orderId, document);
+      // DO NOT save to localStorage - HIPAA violation
+      // Documents are retrieved from server only
       
       // Mark as success
       setUploadFiles(prev => prev.map(f => 
         f.id === uploadFile.id ? { ...f, status: 'success' } : f
       ));
       
-      // Notify parent
+      // Notify parent to refresh data from server
       if (onUploadComplete) {
         onUploadComplete();
       }
