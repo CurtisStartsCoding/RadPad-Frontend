@@ -1,0 +1,54 @@
+{
+  "adminUser": {
+    "email": "admin@example.com",
+    "password": "admin123",
+    "role": "admin_referring",
+    "firstName": "Admin",
+    "lastName": "User"
+  },
+  "physicianUser": {
+    "email": "physician@example.com", 
+    "password": "physician123",
+    "role": "physician",
+    "firstName": "John",
+    "lastName": "Doe",
+    "npi": "1234567890",
+    "specialty": "Internal Medicine"
+  },
+  "radiologistUser": {
+    "email": "radiologist@example.com",
+    "password": "radiologist123", 
+    "role": "radiologist",
+    "firstName": "Jane",
+    "lastName": "Smith",
+    "specialty": "Diagnostic Radiology"
+  },
+  "testUsers": [
+    {
+      "email": "test1@example.com",
+      "firstName": "Test",
+      "lastName": "User One",
+      "role": "physician",
+      "phoneNumber": "(555) 123-4567",
+      "specialty": "Cardiology",
+      "npi": "9876543210"
+    },
+    {
+      "email": "test2@example.com",
+      "firstName": "Test", 
+      "lastName": "User Two",
+      "role": "physician",
+      "phoneNumber": "(555) 987-6543",
+      "specialty": "Neurology"
+    }
+  ],
+  "validNPI": {
+    "number": "1234567890",
+    "expectedName": "John Doe, MD",
+    "expectedSpecialty": "Internal Medicine"
+  },
+  "invalidNPI": {
+    "number": "0000000000",
+    "expectedError": "NPI not found in registry"
+  }
+}
