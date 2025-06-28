@@ -135,7 +135,7 @@ const AdminOrderFinalization: React.FC<AdminOrderFinalizationProps> = ({ navigat
         ...orderData,
         // Map the correct field for modality/study type - use modality field from orders table
         modality: orderData.modality || orderData.final_cpt_code_description || 'Not specified',
-        radiologyGroup: "" // Ensure radiologyGroup field exists
+        radiologyGroup: radiologyGroup || orderData.radiology_organization_name || "" // Use selected or existing radiology group name
       });
       // Also update patient info with real data
       // Format date to YYYY-MM-DD if it exists
@@ -283,6 +283,16 @@ const AdminOrderFinalization: React.FC<AdminOrderFinalizationProps> = ({ navigat
   const [radiologyGroup, setRadiologyGroup] = useState<string>("");
   const [selectedRadiologyOrgId, setSelectedRadiologyOrgId] = useState<number | null>(null);
   const [selectedFacilityId, setSelectedFacilityId] = useState<number | null>(null);
+  
+  // Update order radiologyGroup when selection changes
+  useEffect(() => {
+    if (order && radiologyGroup) {
+      setOrder(prevOrder => ({
+        ...prevOrder,
+        radiologyGroup: radiologyGroup
+      }));
+    }
+  }, [radiologyGroup, order]);
   
   // Fetch locations for selected radiology organization
   const { data: locationsData, isLoading: locationsLoading } = useQuery({
@@ -451,8 +461,6 @@ const AdminOrderFinalization: React.FC<AdminOrderFinalizationProps> = ({ navigat
       return;
     }
     
-    const radiologyOrganizationId = selectedRadiologyOrgId;
-    
     setIsSending(true);
     
     try {
@@ -519,7 +527,8 @@ const AdminOrderFinalization: React.FC<AdminOrderFinalizationProps> = ({ navigat
 
       // Then send to radiology
       const response = await apiRequest('POST', `/api/admin/orders/${orderId}/send-to-radiology`, {
-        radiologyOrganizationId: radiologyOrganizationId
+        radiologyOrganizationId: selectedRadiologyOrgId,
+        radiologyOrganizationName: radiologyGroup
       });
 
       if (!response.ok) {
