@@ -182,6 +182,8 @@ Common types:
 - `chore`: Maintenance tasks
 - `style`: Code style changes
 
+**IMPORTANT: DO NOT add any "Generated with Claude Code" signatures or Co-Authored-By lines to commit messages. Keep commits clean and professional.**
+
 ## CRITICAL: Pre-Commit Requirements
 
 **NEVER commit code without completing ALL of these steps:**

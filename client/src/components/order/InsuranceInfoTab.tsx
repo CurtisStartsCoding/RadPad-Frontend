@@ -51,6 +51,11 @@ export default function InsuranceInfoTab({
   };
 
   const handleSave = async () => {
+    console.log('=== INSURANCE INFO SAVE START ===');
+    console.log('Current insurance info state:', insuranceInfo);
+    console.log('Has insurance:', hasInsurance);
+    console.log('Order ID:', orderId);
+    
     // Validate policy holder date of birth if insurance is enabled and relationship is not self
     if (hasInsurance && insuranceInfo.policyHolderRelationship !== 'self' && insuranceInfo.policyHolderDateOfBirth) {
       const dobDate = new Date(insuranceInfo.policyHolderDateOfBirth);
@@ -107,13 +112,33 @@ export default function InsuranceInfoTab({
         }
       }
       
-      console.log('Sending insurance data to unified endpoint:', payload);
+      console.log('=== INSURANCE PAYLOAD DETAILS ===');
+      console.log('Full payload:', JSON.stringify(payload, null, 2));
+      if (hasInsurance) {
+        console.log('Primary insurance:');
+        console.log('  - Insurer:', payload.insurance.insurerName);
+        console.log('  - Policy #:', payload.insurance.policyNumber);
+        console.log('  - Group #:', payload.insurance.groupNumber);
+        console.log('  - Policy holder:', payload.insurance.policyHolderName);
+        console.log('  - Relationship:', payload.insurance.policyHolderRelationship);
+        if (payload.secondaryInsurance) {
+          console.log('Secondary insurance:');
+          console.log('  - Insurer:', payload.secondaryInsurance.insurerName);
+          console.log('  - Policy #:', payload.secondaryInsurance.policyNumber);
+        }
+      } else {
+        console.log('Patient has no insurance (self-pay)');
+      }
       
       const response = await apiRequest('PUT', `/api/admin/orders/${orderId}`, payload);
       
       if (response.ok) {
         const result = await response.json();
-        console.log('Save insurance response:', result);
+        console.log('=== INSURANCE SAVE SUCCESS ===');
+        console.log('Response data:', JSON.stringify(result, null, 2));
+        console.log('Success:', result.success);
+        console.log('Updated fields:', result.updatedFields);
+        
         toast({
           title: "Success",
           description: "Insurance information saved successfully",
@@ -121,14 +146,20 @@ export default function InsuranceInfoTab({
         });
       } else {
         const error = await response.json();
-        console.error('Save insurance error:', error);
+        console.error('=== INSURANCE SAVE ERROR ===');
+        console.error('Status:', response.status);
+        console.error('Error response:', error);
         toast({
           title: "Error",
           description: error.message || "Failed to save insurance information",
           variant: "destructive",
         });
       }
-    } catch (error) {
+    } catch (error: any) {
+      console.error('=== INSURANCE SAVE EXCEPTION ===');
+      console.error('Error type:', error?.constructor?.name);
+      console.error('Error message:', error?.message);
+      console.error('Full error:', error);
       toast({
         title: "Error",
         description: "Failed to save insurance information",
@@ -136,6 +167,7 @@ export default function InsuranceInfoTab({
       });
     } finally {
       setIsSaving(false);
+      console.log('=== INSURANCE INFO SAVE END ===');
     }
   };
 

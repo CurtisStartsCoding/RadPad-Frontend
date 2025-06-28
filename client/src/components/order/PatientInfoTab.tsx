@@ -39,8 +39,24 @@ export default function PatientInfoTab({
 }: PatientInfoTabProps) {
   const { toast } = useToast();
   const [isSaving, setIsSaving] = React.useState(false);
+  
+  // Log what patient info we receive
+  React.useEffect(() => {
+    console.log('=== PATIENT INFO TAB RENDER ===');
+    console.log('Received patientInfo prop:', patientInfo);
+    console.log('Key fields:');
+    console.log('  - firstName:', patientInfo.firstName);
+    console.log('  - lastName:', patientInfo.lastName);
+    console.log('  - gender:', patientInfo.gender);
+    console.log('  - city:', patientInfo.city);
+    console.log('  - state:', patientInfo.state);
+  }, [patientInfo]);
 
   const handleSave = async () => {
+    console.log('=== PATIENT INFO SAVE START ===');
+    console.log('Current patient info state:', patientInfo);
+    console.log('Order ID:', orderId);
+    
     setIsSaving(true);
     try {
       // Use the unified endpoint with camelCase fields
@@ -63,14 +79,25 @@ export default function PatientInfoTab({
         }
       };
       
-      console.log('Sending patient data to unified endpoint:', payload);
-      console.log('Date of birth value:', patientInfo.dateOfBirth);
+      console.log('=== PAYLOAD DETAILS ===');
+      console.log('Full payload:', JSON.stringify(payload, null, 2));
+      console.log('Patient fields:');
+      console.log('  - Name:', payload.patient.firstName, payload.patient.lastName);
+      console.log('  - DOB:', payload.patient.dateOfBirth);
+      console.log('  - Gender:', payload.patient.gender);
+      console.log('  - MRN:', payload.patient.mrn);
+      console.log('  - SSN:', payload.patient.ssn);
+      console.log('  - Address:', payload.patient.addressLine1, payload.patient.city, payload.patient.state, payload.patient.zipCode);
       
       const response = await apiRequest('PUT', `/api/admin/orders/${orderId}`, payload);
       
       if (response.ok) {
         const result = await response.json();
-        console.log('Save patient response:', result);
+        console.log('=== SAVE SUCCESS ===');
+        console.log('Response data:', JSON.stringify(result, null, 2));
+        console.log('Success:', result.success);
+        console.log('Updated fields:', result.updatedFields);
+        
         toast({
           title: "Success",
           description: "Patient information saved successfully",
@@ -78,14 +105,20 @@ export default function PatientInfoTab({
         });
       } else {
         const error = await response.json();
-        console.error('Save patient error:', error);
+        console.error('=== SAVE ERROR ===');
+        console.error('Status:', response.status);
+        console.error('Error response:', error);
         toast({
           title: "Error",
           description: error.message || "Failed to save patient information",
           variant: "destructive",
         });
       }
-    } catch (error) {
+    } catch (error: any) {
+      console.error('=== SAVE EXCEPTION ===');
+      console.error('Error type:', error?.constructor?.name);
+      console.error('Error message:', error?.message);
+      console.error('Full error:', error);
       toast({
         title: "Error",
         description: "Failed to save patient information",
@@ -93,6 +126,7 @@ export default function PatientInfoTab({
       });
     } finally {
       setIsSaving(false);
+      console.log('=== PATIENT INFO SAVE END ===');
     }
   };
 

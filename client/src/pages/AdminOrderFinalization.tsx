@@ -152,7 +152,17 @@ const AdminOrderFinalization: React.FC<AdminOrderFinalizationProps> = ({ navigat
         }
       }
       
-      setPatientInfo({
+      console.log('=== INITIALIZING PATIENT INFO FROM ORDER DATA ===');
+      console.log('Order data patient fields:');
+      console.log('  - patient_first_name:', orderData.patient_first_name);
+      console.log('  - patient_last_name:', orderData.patient_last_name);
+      console.log('  - patient_gender:', orderData.patient_gender);
+      console.log('  - patient_city:', orderData.patient_city);
+      console.log('  - patient_state:', orderData.patient_state);
+      console.log('  - patient_mrn:', orderData.patient_mrn);
+      console.log('  - patient_ssn:', orderData.patient_ssn);
+      
+      const newPatientInfo = {
         firstName: orderData.patient_first_name || '',
         lastName: orderData.patient_last_name || '',
         dateOfBirth: formattedDob,
@@ -166,7 +176,10 @@ const AdminOrderFinalization: React.FC<AdminOrderFinalizationProps> = ({ navigat
         email: orderData.patient_email || '',
         mrn: orderData.patient_mrn || '',
         ssn: orderData.patient_ssn || ''
-      });
+      };
+      
+      console.log('Setting patient info to:', newPatientInfo);
+      setPatientInfo(newPatientInfo);
       // Also update insurance info with real data
       setInsuranceInfo({
         insurerName: orderData.insurance_name || '',
