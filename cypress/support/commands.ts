@@ -16,6 +16,18 @@ Cypress.Commands.add('loginAsAdmin', () => {
   cy.window().its('localStorage').invoke('getItem', 'rad_order_pad_user_data').should('exist')
 })
 
+// Custom command to login as admin staff
+Cypress.Commands.add('loginAsAdminStaff', () => {
+  cy.visit('/login')
+  
+  cy.get('input[type="email"]').type('test.admin_staff@example.com')
+  cy.get('input[type="password"]').type('password123')
+  cy.get('button[type="submit"]').click()
+  
+  cy.url().should('not.include', '/login')
+  cy.window().its('localStorage').invoke('getItem', 'rad_order_pad_user_data').should('exist')
+})
+
 // Custom command to login as physician
 Cypress.Commands.add('loginAsPhysician', () => {
   cy.visit('/login')
@@ -64,6 +76,7 @@ declare global {
   namespace Cypress {
     interface Chainable {
       loginAsAdmin(): Chainable<void>
+      loginAsAdminStaff(): Chainable<void>
       loginAsPhysician(): Chainable<void>
       loginAsSuperAdmin(): Chainable<void>
       createTestUser(userData?: Partial<{
