@@ -38,6 +38,8 @@ npx cypress run --spec "cypress/e2e/user-location-assignment.cy.ts"
 - `authentication.cy.ts` - Login, logout, and session management tests
 - `user-management.cy.ts` - User CRUD operations, search, and invitation tests  
 - `user-location-assignment.cy.ts` - Location assignment feature tests
+- `my-profile.cy.ts` - User profile display, editing, and office contact information tests
+- `hipaa-compliance.cy.ts` - HIPAA compliance tests for security and privacy requirements
 
 ### Support Files
 

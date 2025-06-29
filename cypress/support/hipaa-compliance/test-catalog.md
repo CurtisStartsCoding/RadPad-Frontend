@@ -11,6 +11,8 @@
 | `admin-staff-file-uploads.cy.ts` | Frontend Security | 15 | ✅ 4 Pass, ❌ 11 Fail | High |
 | `aws-s3-hipaa-compliance.cy.ts` | Cloud Storage | 8 | 🟡 Not Tested | Medium |
 | `user-location-assignment.cy.ts` | Access Control | 6 | ✅ All Pass | Low |
+| `my-profile.cy.ts` | Profile Security | 20 | 🟡 Not Tested | Medium |
+| `hipaa-compliance.cy.ts` | General Compliance | 25 | 🟡 Not Tested | High |
 
 ## Test Results Summary
 
@@ -33,6 +35,12 @@
 
 #### Access Control Tests
 12. **User Location Assignment** - All location permission tests pass
+
+#### Profile Management Tests (Pending)
+13. **Profile Data Display** - Secure display of user information
+14. **Office Contact Fields** - HIPAA-compliant physician office data
+15. **Profile Updates** - Secure profile modification
+16. **Role-Based Fields** - NPI/specialty visibility based on role
 
 ### ❌ **FAILING TESTS (UI Implementation Gaps)**
 
@@ -119,12 +127,21 @@
 ### 🚫 **COMPLIANCE BLOCKERS**
 - None identified (security infrastructure is sound)
 
+## Profile Security Considerations
+
+### HIPAA Compliance for User Profiles
+1. **PHI in Profiles** - Physician office addresses and contact info
+2. **Access Control** - Only authenticated users can view/edit own profile
+3. **Audit Trail** - Profile updates should be logged
+4. **Data Minimization** - Only necessary fields exposed based on role
+
 ## Recommended Actions
 
 ### Immediate (This Sprint)
 1. **Complete Documents Tab UI** - Add upload success/failure messages
 2. **Fix Form Selectors** - Update patient info field IDs
 3. **Implement Error Display** - Show file validation errors to users
+4. **Test Profile Security** - Run my-profile.cy.ts tests
 
 ### Next Sprint
 1. **Add PHI Detection** - Warn users about sensitive filenames
