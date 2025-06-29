@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/useAuth";
 import { apiRequest } from "@/lib/queryClient";
@@ -28,6 +29,7 @@ const SignatureForm = ({
   const { user } = useAuth();
   const [fullName, setFullName] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [priority, setPriority] = useState<'routine' | 'urgent' | 'stat'>('routine');
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [hasSignature, setHasSignature] = useState(false);
@@ -215,6 +217,7 @@ const SignatureForm = ({
           })
         },
         dictationText: dictationText,
+        priority: priority || 'routine',
         finalValidationResult: {
           ...validationResult,
           // Reconstruct the arrays from the combined suggestedCodes array
@@ -382,6 +385,23 @@ const SignatureForm = ({
             className="w-full p-2 border border-gray-300 rounded-md focus:ring-primary focus:border-primary"
             placeholder="Type your full name"
           />
+        </div>
+        
+        <div className="mb-6">
+          <Label htmlFor="order-priority" className="block text-sm font-medium text-gray-700 mb-1">Order Priority</Label>
+          <Select value={priority} onValueChange={(value: 'routine' | 'urgent' | 'stat') => setPriority(value)}>
+            <SelectTrigger className="w-full max-w-xs">
+              <SelectValue placeholder="Select priority" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="routine">Routine</SelectItem>
+              <SelectItem value="urgent">Urgent</SelectItem>
+              <SelectItem value="stat">STAT</SelectItem>
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-gray-500 mt-1">
+            STAT orders receive immediate attention for emergency cases
+          </p>
         </div>
         
         {/* Show temporary patient notice if applicable */}

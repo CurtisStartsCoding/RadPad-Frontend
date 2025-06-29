@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
@@ -64,6 +64,13 @@ export default function OrderDetailsTab({
 }: OrderDetailsTabProps) {
   const { toast } = useToast();
   const [isSaving, setIsSaving] = React.useState(false);
+
+  // Auto-set scheduling timeframe for STAT orders
+  useEffect(() => {
+    if (orderDetails.priority === 'stat' && orderDetails.scheduling !== 'Within 48 hours') {
+      onOrderDetailsChange('scheduling', 'Within 48 hours');
+    }
+  }, [orderDetails.priority, orderDetails.scheduling, onOrderDetailsChange]);
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -222,13 +229,38 @@ export default function OrderDetailsTab({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="Within 48 hours">Within 48 hours</SelectItem>
-                <SelectItem value="Within 7 days">Within 7 days</SelectItem>
-                <SelectItem value="Within 14 days">Within 14 days</SelectItem>
-                <SelectItem value="Within 30 days">Within 30 days</SelectItem>
+                <SelectItem 
+                  value="Within 7 days" 
+                  disabled={orderDetails.priority === 'stat'}
+                >
+                  Within 7 days
+                </SelectItem>
+                <SelectItem 
+                  value="Within 14 days" 
+                  disabled={orderDetails.priority === 'stat'}
+                >
+                  Within 14 days
+                </SelectItem>
+                <SelectItem 
+                  value="Within 30 days" 
+                  disabled={orderDetails.priority === 'stat'}
+                >
+                  Within 30 days
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>
         </div>
+        
+        {/* STAT scheduling notice */}
+        {orderDetails.priority === 'stat' && (
+          <Alert className="mt-3 bg-red-50 border-red-200">
+            <InfoIcon className="h-4 w-4 text-red-600" />
+            <AlertDescription className="text-red-800">
+              STAT orders automatically default to "Within 48 hours" scheduling minimum for expedited processing.
+            </AlertDescription>
+          </Alert>
+        )}
       </div>
       
       <div>

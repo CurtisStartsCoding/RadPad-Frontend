@@ -47,6 +47,7 @@ interface ApiOrder {
   id: number;
   order_number?: string;
   status: 'pending_admin' | 'pending_validation' | 'pending_radiology' | 'scheduled' | 'completed' | 'cancelled' | 'results_available' | 'results_acknowledged';
+  priority?: 'routine' | 'urgent' | 'stat';
   modality?: string;
   created_at: string;
   updated_at: string;
@@ -146,7 +147,7 @@ const OrderList = () => {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'pending_admin':
-        return <Badge variant="outline" className="bg-amber-50 border-amber-200 text-amber-700">Processing</Badge>;
+        return <Badge variant="outline" className="bg-amber-50 border-amber-200 text-amber-700">Awaiting Admin</Badge>;
       case 'pending_validation':
         return <Badge variant="outline" className="bg-purple-50 border-purple-200 text-purple-700">Pending Validation</Badge>;
       case 'pending_radiology':
@@ -159,6 +160,20 @@ const OrderList = () => {
         return <Badge variant="outline" className="bg-red-50 border-red-200 text-red-700">Cancelled</Badge>;
       default:
         return <Badge variant="outline" className="bg-gray-50 border-gray-200 text-gray-700">{status.replace('_', ' ')}</Badge>;
+    }
+  };
+  
+  // Get priority badge for an order
+  const getPriorityBadge = (priority?: string) => {
+    switch (priority) {
+      case 'stat':
+        return <Badge variant="destructive">STAT</Badge>;
+      case 'urgent':
+        return <Badge variant="outline" className="bg-orange-50 border-orange-200 text-orange-700">Urgent</Badge>;
+      case 'routine':
+        return <Badge variant="outline" className="bg-gray-50 border-gray-200 text-gray-700">Routine</Badge>;
+      default:
+        return <Badge variant="outline" className="bg-gray-50 border-gray-200 text-gray-700">Routine</Badge>;
     }
   };
   
@@ -370,6 +385,7 @@ const OrderList = () => {
                     </TableHead>
                     <TableHead>Modality</TableHead>
                     <TableHead>Radiology Group</TableHead>
+                    <TableHead>Priority</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
@@ -377,7 +393,7 @@ const OrderList = () => {
                 <TableBody>
                   {searchFilteredOrders.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center py-8 text-slate-500">
+                      <TableCell colSpan={8} className="text-center py-8 text-slate-500">
                         No orders found matching your search criteria
                       </TableCell>
                     </TableRow>
@@ -397,7 +413,7 @@ const OrderList = () => {
                             <span>{`${order.patient_first_name || ''} ${order.patient_last_name || ''}`.trim() || 'Unknown'}</span>
                           )}
                         </TableCell>
-                        <TableCell className="font-mono text-xs">{order.patient_mrn || 'N/A'}</TableCell>
+                        <TableCell className="text-xs">{order.patient_mrn || 'Not Assigned'}</TableCell>
                         <TableCell>
                           <div className="flex items-center">
                             <Calendar className="h-3.5 w-3.5 mr-1.5 text-slate-500" />
@@ -405,7 +421,8 @@ const OrderList = () => {
                           </div>
                         </TableCell>
                         <TableCell>{order.modality || 'N/A'}</TableCell>
-                        <TableCell>{order.radiology_organization_name || 'N/A'}</TableCell>
+                        <TableCell>{order.radiology_organization_name || 'Not Assigned'}</TableCell>
+                        <TableCell>{getPriorityBadge(order.priority)}</TableCell>
                         <TableCell>{getStatusBadge(order.status)}</TableCell>
                         <TableCell>{getActionButtons(order)}</TableCell>
                       </TableRow>
