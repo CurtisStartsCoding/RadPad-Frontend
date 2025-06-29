@@ -50,7 +50,11 @@ const NewOrder = ({ userRole = UserRole.Physician }: NewOrderProps) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [interimTranscript, setInterimTranscript] = useState("");
+  const [lastProcessedTranscript, setLastProcessedTranscript] = useState("");
   const recognitionRef = useRef<any>(null);
+  
+  // Detect mobile device for speech recognition optimization
+  const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
   
   // Check if user is trial user - use the role from auth if available
   const effectiveUserRole = user?.role || userRole;
@@ -479,9 +483,9 @@ const NewOrder = ({ userRole = UserRole.Physician }: NewOrderProps) => {
       const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
       const recognition = new SpeechRecognitionAPI() as SpeechRecognition;
       
-      // Configure recognition
+      // Configure recognition with mobile optimizations
       recognition.continuous = false; // Get one complete phrase at a time
-      recognition.interimResults = true; // Still get interim results for feedback
+      recognition.interimResults = !isMobileDevice; // Disable interim results on mobile to reduce duplicates
       recognition.lang = 'en-US';
       
       recognition.onstart = () => {
@@ -498,6 +502,14 @@ const NewOrder = ({ userRole = UserRole.Physician }: NewOrderProps) => {
         // Process results
         for (let i = event.resultIndex; i < event.results.length; i++) {
           const result = event.results[i];
+          
+          // Add confidence score validation for mobile devices
+          const confidence = result[0].confidence || 1.0;
+          if (isMobileDevice && confidence < 0.7) {
+            console.log("Skipping low confidence result:", confidence);
+            continue;
+          }
+          
           if (result.isFinal) {
             finalTranscript += result[0].transcript;
             console.log("Final transcript:", result[0].transcript);
@@ -507,15 +519,27 @@ const NewOrder = ({ userRole = UserRole.Physician }: NewOrderProps) => {
           }
         }
         
-        // Update interim transcript for visual feedback
-        console.log("Setting interim transcript:", currentInterimTranscript);
-        setInterimTranscript(currentInterimTranscript);
+        // Update interim transcript for visual feedback (only on desktop)
+        if (!isMobileDevice) {
+          console.log("Setting interim transcript:", currentInterimTranscript);
+          setInterimTranscript(currentInterimTranscript);
+        }
         
         // Only update the main text area with final results
         if (finalTranscript) {
-          console.log("Updating dictation text with final transcript:", finalTranscript);
+          const trimmedTranscript = finalTranscript.trim();
+          
+          // Duplicate detection: skip if identical to last processed transcript
+          if (trimmedTranscript === lastProcessedTranscript) {
+            console.log("Skipping duplicate transcript:", trimmedTranscript);
+            return;
+          }
+          
+          console.log("Updating dictation text with final transcript:", trimmedTranscript);
+          setLastProcessedTranscript(trimmedTranscript);
+          
           setDictationText(prevText => {
-            const newText = prevText ? `${prevText} ${finalTranscript}` : finalTranscript;
+            const newText = prevText ? `${prevText} ${trimmedTranscript}` : trimmedTranscript;
             setCharacterCount(newText.length);
             return newText.trim();
           });
@@ -532,18 +556,22 @@ const NewOrder = ({ userRole = UserRole.Physician }: NewOrderProps) => {
       // When recognition ends, restart it if still in recording mode
       recognition.onend = () => {
         if (isRecording && recognitionRef.current) {
-          // Small delay before restarting to avoid rapid restarts
+          // Mobile-specific delay to prevent rapid restarts and duplicates
+          const restartDelay = isMobileDevice ? 500 : 300;
           setTimeout(() => {
             try {
-              recognitionRef.current.start();
+              if (isRecording && recognitionRef.current) { // Double-check state
+                recognitionRef.current.start();
+              }
             } catch (error) {
               // Ignore errors from trying to start when already started
               console.log("Recognition restart error (can be ignored):", error);
             }
-          }, 300);
+          }, restartDelay);
         } else {
           setIsRecording(false);
           setInterimTranscript('');
+          setLastProcessedTranscript(''); // Reset duplicate detection when stopping
         }
       };
       
@@ -551,6 +579,7 @@ const NewOrder = ({ userRole = UserRole.Physician }: NewOrderProps) => {
         console.error('Speech recognition error', event.error);
         setIsRecording(false);
         setInterimTranscript('');
+        setLastProcessedTranscript(''); // Reset duplicate detection on error
       };
       
       // Store the recognition instance in our ref
@@ -568,6 +597,7 @@ const NewOrder = ({ userRole = UserRole.Physician }: NewOrderProps) => {
       recognitionRef.current.stop();
       setIsRecording(false);
       setInterimTranscript('');
+      setLastProcessedTranscript(''); // Reset duplicate detection when manually stopping
     }
   };
 
