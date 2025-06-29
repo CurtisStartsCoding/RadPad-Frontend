@@ -13,7 +13,7 @@ const PageHeader: React.FC<PageHeaderProps> = ({ title, description, children, b
       <div className="flex items-center">
         {backButton && <div className="mr-3">{backButton}</div>}
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">{title}</h1>
+          <h1 className="text-lg sm:text-2xl font-bold text-slate-900">{title}</h1>
           {description && <p className="text-slate-500">{description}</p>}
         </div>
       </div>

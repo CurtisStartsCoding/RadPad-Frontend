@@ -604,7 +604,11 @@ const NewOrder = ({ userRole = UserRole.Physician }: NewOrderProps) => {
   return (
     <div className="p-4 sm:p-6">
       <PageHeader
-        title={`Radiology Order - ${patient.name}`}
+        title={
+          patient.name === "No Patient Identified" 
+            ? "New Radiology Order" 
+            : `Radiology Order - ${patient.name}`
+        }
       >
         <div className="bg-blue-50 text-blue-600 border border-blue-200 px-3 py-1 rounded-full text-xs font-medium">
           {orderStep === 'dictation' && "Step 1 of 3: Dictation"}
