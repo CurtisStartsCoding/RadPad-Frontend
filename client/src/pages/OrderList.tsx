@@ -108,16 +108,9 @@ const OrderList = () => {
   const filteredOrders = orders.filter(order => {
     if (selectedFilter === "all") {
       return true;
-    } else if (selectedFilter === "pending") {
-      return order.status === 'pending_admin' || order.status === 'pending_validation' || order.status === 'pending_radiology';
-    } else if (selectedFilter === "scheduled") {
-      return order.status === 'scheduled';
-    } else if (selectedFilter === "completed") {
-      return order.status === 'completed';
-    } else if (selectedFilter === "cancelled") {
-      return order.status === 'cancelled';
+    } else {
+      return order.status === selectedFilter;
     }
-    return false;
   });
   
   // Further filter by search query
@@ -345,10 +338,10 @@ const OrderList = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Orders</SelectItem>
-                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="pending_admin">Awaiting Admin</SelectItem>
+                    <SelectItem value="pending_radiology">Awaiting Schedule</SelectItem>
                     <SelectItem value="scheduled">Scheduled</SelectItem>
                     <SelectItem value="completed">Completed</SelectItem>
-                    <SelectItem value="cancelled">Cancelled</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -367,40 +360,41 @@ const OrderList = () => {
                 </Button>
               </div>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[180px]">
+              <div className="border rounded-md">
+                {/* Fixed Header using CSS Grid */}
+                <div className="bg-gray-50 border-b p-0">
+                  <div className="grid grid-cols-[2fr_1fr_1.2fr_1fr_1.6fr_1fr_1.2fr_1.4fr] gap-0 px-4 py-3 font-medium text-sm text-slate-600">
+                    <div className="flex items-center truncate">
                       <Button variant="ghost" className="flex items-center text-slate-600 font-medium p-0 h-auto">
                         Patient
                         <ArrowUpDown className="ml-1 h-3 w-3" />
                       </Button>
-                    </TableHead>
-                    <TableHead>MRN</TableHead>
-                    <TableHead>
+                    </div>
+                    <div className="truncate">MRN</div>
+                    <div className="flex items-center truncate">
                       <Button variant="ghost" className="flex items-center text-slate-600 font-medium p-0 h-auto">
                         Date
                         <ArrowUpDown className="ml-1 h-3 w-3" />
                       </Button>
-                    </TableHead>
-                    <TableHead>Modality</TableHead>
-                    <TableHead>Radiology Group</TableHead>
-                    <TableHead>Priority</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
+                    </div>
+                    <div className="truncate">Modality</div>
+                    <div className="truncate">Radiology Group</div>
+                    <div className="truncate">Priority</div>
+                    <div className="truncate">Status</div>
+                    <div className="text-right truncate">Actions</div>
+                  </div>
+                </div>
+                
+                {/* Scrollable Body using CSS Grid */}
+                <div className="max-h-64 sm:max-h-80 md:max-h-96 lg:max-h-[32rem] xl:max-h-[40rem] overflow-y-auto">
                   {searchFilteredOrders.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={8} className="text-center py-8 text-slate-500">
-                        No orders found matching your search criteria
-                      </TableCell>
-                    </TableRow>
+                    <div className="text-center py-8 text-slate-500">
+                      No orders found matching your search criteria
+                    </div>
                   ) : (
                     searchFilteredOrders.map((order) => (
-                      <TableRow key={order.id}>
-                        <TableCell className="font-medium">
+                      <div key={order.id} className="grid grid-cols-[2fr_1fr_1.2fr_1fr_1.6fr_1fr_1.2fr_1.4fr] gap-0 px-4 py-3 border-b hover:bg-gray-50 text-sm">
+                        <div className="font-medium truncate">
                           {order.patient_mrn && getAvailableOrderActions(userRole, order.status).canViewPatient ? (
                             <button 
                               className="text-left hover:text-blue-600 hover:underline cursor-pointer"
@@ -412,24 +406,24 @@ const OrderList = () => {
                           ) : (
                             <span>{`${order.patient_first_name || ''} ${order.patient_last_name || ''}`.trim() || 'Unknown'}</span>
                           )}
-                        </TableCell>
-                        <TableCell className="text-xs">{order.patient_mrn || 'Not Assigned'}</TableCell>
-                        <TableCell>
-                          <div className="flex items-center">
-                            <Calendar className="h-3.5 w-3.5 mr-1.5 text-slate-500" />
-                            {order.created_at ? formatDateShort(order.created_at) : 'N/A'}
+                        </div>
+                        <div className="truncate">{order.patient_mrn || 'Not Assigned'}</div>
+                        <div className="truncate">
+                          <div className="flex items-center min-w-0">
+                            <Calendar className="h-3.5 w-3.5 mr-1.5 text-slate-500 flex-shrink-0" />
+                            <span className="truncate">{order.created_at ? formatDateShort(order.created_at) : 'N/A'}</span>
                           </div>
-                        </TableCell>
-                        <TableCell>{order.modality || 'N/A'}</TableCell>
-                        <TableCell>{order.radiology_organization_name || 'Not Assigned'}</TableCell>
-                        <TableCell>{getPriorityBadge(order.priority)}</TableCell>
-                        <TableCell>{getStatusBadge(order.status)}</TableCell>
-                        <TableCell>{getActionButtons(order)}</TableCell>
-                      </TableRow>
+                        </div>
+                        <div className="truncate">{order.modality || 'N/A'}</div>
+                        <div className="truncate">{order.radiology_organization_name || 'Not Assigned'}</div>
+                        <div className="truncate">{getPriorityBadge(order.priority)}</div>
+                        <div className="truncate">{getStatusBadge(order.status)}</div>
+                        <div className="truncate">{getActionButtons(order)}</div>
+                      </div>
                     ))
                   )}
-                </TableBody>
-              </Table>
+                </div>
+              </div>
             )}
           </div>
         </CardContent>

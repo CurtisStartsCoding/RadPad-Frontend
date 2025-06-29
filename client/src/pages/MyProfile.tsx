@@ -232,7 +232,23 @@ const MyProfile = () => {
     joinedDate: userData?.created_at || user?.created_at
       ? formatDateLong(userData?.created_at || user?.created_at)
       : "",
-    lastLogin: userData?.lastLoginAt ? formatDateTime(userData.lastLoginAt) : "",
+    lastLogin: (() => {
+      // Check for lastLoginAt in various formats
+      const loginTime = userData?.lastLoginAt || userData?.last_login_at || userData?.last_login;
+      if (loginTime) {
+        return formatDateTime(loginTime);
+      }
+      
+      // If no stored login time, check if we can get it from login timestamp
+      const tokenExpiry = localStorage.getItem('rad_order_pad_token_expiry');
+      if (tokenExpiry) {
+        // Token expiry is 1 hour after login, so login time is expiry - 1 hour
+        const loginTimestamp = parseInt(tokenExpiry) - (60 * 60 * 1000);
+        return formatDateTime(new Date(loginTimestamp).toISOString());
+      }
+      
+      return "";
+    })(),
   };
   
   // Function to refresh user profile data from server
@@ -544,23 +560,6 @@ const MyProfile = () => {
         </div>
         {!isEditing ? (
           <div className="flex gap-2">
-            <Button 
-              variant="outline" 
-              onClick={refreshProfile}
-              disabled={isRefreshing}
-            >
-              {isRefreshing ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Refreshing...
-                </>
-              ) : (
-                <>
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                  Refresh
-                </>
-              )}
-            </Button>
             <Button onClick={handleEditToggle}>
               <Edit className="h-4 w-4 mr-2" />
               Edit Profile
@@ -788,7 +787,14 @@ const MyProfile = () => {
                       <Input
                         id="npi"
                         value={npiNumber}
-                        onChange={(e) => setNpiNumber(e.target.value)}
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/\D/g, ''); // Remove non-digits
+                          if (value.length <= 10) {
+                            setNpiNumber(value);
+                          }
+                        }}
+                        placeholder="1234567890"
+                        maxLength={10}
                       />
                     </div>
                   )}

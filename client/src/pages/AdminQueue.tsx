@@ -63,6 +63,7 @@ const AdminQueue: React.FC<AdminQueueProps> = ({ navigateTo }) => {
   const [, setLocation] = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
   const [showStatOnly, setShowStatOnly] = useState(false);
+  const [selectedModality, setSelectedModality] = useState("all");
   
   // Fetch orders from the admin queue endpoint
   const { data, isLoading, error } = useQuery<ApiOrdersResponse>({
@@ -92,11 +93,24 @@ const AdminQueue: React.FC<AdminQueueProps> = ({ navigateTo }) => {
   // Count STAT orders for alert button
   const statOrdersCount = orders.filter(order => order.priority === 'stat').length;
   
+  // Get unique modalities and their counts
+  const modalityCounts = orders.reduce((acc, order) => {
+    const modality = order.modality || 'Unknown';
+    acc[modality] = (acc[modality] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+  
   // Admin queue endpoint already pre-filters to pending_admin orders
-  // Filter by STAT priority if enabled
   let filteredOrders = orders || [];
+  
+  // If STAT filter is enabled, show ALL STAT orders regardless of modality
   if (showStatOnly) {
     filteredOrders = filteredOrders.filter(order => order.priority === 'stat');
+  } else {
+    // Only apply modality filter when STAT is not active
+    if (selectedModality !== "all") {
+      filteredOrders = filteredOrders.filter(order => order.modality === selectedModality);
+    }
   }
   
   // Further filter by search query
@@ -132,9 +146,27 @@ const AdminQueue: React.FC<AdminQueueProps> = ({ navigateTo }) => {
           <CardTitle>Orders Queue</CardTitle>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue="queue" className="space-y-4">
+          <Tabs value="queue" className="space-y-4">
             <TabsList>
-              <TabsTrigger value="queue">Admin Queue ({searchFilteredOrders.length})</TabsTrigger>
+              <TabsTrigger 
+                value="queue" 
+                onClick={() => setSelectedModality("all")}
+                className={selectedModality === "all" ? "bg-primary text-primary-foreground" : ""}
+              >
+                Admin Queue ({selectedModality === "all" ? searchFilteredOrders.length : orders.length})
+              </TabsTrigger>
+              {Object.entries(modalityCounts)
+                .sort(([,a], [,b]) => b - a)
+                .map(([modality, count]) => (
+                <TabsTrigger 
+                  key={modality}
+                  value="queue"
+                  onClick={() => setSelectedModality(modality)}
+                  className={selectedModality === modality ? "bg-primary text-primary-foreground" : ""}
+                >
+                  {modality} ({count})
+                </TabsTrigger>
+              ))}
             </TabsList>
             
             <div className="flex justify-between items-center">
