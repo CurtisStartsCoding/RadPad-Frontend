@@ -69,7 +69,7 @@ const AdminQueue: React.FC<AdminQueueProps> = ({ navigateTo }) => {
     queryKey: ['/api/admin/orders/queue'],
     queryFn: async () => {
       console.log('Fetching orders from admin queue endpoint');
-      const response = await apiRequest('GET', '/api/admin/orders/queue', undefined);
+      const response = await apiRequest('GET', '/api/admin/orders/queue?limit=1000', undefined);
       
       if (!response.ok) {
         const errorText = await response.text();
@@ -209,8 +209,8 @@ const AdminQueue: React.FC<AdminQueueProps> = ({ navigateTo }) => {
                     ) : (
                       searchFilteredOrders.map((order: ApiAdminOrder) => (
                         <TableRow key={order.id}>
-                          <TableCell className="font-medium text-muted-foreground">{`${order.patient_first_name || ''} ${order.patient_last_name || ''}`.trim() || 'Not yet added'}</TableCell>
-                          <TableCell className="font-mono text-xs text-muted-foreground">{order.order_number || 'N/A'}</TableCell>
+                          <TableCell className="font-medium">{`${order.patient_first_name || ''} ${order.patient_last_name || ''}`.trim() || 'Not yet added'}</TableCell>
+                          <TableCell>{order.order_number || 'N/A'}</TableCell>
                           <TableCell>
                             <div className="flex items-center">
                               <Calendar className="h-3.5 w-3.5 mr-1.5 text-slate-500" />
@@ -224,7 +224,7 @@ const AdminQueue: React.FC<AdminQueueProps> = ({ navigateTo }) => {
                             </div>
                           </TableCell>
                           <TableCell>{order.modality || 'N/A'}</TableCell>
-                          <TableCell className="text-muted-foreground">{order.referring_physician_name || 'Not yet added'}</TableCell>
+                          <TableCell>{order.referring_physician_name || 'Not yet added'}</TableCell>
                           <TableCell className="text-right">
                             <Button
                               variant="default"

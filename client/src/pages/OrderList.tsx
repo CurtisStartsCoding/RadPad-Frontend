@@ -91,7 +91,7 @@ const OrderList = () => {
   const { data, isLoading, error } = useQuery<OrdersApiResponse>({
     queryKey: ['/api/orders'],
     queryFn: async () => {
-      const response = await apiRequest('GET', '/api/orders', undefined);
+      const response = await apiRequest('GET', '/api/orders?limit=1000', undefined);
       if (!response.ok) {
         throw new Error('Failed to fetch orders');
       }
