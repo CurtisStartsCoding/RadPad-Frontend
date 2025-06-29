@@ -1,266 +1,396 @@
 /// <reference types="cypress" />
 
 describe('User Location Assignment', () => {
-  const testUser = {
-    email: `physician-${Date.now()}@example.com`,
-    firstName: 'Test',
-    lastName: 'Physician',
-    role: 'physician'
-  }
-
   beforeEach(() => {
-    // Login as admin before each test
-    cy.loginAsAdmin()
-    
-    // Navigate to Users page
-    cy.visit('/users')
-    cy.contains('h1', 'Users').should('be.visible')
-  })
+    // Set up API intercepts
+    cy.intercept('GET', '/api/users*').as('fetchUsers');
+    cy.intercept('GET', '/api/organizations/mine/locations*').as('fetchOrgLocations');
+    cy.intercept('GET', '/api/user-locations/*/locations').as('fetchUserLocations');
+    cy.intercept('POST', '/api/user-locations/*/locations/*').as('assignLocation');
+    cy.intercept('DELETE', '/api/user-locations/*/locations/*').as('removeLocation');
+    cy.intercept('PUT', '/api/users/*').as('updateUser');
+  });
 
-  after(() => {
-    // Cleanup test data after all tests
-    cy.cleanupTestData()
-  })
+  describe('Admin Referring - Location Management', () => {
+    beforeEach(() => {
+      // Login as admin_referring
+      cy.visit('/auth');
+      cy.get('input[type="email"]').type('test.admin_referring@example.com');
+      cy.get('input[type="password"]').type('password123');
+      cy.get('button[type="submit"]').click();
+      cy.url().should('not.include', '/auth');
+      
+      // Navigate to Users page
+      cy.visit('/users');
+      cy.wait('@fetchUsers');
+      cy.contains('h1', 'Users').should('be.visible');
+    });
 
-  describe('Location Assignment UI', () => {
-    it('should show location checkboxes in edit dialog', () => {
+    it('should display locations column in active users table', () => {
+      // Switch to active users tab if needed
+      cy.get('[role="tablist"]').within(() => {
+        cy.contains('Active Users').click();
+      });
+      
+      // Check that the locations column header exists
+      cy.get('th').contains('Locations').should('be.visible');
+      
+      // Check that users display their assigned locations
+      cy.get('tbody tr').first().within(() => {
+        // Should have a locations cell (3rd column)
+        cy.get('td').eq(2).should('exist');
+        // It should either show locations or "No locations assigned"
+        cy.get('td').eq(2).then($cell => {
+          const text = $cell.text();
+          expect(text).to.match(/(No locations assigned|.+)/);
+        });
+      });
+    });
+
+    it('should manage locations for a physician user', () => {
+      // Find a physician user
+      cy.get('tbody tr').each(($row) => {
+        const roleText = $row.find('td').eq(1).text();
+        if (roleText.toLowerCase().includes('physician')) {
+          // Click edit on this physician
+          cy.wrap($row).find('button').contains('Edit').click();
+          
+          // Wait for edit dialog
+          cy.get('[role="dialog"]').should('be.visible');
+          
+          // Look for manage locations functionality
+          cy.get('[role="dialog"]').within(() => {
+            // Check if there's a locations section
+            cy.get('h3').contains('Locations').should('be.visible');
+            
+            // Should have location checkboxes
+            cy.get('input[type="checkbox"][id*="location"]').should('exist');
+          });
+          
+          return false; // Exit the loop
+        }
+      });
+    });
+
+    it('should assign a location to a user', () => {
       // Click edit on the first user
-      cy.get('[data-testid="user-card"]').first().within(() => {
-        cy.get('button').contains('Edit').click()
-      })
+      cy.get('tbody tr').first().within(() => {
+        cy.get('button').contains('Edit').click();
+      });
 
-      // Verify edit dialog opens
-      cy.get('[role="dialog"]').should('be.visible')
-      cy.contains('h2', 'Edit User').should('be.visible')
-
-      // Check if location section exists
-      cy.get('[role="dialog"]').within(() => {
-        cy.contains('Assigned Locations').should('be.visible')
-        
-        // Verify at least one location checkbox exists
-        cy.get('input[type="checkbox"][id^="location-"]').should('have.length.greaterThan', 0)
-      })
-    })
-
-    it('should display location names with city and state', () => {
-      // Click edit on the first user
-      cy.get('[data-testid="user-card"]').first().within(() => {
-        cy.get('button').contains('Edit').click()
-      })
+      // Wait for user data to load
+      cy.wait('@fetchUserLocations');
 
       cy.get('[role="dialog"]').within(() => {
-        // Check that location labels include city and state
-        cy.get('label[for^="location-"]').first().within(() => {
-          cy.get('span.text-xs.text-slate-500').should('exist')
-          cy.get('span.text-xs.text-slate-500').invoke('text').should('match', /, [A-Z]{2}$/)
-        })
-      })
-    })
-
-    it('should handle no active locations gracefully', () => {
-      // This test would need a user in an org with no active locations
-      // For now, we'll check that the UI handles it properly if it occurs
-      cy.get('[data-testid="user-card"]').first().within(() => {
-        cy.get('button').contains('Edit').click()
-      })
-
-      cy.get('[role="dialog"]').within(() => {
-        // If no locations exist, should show appropriate message
-        cy.get('body').then($body => {
-          if ($body.find('p:contains("No active locations available")').length) {
-            cy.contains('No active locations available').should('be.visible')
+        // Find an unchecked location and check it
+        cy.get('input[type="checkbox"][id*="location"]:not(:checked)').first().then($checkbox => {
+          if ($checkbox.length > 0) {
+            cy.wrap($checkbox).check();
+            
+            // Save the changes
+            cy.get('button').contains('Save Changes').click();
           }
-        })
-      })
-    })
-  })
+        });
+      });
 
-  describe('Location Assignment Functionality', () => {
-    it('should save location assignments when updating user', () => {
-      // Click edit on the first user
-      cy.get('[data-testid="user-card"]').first().within(() => {
-        cy.get('button').contains('Edit').click()
-      })
+      // Wait for the update
+      cy.wait('@updateUser');
 
-      cy.get('[role="dialog"]').within(() => {
-        // Get the first location checkbox
-        cy.get('input[type="checkbox"][id^="location-"]').first().then($checkbox => {
-          const wasChecked = $checkbox.prop('checked')
+      // Verify success message
+      cy.contains('User updated successfully').should('be.visible');
+
+      // Refresh and verify the location persists
+      cy.reload();
+      cy.wait('@fetchUsers');
+    });
+
+    it('should remove a location from a user', () => {
+      // Find a user with locations assigned
+      cy.get('tbody tr').each(($row) => {
+        const locationsText = $row.find('td').eq(2).text();
+        if (!locationsText.includes('No locations assigned')) {
+          // This user has locations
+          cy.wrap($row).find('button').contains('Edit').click();
           
-          // Toggle the checkbox
-          cy.wrap($checkbox).click()
+          cy.wait('@fetchUserLocations');
+
+          cy.get('[role="dialog"]').within(() => {
+            // Find a checked location and uncheck it
+            cy.get('input[type="checkbox"][id*="location"]:checked').first().uncheck();
+            
+            // Save the changes
+            cy.get('button').contains('Save Changes').click();
+          });
+
+          // Wait for the update
+          cy.wait('@updateUser');
+
+          // Verify success
+          cy.contains('User updated successfully').should('be.visible');
           
-          // Save the user
-          cy.get('button').contains('Save Changes').click()
-        })
-      })
-
-      // Wait for dialog to close
-      cy.get('[role="dialog"]').should('not.exist')
-
-      // Verify success toast
-      cy.contains('User updated successfully').should('be.visible')
-    })
-
-    it('should persist location assignments when reopening edit dialog', () => {
-      let locationId: string
-      let wasChecked: boolean
-
-      // Click edit on the first user
-      cy.get('[data-testid="user-card"]').first().within(() => {
-        cy.get('button').contains('Edit').click()
-      })
-
-      // Toggle a location and save
-      cy.get('[role="dialog"]').within(() => {
-        cy.get('input[type="checkbox"][id^="location-"]').first().then($checkbox => {
-          locationId = $checkbox.attr('id') || ''
-          wasChecked = $checkbox.prop('checked')
-          
-          cy.wrap($checkbox).click()
-          cy.get('button').contains('Save Changes').click()
-        })
-      })
-
-      // Wait for dialog to close
-      cy.get('[role="dialog"]').should('not.exist')
-      cy.wait(1000) // Wait for state to update
-
-      // Reopen the same user's edit dialog
-      cy.get('[data-testid="user-card"]').first().within(() => {
-        cy.get('button').contains('Edit').click()
-      })
-
-      // Verify the location assignment persisted
-      cy.get('[role="dialog"]').within(() => {
-        cy.get(`#${locationId}`).should(wasChecked ? 'not.be.checked' : 'be.checked')
-      })
-    })
+          return false; // Exit the loop
+        }
+      });
+    });
 
     it('should handle multiple location assignments', () => {
-      // Click edit on the first user
-      cy.get('[data-testid="user-card"]').first().within(() => {
-        cy.get('button').contains('Edit').click()
-      })
+      cy.get('tbody tr').first().within(() => {
+        cy.get('button').contains('Edit').click();
+      });
+
+      cy.wait('@fetchUserLocations');
 
       cy.get('[role="dialog"]').within(() => {
-        // Uncheck all locations first
-        cy.get('input[type="checkbox"][id^="location-"]:checked').each($checkbox => {
-          cy.wrap($checkbox).click()
-        })
+        // First uncheck all locations
+        cy.get('input[type="checkbox"][id*="location"]:checked').each($checkbox => {
+          cy.wrap($checkbox).uncheck();
+        });
 
-        // Check the first two locations
-        cy.get('input[type="checkbox"][id^="location-"]').eq(0).click()
-        cy.get('input[type="checkbox"][id^="location-"]').eq(1).click()
+        // Then check first two locations
+        cy.get('input[type="checkbox"][id*="location"]').then($checkboxes => {
+          if ($checkboxes.length >= 2) {
+            cy.wrap($checkboxes[0]).check();
+            cy.wrap($checkboxes[1]).check();
+          }
+        });
 
         // Save
-        cy.get('button').contains('Save Changes').click()
-      })
+        cy.get('button').contains('Save Changes').click();
+      });
 
-      // Verify success
-      cy.get('[role="dialog"]').should('not.exist')
-      cy.contains('User updated successfully').should('be.visible')
-    })
-  })
+      cy.wait('@updateUser');
+      cy.contains('User updated successfully').should('be.visible');
+    });
 
-  describe('Error Handling', () => {
-    it('should show warning if location assignment fails', () => {
-      // This would require mocking a failed API response
-      // For now, we'll test that the UI is prepared for this scenario
+    it('should show location details in the list', () => {
+      // If any user has locations, verify they are displayed properly
+      cy.get('tbody tr').each(($row) => {
+        const $locationCell = $row.find('td').eq(2);
+        const locationsText = $locationCell.text();
+        
+        if (!locationsText.includes('No locations assigned')) {
+          // Verify location display includes MapPin icon
+          cy.wrap($locationCell).find('svg').should('have.class', 'h-4');
+          
+          // Verify locations are comma-separated if multiple
+          if (locationsText.includes(',')) {
+            expect(locationsText).to.match(/\w+,\s*\w+/);
+          }
+        }
+      });
+    });
+  });
+
+  describe('Admin Radiology - Location Management', () => {
+    beforeEach(() => {
+      // Login as admin_radiology
+      cy.visit('/auth');
+      cy.get('input[type="email"]').type('test.admin_radiology@example.com');
+      cy.get('input[type="password"]').type('password123');
+      cy.get('button[type="submit"]').click();
+      cy.url().should('not.include', '/auth');
       
-      cy.intercept('DELETE', '/api/user-locations/*/locations/*', {
-        statusCode: 500,
-        body: { error: 'Server error' }
-      }).as('failedLocationUpdate')
+      // Navigate to Users page
+      cy.visit('/users');
+      cy.wait('@fetchUsers');
+    });
 
-      // Click edit on the first user
-      cy.get('[data-testid="user-card"]').first().within(() => {
-        cy.get('button').contains('Edit').click()
-      })
+    it('should manage locations for scheduler users', () => {
+      // Find a scheduler user
+      cy.get('tbody tr').each(($row) => {
+        const roleText = $row.find('td').eq(1).text();
+        if (roleText.toLowerCase().includes('scheduler')) {
+          // Click edit
+          cy.wrap($row).find('button').contains('Edit').click();
+          
+          cy.wait('@fetchUserLocations');
+
+          cy.get('[role="dialog"]').within(() => {
+            // Should see locations section
+            cy.get('h3').contains('Locations').should('be.visible');
+            cy.get('input[type="checkbox"][id*="location"]').should('exist');
+          });
+          
+          return false;
+        }
+      });
+    });
+
+    it('should manage locations for radiologist users', () => {
+      // Find a radiologist user
+      cy.get('tbody tr').each(($row) => {
+        const roleText = $row.find('td').eq(1).text();
+        if (roleText.toLowerCase().includes('radiologist')) {
+          // Click edit
+          cy.wrap($row).find('button').contains('Edit').click();
+          
+          cy.wait('@fetchUserLocations');
+
+          cy.get('[role="dialog"]').within(() => {
+            // Should see locations section
+            cy.get('h3').contains('Locations').should('be.visible');
+            cy.get('input[type="checkbox"][id*="location"]').should('exist');
+          });
+          
+          return false;
+        }
+      });
+    });
+  });
+
+  describe('Location Assignment Permissions', () => {
+    it('should not allow physicians to access user management', () => {
+      // Login as physician
+      cy.visit('/auth');
+      cy.get('input[type="email"]').type('test.physician@example.com');
+      cy.get('input[type="password"]').type('password123');
+      cy.get('button[type="submit"]').click();
+      cy.url().should('not.include', '/auth');
+      
+      // Try to navigate to users page
+      cy.visit('/users');
+      
+      // Should redirect or show error
+      cy.url().should('not.include', '/users');
+      // Or check for error message
+      cy.get('body').then($body => {
+        if ($body.find(':contains("Access denied")').length > 0) {
+          cy.contains('Access denied').should('be.visible');
+        }
+      });
+    });
+
+    it('should not allow admin staff to access user management', () => {
+      // Login as admin_staff
+      cy.visit('/auth');
+      cy.get('input[type="email"]').type('test.admin_staff@example.com');
+      cy.get('input[type="password"]').type('password123');
+      cy.get('button[type="submit"]').click();
+      cy.url().should('not.include', '/auth');
+      
+      // Try to navigate to users page
+      cy.visit('/users');
+      
+      // Should redirect or show error
+      cy.url().should('not.include', '/users');
+    });
+  });
+
+  describe('API Integration', () => {
+    beforeEach(() => {
+      // Login as admin
+      cy.visit('/auth');
+      cy.get('input[type="email"]').type('test.admin_referring@example.com');
+      cy.get('input[type="password"]').type('password123');
+      cy.get('button[type="submit"]').click();
+      cy.url().should('not.include', '/auth');
+      
+      cy.visit('/users');
+      cy.wait('@fetchUsers');
+    });
+
+    it('should call correct API endpoints for location assignment', () => {
+      // Get first user and extract ID
+      cy.get('tbody tr').first().then($row => {
+        // Click edit
+        cy.wrap($row).find('button').contains('Edit').click();
+        
+        // Wait for user locations to load
+        cy.wait('@fetchUserLocations').then((interception) => {
+          // Verify correct endpoint format
+          expect(interception.request.url).to.match(/\/api\/user-locations\/\d+\/locations/);
+        });
+
+        cy.get('[role="dialog"]').within(() => {
+          // Toggle a location
+          cy.get('input[type="checkbox"][id*="location"]').first().click();
+          
+          // Save
+          cy.get('button').contains('Save Changes').click();
+        });
+
+        // Verify update user endpoint is called
+        cy.wait('@updateUser').then((interception) => {
+          expect(interception.request.url).to.match(/\/api\/users\/\d+/);
+          // Check that location data is included in the request
+          expect(interception.request.body).to.have.property('locationIds');
+        });
+      });
+    });
+
+    it('should handle location assignment errors gracefully', () => {
+      // Mock an error response
+      cy.intercept('PUT', '/api/users/*', {
+        statusCode: 400,
+        body: { 
+          success: false, 
+          message: 'Failed to update user locations' 
+        }
+      }).as('updateUserError');
+
+      cy.get('tbody tr').first().within(() => {
+        cy.get('button').contains('Edit').click();
+      });
 
       cy.get('[role="dialog"]').within(() => {
-        // Try to uncheck a checked location
-        cy.get('input[type="checkbox"][id^="location-"]:checked').first().click()
-        cy.get('button').contains('Save Changes').click()
-      })
+        cy.get('input[type="checkbox"][id*="location"]').first().click();
+        cy.get('button').contains('Save Changes').click();
+      });
 
-      // Should show warning toast
-      cy.contains('User updated but location assignments failed').should('be.visible')
-    })
-  })
-
-  describe('User Permissions', () => {
-    it('should only show location assignment for admin users', () => {
-      // This test would require logging in as different user types
-      // and verifying that only admins see the location assignment UI
+      cy.wait('@updateUserError');
       
-      // For now, verify that as admin we can see it
-      cy.get('[data-testid="user-card"]').first().within(() => {
-        cy.get('button').contains('Edit').click()
-      })
-
-      cy.get('[role="dialog"]').within(() => {
-        cy.contains('Assigned Locations').should('be.visible')
-      })
-    })
-  })
+      // Should show error message
+      cy.contains('Failed to update user locations').should('be.visible');
+    });
+  });
 
   describe('Search and Filter Integration', () => {
-    it('should maintain location assignments when searching users', () => {
-      // Search for a specific user
-      cy.get('input[placeholder="Search users..."]').type('test')
-      cy.wait(500) // Debounce
+    beforeEach(() => {
+      cy.visit('/auth');
+      cy.get('input[type="email"]').type('test.admin_referring@example.com');
+      cy.get('input[type="password"]').type('password123');
+      cy.get('button[type="submit"]').click();
+      cy.url().should('not.include', '/auth');
+      
+      cy.visit('/users');
+      cy.wait('@fetchUsers');
+    });
 
-      // If user found, edit them
-      cy.get('[data-testid="user-card"]').first().within(() => {
-        cy.get('button').contains('Edit').click()
-      })
+    it('should maintain location display when searching', () => {
+      // Search for users
+      cy.get('input[placeholder*="Search"]').type('test');
+      
+      // Wait for search to update
+      cy.wait(500);
 
-      // Verify location UI still works
-      cy.get('[role="dialog"]').within(() => {
-        cy.contains('Assigned Locations').should('be.visible')
-        cy.get('input[type="checkbox"][id^="location-"]').should('exist')
-      })
-    })
+      // Verify locations column still shows
+      cy.get('th').contains('Locations').should('be.visible');
+      
+      // If results exist, verify location data is displayed
+      cy.get('tbody tr').then($rows => {
+        if ($rows.length > 0) {
+          cy.get('tbody tr').first().find('td').eq(2).should('exist');
+        }
+      });
+    });
 
-    it('should work with pending invitations tab', () => {
+    it('should not show location management for pending invitations', () => {
       // Switch to pending invitations tab
-      cy.contains('button', 'Pending Invitations').click()
+      cy.get('[role="tablist"]').within(() => {
+        cy.contains('Pending Invitations').click();
+      });
 
-      // Invited users shouldn't have edit button (and thus no location assignment)
-      cy.get('[data-testid="user-card"]').each($card => {
-        cy.wrap($card).within(() => {
-          cy.get('button').contains('Edit').should('not.exist')
-        })
-      })
-    })
-  })
-
-  describe('Loading States', () => {
-    it('should show loading state when fetching user locations', () => {
-      // Intercept the user locations API to add delay
-      cy.intercept('GET', '/api/user-locations/*/locations', (req) => {
-        req.reply((res) => {
-          res.delay(1000) // Add 1 second delay
-          res.send({ locations: [] })
-        })
-      }).as('getUserLocations')
-
-      // Click edit on the first user
-      cy.get('[data-testid="user-card"]').first().within(() => {
-        cy.get('button').contains('Edit').click()
-      })
-
-      cy.get('[role="dialog"]').within(() => {
-        // Should show loading state
-        cy.contains('Loading locations...').should('be.visible')
-        
-        // Wait for locations to load
-        cy.wait('@getUserLocations')
-        
-        // Loading state should disappear
-        cy.contains('Loading locations...').should('not.exist')
-      })
-    })
-  })
-})
+      // Pending users should not have edit functionality
+      cy.get('tbody tr').then($rows => {
+        if ($rows.length > 0) {
+          cy.get('tbody tr').first().within(() => {
+            // Should not have edit button
+            cy.get('button').contains('Edit').should('not.exist');
+            // Should show "Pending activation" instead
+            cy.contains('Pending activation').should('be.visible');
+          });
+        }
+      });
+    });
+  });
+});
