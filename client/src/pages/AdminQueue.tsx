@@ -24,6 +24,7 @@ import PageHeader from "@/components/layout/PageHeader";
 interface ApiAdminOrder {
   id: number;
   order_number: string;
+  priority?: 'stat' | 'urgent' | 'routine';
   patient_first_name?: string;
   patient_last_name?: string;
   patient_dob?: string;
@@ -61,6 +62,7 @@ interface AdminQueueProps {
 const AdminQueue: React.FC<AdminQueueProps> = ({ navigateTo }) => {
   const [, setLocation] = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
+  const [showStatOnly, setShowStatOnly] = useState(false);
   
   // Fetch orders from the admin queue endpoint
   const { data, isLoading, error } = useQuery<ApiOrdersResponse>({
@@ -80,15 +82,22 @@ const AdminQueue: React.FC<AdminQueueProps> = ({ navigateTo }) => {
       console.log('First order example:', data.orders?.[0]);
       return data;
     },
-    staleTime: 30000, // 30 seconds (queue needs fresher data)
+    staleTime: 5000, // 5 seconds (STAT orders need immediate visibility)
+    refetchInterval: 10000, // Auto-refetch every 10 seconds
   });
   
   // Extract orders from the admin queue response
   const orders: ApiAdminOrder[] = data?.orders || [];
   
+  // Count STAT orders for alert button
+  const statOrdersCount = orders.filter(order => order.priority === 'stat').length;
+  
   // Admin queue endpoint already pre-filters to pending_admin orders
-  // Additional filtering by search query and any future filters can be added here
-  const filteredOrders = orders || [];
+  // Filter by STAT priority if enabled
+  let filteredOrders = orders || [];
+  if (showStatOnly) {
+    filteredOrders = filteredOrders.filter(order => order.priority === 'stat');
+  }
   
   // Further filter by search query
   const searchFilteredOrders = filteredOrders.filter((order: ApiAdminOrder) => {
@@ -125,7 +134,7 @@ const AdminQueue: React.FC<AdminQueueProps> = ({ navigateTo }) => {
         <CardContent>
           <Tabs defaultValue="queue" className="space-y-4">
             <TabsList>
-              <TabsTrigger value="queue">Admin Queue ({filteredOrders.length})</TabsTrigger>
+              <TabsTrigger value="queue">Admin Queue ({searchFilteredOrders.length})</TabsTrigger>
             </TabsList>
             
             <div className="flex justify-between items-center">
@@ -137,6 +146,20 @@ const AdminQueue: React.FC<AdminQueueProps> = ({ navigateTo }) => {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
+              </div>
+              
+              <div className="flex items-center gap-3">
+                <Button
+                  variant={showStatOnly ? "default" : statOrdersCount > 0 ? "destructive" : "outline"}
+                  onClick={() => setShowStatOnly(!showStatOnly)}
+                  className={`${
+                    statOrdersCount > 0 && !showStatOnly 
+                      ? "bg-red-600 hover:bg-red-700 text-white" 
+                      : ""
+                  }`}
+                >
+                  {showStatOnly ? "Show All Orders" : statOrdersCount > 0 ? `STAT Orders (${statOrdersCount})` : "STAT Orders"}
+                </Button>
               </div>
             </div>
             
