@@ -106,8 +106,10 @@ export default function OrderReviewSummary({
                   </div>
                   <div>
                     <span className="text-muted-foreground">Study: </span>
-                    <span className="font-medium">{order.modality}</span>
-                    {order.modality === 'Not specified' && (
+                    <span className="font-medium">
+                      {orderDetails.cptDescription || order.modality}
+                    </span>
+                    {(!orderDetails.cptDescription && order.modality === 'Not specified') && (
                       <span className="text-xs text-amber-600 ml-2">(Backend: modality field missing)</span>
                     )}
                   </div>
@@ -152,20 +154,42 @@ export default function OrderReviewSummary({
               
               {/* Diagnosis Codes - Inline format */}
               <div className="space-y-2 text-sm">
-                <div className="flex items-center gap-2">
+                <div className="gap-2">
                   <span className="text-muted-foreground min-w-[100px]">Primary ICD-10:</span>
-                  <Badge variant="secondary" className="mr-2">{orderDetails.primaryIcd10}</Badge>
-                  <span>{orderDetails.primaryDescription}</span>
+                  <div className="flex items-start gap-3 mt-1">
+                    <span className="font-bold font-mono min-w-[80px]">{orderDetails.primaryIcd10}</span>
+                    <span className="text-sm flex-1">{orderDetails.primaryDescription}</span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="gap-2">
                   <span className="text-muted-foreground min-w-[100px]">Secondary ICD-10:</span>
-                  <Badge variant="outline" className="mr-2">{orderDetails.secondaryIcd10}</Badge>
-                  <span>{orderDetails.secondaryDescription}</span>
+                  {orderDetails.secondaryIcd10 && orderDetails.secondaryIcd10.includes('\n') ? (
+                    // Multiple codes - display as clean list
+                    <div className="mt-1 space-y-1">
+                      {orderDetails.secondaryIcd10.split('\n').map((code, index) => {
+                        const descriptions = orderDetails.secondaryDescription?.split('\n') || [];
+                        return (
+                          <div key={index} className="flex items-start gap-3">
+                            <span className="font-bold font-mono min-w-[80px]">{code}</span>
+                            <span className="text-sm flex-1">{descriptions[index] || ''}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    // Single code - display inline
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="font-bold font-mono">{orderDetails.secondaryIcd10}</span>
+                      <span>{orderDetails.secondaryDescription}</span>
+                    </div>
+                  )}
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="gap-2">
                   <span className="text-muted-foreground min-w-[100px]">CPT Code:</span>
-                  <Badge variant="outline" className="mr-2">{orderDetails.cptCode}</Badge>
-                  <span>{orderDetails.cptDescription}</span>
+                  <div className="flex items-start gap-3 mt-1">
+                    <span className="font-bold font-mono min-w-[80px]">{orderDetails.cptCode}</span>
+                    <span className="text-sm flex-1">{orderDetails.cptDescription}</span>
+                  </div>
                 </div>
               </div>
             </CardContent>
@@ -178,32 +202,34 @@ export default function OrderReviewSummary({
               <CardHeader className="pb-3">
                 <CardTitle className="text-base">Patient Information</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-2 text-sm">
-                <div>
-                  <span className="text-muted-foreground">Name: </span>
-                  <span className="font-medium">{patientInfo.firstName} {patientInfo.lastName}</span>
+              <CardContent className="space-y-1 text-sm">
+                <div className="flex items-start gap-3">
+                  <span className="text-muted-foreground min-w-[60px]">Name:</span>
+                  <span className="font-medium flex-1">{patientInfo.firstName} {patientInfo.lastName}</span>
                 </div>
-                <div>
-                  <span className="text-muted-foreground">DOB: </span>
-                  <span className="font-medium">{patientInfo.dateOfBirth}</span>
-                  <span className="text-muted-foreground ml-3">Gender: </span>
-                  <span className="font-medium">{patientInfo.gender.charAt(0).toUpperCase() + patientInfo.gender.slice(1)}</span>
+                <div className="flex items-start gap-3">
+                  <span className="text-muted-foreground min-w-[60px]">DOB:</span>
+                  <span className="font-medium flex-1">{patientInfo.dateOfBirth}</span>
                 </div>
-                <div>
-                  <span className="text-muted-foreground">MRN: </span>
-                  <span className="font-medium">{patientInfo.mrn}</span>
+                <div className="flex items-start gap-3">
+                  <span className="text-muted-foreground min-w-[60px]">Gender:</span>
+                  <span className="font-medium flex-1">{patientInfo.gender.charAt(0).toUpperCase() + patientInfo.gender.slice(1)}</span>
                 </div>
-                <div>
-                  <span className="text-muted-foreground">Phone: </span>
-                  <span className="font-medium">{patientInfo.phoneNumber}</span>
+                <div className="flex items-start gap-3">
+                  <span className="text-muted-foreground min-w-[60px]">MRN:</span>
+                  <span className="font-medium flex-1">{patientInfo.mrn}</span>
                 </div>
-                <div>
-                  <span className="text-muted-foreground">Email: </span>
-                  <span className="font-medium">{patientInfo.email || 'Not provided'}</span>
+                <div className="flex items-start gap-3">
+                  <span className="text-muted-foreground min-w-[60px]">Phone:</span>
+                  <span className="font-medium flex-1">{patientInfo.phoneNumber}</span>
                 </div>
-                <div>
-                  <span className="text-muted-foreground">Address: </span>
-                  <span className="font-medium">
+                <div className="flex items-start gap-3">
+                  <span className="text-muted-foreground min-w-[60px]">Email:</span>
+                  <span className="font-medium flex-1">{patientInfo.email || 'Not provided'}</span>
+                </div>
+                <div className="flex items-start gap-3">
+                  <span className="text-muted-foreground min-w-[60px]">Address:</span>
+                  <span className="font-medium flex-1">
                     {patientInfo.addressLine1}
                     {patientInfo.addressLine2 && `, ${patientInfo.addressLine2}`}, 
                     {' '}{patientInfo.city}, {patientInfo.state} {patientInfo.zipCode}
@@ -217,7 +243,7 @@ export default function OrderReviewSummary({
               <CardHeader className="pb-3">
                 <CardTitle className="text-base">Referring Physician</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-2 text-sm">
+              <CardContent className="space-y-1 text-sm">
                 {/* Backend Update Notice */}
                 {(referringPhysician.name === 'Not available' || referringPhysician.npi === 'Not available') && (
                   <Alert className="mb-3 border-amber-200 bg-amber-50">
@@ -227,25 +253,25 @@ export default function OrderReviewSummary({
                     </AlertDescription>
                   </Alert>
                 )}
-                <div>
-                  <span className="text-muted-foreground">Name: </span>
-                  <span className="font-medium">{referringPhysician.name}</span>
+                <div className="flex items-start gap-3">
+                  <span className="text-muted-foreground min-w-[60px]">Name:</span>
+                  <span className="font-medium flex-1">{referringPhysician.name}</span>
                 </div>
-                <div>
-                  <span className="text-muted-foreground">NPI: </span>
-                  <span className="font-medium">{referringPhysician.npi}</span>
+                <div className="flex items-start gap-3">
+                  <span className="text-muted-foreground min-w-[60px]">NPI:</span>
+                  <span className="font-medium flex-1">{referringPhysician.npi}</span>
                 </div>
-                <div>
-                  <span className="text-muted-foreground">Clinic: </span>
-                  <span className="font-medium">{referringPhysician.clinic}</span>
+                <div className="flex items-start gap-3">
+                  <span className="text-muted-foreground min-w-[60px]">Clinic:</span>
+                  <span className="font-medium flex-1">{referringPhysician.clinic}</span>
                 </div>
-                <div>
-                  <span className="text-muted-foreground">Phone: </span>
-                  <span className="font-medium">{referringPhysician.phone}</span>
+                <div className="flex items-start gap-3">
+                  <span className="text-muted-foreground min-w-[60px]">Phone:</span>
+                  <span className="font-medium flex-1">{referringPhysician.phone}</span>
                 </div>
-                <div>
-                  <span className="text-muted-foreground">Signed: </span>
-                  <span className="font-medium">{referringPhysician.signedDate}</span>
+                <div className="flex items-start gap-3">
+                  <span className="text-muted-foreground min-w-[60px]">Signed:</span>
+                  <span className="font-medium flex-1">{referringPhysician.signedDate}</span>
                 </div>
               </CardContent>
             </Card>

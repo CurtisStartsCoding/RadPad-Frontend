@@ -139,22 +139,48 @@ const Users = () => {
   }
   
   // Fetch organization locations
-  const { data: orgLocations } = useQuery<Location[]>({
+  const { data: orgLocations, error: locationsError, isLoading: locationsLoading } = useQuery<Location[]>({
     queryKey: ['/api/organizations/mine/locations'],
     queryFn: async () => {
+      console.log('Fetching organization locations...');
       const response = await apiRequest('GET', '/api/organizations/mine/locations', undefined);
+      console.log('Location API response status:', response.status);
       if (!response.ok) {
-        throw new Error('Failed to fetch locations');
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Failed to fetch locations:', response.status, errorData);
+        throw new Error(`Failed to fetch locations: ${response.status} ${errorData.message || ''}`);
       }
       const data = await response.json();
       console.log('Organization locations response:', data);
+      console.log('Response type:', typeof data);
+      console.log('Response keys:', Object.keys(data || {}));
+      
       // Handle different response formats
+      let locations;
       if (data.success && data.data) {
-        return data.data;
+        locations = data.data;
+        console.log('Using data.data format, found:', locations?.length, 'locations');
+      } else if (data.locations) {
+        locations = data.locations;
+        console.log('Using data.locations format, found:', locations?.length, 'locations');
+      } else if (Array.isArray(data)) {
+        locations = data;
+        console.log('Using direct array format, found:', locations?.length, 'locations');
+      } else {
+        locations = [];
+        console.log('No locations found in response, using empty array');
       }
-      return data.locations || data || [];
+      
+      // Ensure we always return an array
+      const finalLocations = Array.isArray(locations) ? locations : [];
+      console.log('Final locations to return:', finalLocations);
+      return finalLocations;
     },
     staleTime: 300000, // 5 minutes
+    retry: (failureCount, error) => {
+      console.log('Location query retry attempt:', failureCount, error?.message);
+      return failureCount < 3;
+    },
   });
   
   // Deactivate user mutation
@@ -987,8 +1013,18 @@ const Users = () => {
           <form onSubmit={async (e) => {
             e.preventDefault();
             if (editingUser) {
-              // Update user info first
-              await updateMutation.mutateAsync({ userId: editingUser.id, data: editForm });
+              // Update user info first - filter role if not allowed
+              const allowedRoles = getAvailableRoles();
+              let updateData: any = { ...editForm };
+              
+              // If the role is not in allowed roles, don't send it (keep existing role)
+              if (!allowedRoles.includes(editForm.role)) {
+                console.log(`Role '${editForm.role}' not allowed for ${currentUser?.role}, removing from update`);
+                const { role, ...dataWithoutRole } = updateData;
+                updateData = dataWithoutRole;
+              }
+              
+              await updateMutation.mutateAsync({ userId: editingUser.id, data: updateData });
               
               // Then update location assignments
               const locationResult = await updateUserLocations(editingUser.id, userLocations);
@@ -1177,21 +1213,43 @@ const Users = () => {
               
               <div className="grid gap-2">
                 <Label htmlFor="editRole">Role</Label>
-                <Select 
-                  value={editForm.role} 
-                  onValueChange={(value) => setEditForm({ ...editForm, role: value })}
-                >
-                  <SelectTrigger id="editRole">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {getAvailableRoles().map(role => (
-                      <SelectItem key={role} value={role}>
-                        {role.charAt(0).toUpperCase() + role.slice(1).replace('_', ' ')}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                {(() => {
+                  const allowedRoles = getAvailableRoles();
+                  const canChangeRole = allowedRoles.includes(editForm.role);
+                  
+                  if (!canChangeRole) {
+                    // Show read-only role display when role cannot be changed
+                    return (
+                      <div className="p-3 bg-gray-50 border rounded-md">
+                        <span className="text-sm text-gray-700">
+                          {editForm.role.charAt(0).toUpperCase() + editForm.role.slice(1).replace('_', ' ')}
+                        </span>
+                        <p className="text-xs text-gray-500 mt-1">
+                          You cannot change this user's role
+                        </p>
+                      </div>
+                    );
+                  }
+                  
+                  // Show editable select when role can be changed
+                  return (
+                    <Select 
+                      value={editForm.role} 
+                      onValueChange={(value) => setEditForm({ ...editForm, role: value })}
+                    >
+                      <SelectTrigger id="editRole">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {allowedRoles.map(role => (
+                          <SelectItem key={role} value={role}>
+                            {role.charAt(0).toUpperCase() + role.slice(1).replace('_', ' ')}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  );
+                })()}
               </div>
               
               <div className="flex items-center justify-between">
@@ -1207,49 +1265,100 @@ const Users = () => {
               </div>
               
               {/* Location Assignments */}
-              {orgLocations && orgLocations.length > 0 && (
-                <div className="grid gap-2">
-                  <Label>Assigned Locations</Label>
-                  {loadingLocations ? (
-                    <div className="flex items-center py-2">
-                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                      <span className="text-sm text-slate-500">Loading locations...</span>
-                    </div>
-                  ) : (
+              <div className="grid gap-2">
+                <Label>Assigned Locations</Label>
+                {(() => {
+                  console.log('Location assignment debug:', {
+                    orgLocations: orgLocations,
+                    orgLocationsLength: orgLocations?.length,
+                    loadingLocations: loadingLocations,
+                    locationsError: locationsError,
+                    userLocations: userLocations
+                  });
+                  
+                  if (locationsError) {
+                    return (
+                      <div className="p-3 bg-red-50 border border-red-200 rounded-md">
+                        <p className="text-sm text-red-600">Error loading locations: {locationsError.message}</p>
+                      </div>
+                    );
+                  }
+                  
+                  if (loadingLocations) {
+                    return (
+                      <div className="flex items-center py-2">
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                        <span className="text-sm text-slate-500">Loading locations...</span>
+                      </div>
+                    );
+                  }
+                  
+                  if (!orgLocations) {
+                    return (
+                      <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+                        <p className="text-sm text-yellow-600">No locations data available</p>
+                      </div>
+                    );
+                  }
+                  
+                  // Ensure orgLocations is an array
+                  const locationsArray = Array.isArray(orgLocations) ? orgLocations : [];
+                  console.log('Locations array:', locationsArray);
+                  
+                  if (locationsArray.length === 0) {
+                    return (
+                      <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+                        <p className="text-sm text-yellow-600">No locations found for your organization</p>
+                      </div>
+                    );
+                  }
+                  
+                  const activeLocations = locationsArray.filter((loc: any) => loc.is_active);
+                  console.log('Active locations:', activeLocations);
+                  
+                  if (activeLocations.length === 0) {
+                    return (
+                      <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+                        <p className="text-sm text-yellow-600">No active locations available</p>
+                      </div>
+                    );
+                  }
+                  
+                  return (
                     <div className="space-y-2 max-h-48 overflow-y-auto border rounded-md p-3">
-                      {orgLocations
-                        .filter((loc: any) => loc.is_active)
-                        .map((location: any) => (
-                          <div key={location.id} className="flex items-center space-x-2">
-                            <Checkbox
-                              id={`location-${location.id}`}
-                              checked={userLocations.includes(location.id)}
-                              onCheckedChange={(checked) => {
-                                if (checked) {
-                                  setUserLocations([...userLocations, location.id]);
-                                } else {
-                                  setUserLocations(userLocations.filter(id => id !== location.id));
-                                }
-                              }}
-                            />
-                            <label
-                              htmlFor={`location-${location.id}`}
-                              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                            >
-                              {location.name}
-                              <span className="text-xs text-slate-500 ml-2">
-                                {location.city}, {location.state}
-                              </span>
-                            </label>
-                          </div>
-                        ))}
-                      {orgLocations.filter((loc: any) => loc.is_active).length === 0 && (
-                        <p className="text-sm text-slate-500">No active locations available</p>
-                      )}
+                      {activeLocations.map((location: any) => (
+                        <div key={location.id} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`location-${location.id}`}
+                            checked={userLocations.includes(location.id)}
+                            onCheckedChange={(checked) => {
+                              console.log('Checkbox changed:', { locationId: location.id, checked, currentUserLocations: userLocations });
+                              if (checked) {
+                                const newLocations = [...userLocations, location.id];
+                                console.log('Adding location, new array:', newLocations);
+                                setUserLocations(newLocations);
+                              } else {
+                                const newLocations = userLocations.filter(id => id !== location.id);
+                                console.log('Removing location, new array:', newLocations);
+                                setUserLocations(newLocations);
+                              }
+                            }}
+                          />
+                          <label
+                            htmlFor={`location-${location.id}`}
+                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                          >
+                            {location.name}
+                            <span className="text-xs text-slate-500 ml-2">
+                              {location.city}, {location.state}
+                            </span>
+                          </label>
+                        </div>
+                      ))}
                     </div>
-                  )}
-                </div>
-              )}
+                  );
+                })()}
+              </div>
             </div>
             
             <DialogFooter>

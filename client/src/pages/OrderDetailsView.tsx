@@ -662,11 +662,14 @@ const OrderDetailsView = () => {
           </Card>
 
           {/* Debug: Radiology Group Display */}
-          {console.log('Radiology Group in render:', {
-            name: order.radiology_organization_name,
-            phone: order.radiology_organization_phone,
-            address: order.radiology_organization_address
-          })}
+          {(() => {
+            console.log('Radiology Group in render:', {
+              name: order.radiology_organization_name,
+              phone: order.radiology_organization_phone,
+              address: order.radiology_organization_address
+            });
+            return null;
+          })()}
           {order.radiology_organization_name && (
             <Card>
               <CardHeader>

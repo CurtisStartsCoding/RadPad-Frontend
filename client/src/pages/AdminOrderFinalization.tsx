@@ -210,6 +210,88 @@ const AdminOrderFinalization: React.FC<AdminOrderFinalizationProps> = ({ navigat
           // scheduling_timeframe is not stored in DB
         }));
       }
+      
+      // Extract and populate diagnostic codes from order data
+      const extractDiagnosticCodes = () => {
+        let primaryIcd10 = '';
+        let primaryDescription = '';
+        let secondaryIcd10 = '';
+        let secondaryDescription = '';
+        
+        // Parse ICD-10 codes - handle both JSON string and array formats
+        let icd10Codes: string[] = [];
+        let icd10Descriptions: string[] = [];
+        
+        if (orderData.final_icd10_codes && orderData.final_icd10_codes !== 'null') {
+          if (typeof orderData.final_icd10_codes === 'string' && orderData.final_icd10_codes.startsWith('[')) {
+            try {
+              icd10Codes = JSON.parse(orderData.final_icd10_codes);
+            } catch (e) {
+              console.warn('Failed to parse final_icd10_codes as JSON:', e);
+            }
+          } else if (Array.isArray(orderData.final_icd10_codes)) {
+            icd10Codes = orderData.final_icd10_codes;
+          }
+        }
+        
+        if (orderData.final_icd10_code_descriptions && orderData.final_icd10_code_descriptions !== 'null') {
+          if (typeof orderData.final_icd10_code_descriptions === 'string' && orderData.final_icd10_code_descriptions.startsWith('[')) {
+            try {
+              icd10Descriptions = JSON.parse(orderData.final_icd10_code_descriptions);
+            } catch (e) {
+              console.warn('Failed to parse final_icd10_code_descriptions as JSON:', e);
+            }
+          } else if (Array.isArray(orderData.final_icd10_code_descriptions)) {
+            icd10Descriptions = orderData.final_icd10_code_descriptions;
+          }
+        }
+        
+        // Handle multiple ICD-10 codes - show first as primary, combine rest as secondary
+        if (icd10Codes.length > 0) {
+          primaryIcd10 = icd10Codes[0] || '';
+          primaryDescription = icd10Descriptions[0] || '';
+        }
+        
+        // If there are additional codes, combine them in the secondary field
+        if (icd10Codes.length > 1) {
+          const additionalCodes = icd10Codes.slice(1);
+          const additionalDescriptions = icd10Descriptions.slice(1);
+          
+          // Format as "Code1\nCode2\nCode3" for line breaks
+          secondaryIcd10 = additionalCodes.join('\n');
+          
+          // Format descriptions with line breaks to match codes
+          secondaryDescription = additionalDescriptions
+            .filter(desc => desc && desc.trim())
+            .join('\n');
+        }
+        
+        return {
+          primaryIcd10,
+          primaryDescription,
+          secondaryIcd10,
+          secondaryDescription,
+          cptCode: orderData.final_cpt_code || '',
+          cptDescription: orderData.final_cpt_code_description || ''
+        };
+      };
+      
+      // Update order details with diagnostic codes and order number
+      const diagnosticCodes = extractDiagnosticCodes();
+      if (diagnosticCodes.primaryIcd10 || diagnosticCodes.cptCode || orderData.order_number) {
+        setOrderDetails(prev => ({
+          ...prev,
+          orderNumber: orderData.order_number ? 
+            `${orderData.order_number} (ID: ${orderData.id})` : 
+            orderData.id ? `#${orderData.id}` : prev.orderNumber,
+          primaryIcd10: diagnosticCodes.primaryIcd10,
+          primaryDescription: diagnosticCodes.primaryDescription,
+          secondaryIcd10: diagnosticCodes.secondaryIcd10,
+          secondaryDescription: diagnosticCodes.secondaryDescription,
+          cptCode: diagnosticCodes.cptCode,
+          cptDescription: diagnosticCodes.cptDescription
+        }));
+      }
       // Update referring physician with real data
       // The referring physician is the one who created/signed the order
       setReferringPhysician({
@@ -287,7 +369,7 @@ const AdminOrderFinalization: React.FC<AdminOrderFinalizationProps> = ({ navigat
   // Update order radiologyGroup when selection changes
   useEffect(() => {
     if (order && radiologyGroup) {
-      setOrder(prevOrder => ({
+      setOrder((prevOrder: any) => ({
         ...prevOrder,
         radiologyGroup: radiologyGroup
       }));
