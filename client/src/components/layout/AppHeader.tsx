@@ -268,7 +268,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
             aria-hidden="true"
           />
           
-          <div className="relative flex flex-col w-48 max-w-xs bg-white shadow-lg overflow-auto">
+          <div className="relative flex flex-col w-48 sm:w-60 max-w-xs sm:max-w-sm bg-white shadow-lg overflow-auto">
             <div className="px-4 py-4 border-b border-gray-100 flex items-center space-x-3">
               <div className="rounded-full bg-blue-800 text-white h-10 w-10 flex items-center justify-center">
                 {(() => {
@@ -318,6 +318,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
               </div>
               <div>
                 <p className="font-medium text-sm">{getUserDisplayName()}</p>
+                <p className="text-xs text-gray-500 hidden sm:block">{getUserEmail()}</p>
               </div>
             </div>
             
@@ -328,7 +329,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
             </div>
             
             <div className="p-2 mt-auto border-t border-gray-100">
-              <div className="px-3 py-1 mb-2">
+              <div className="px-3 py-1 mb-2 sm:hidden">
                 <p className="text-xs text-gray-500 truncate">{getUserEmail()}</p>
               </div>
               <button
