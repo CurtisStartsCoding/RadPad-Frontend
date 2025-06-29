@@ -96,3 +96,4 @@ scratch/
 !client/src/pages/TrialValidation.tsx
 !client/src/components/order/DictationForm.tsx
 .claude/settings.local.json
+attached_assets/radorderpad-schema-2025-06-29T14-19-29.md

@@ -12,7 +12,7 @@ import { apiRequest } from '@/lib/queryClient';
 interface OrderDetails {
   orderNumber: string;
   location: string;
-  scheduling: string;
+  schedulingTimeframe: string;
   priority: string;
   primaryIcd10: string;
   primaryDescription: string;
@@ -20,7 +20,7 @@ interface OrderDetails {
   secondaryDescription: string;
   cptCode: string;
   cptDescription: string;
-  instructions: string;
+  specialInstructions: string;
 }
 
 interface OrderDetailsTabProps {
@@ -67,10 +67,10 @@ export default function OrderDetailsTab({
 
   // Auto-set scheduling timeframe for STAT orders
   useEffect(() => {
-    if (orderDetails.priority === 'stat' && orderDetails.scheduling !== 'Within 48 hours') {
-      onOrderDetailsChange('scheduling', 'Within 48 hours');
+    if (orderDetails.priority === 'stat' && orderDetails.schedulingTimeframe !== 'Within 48 hours') {
+      onOrderDetailsChange('schedulingTimeframe', 'Within 48 hours');
     }
-  }, [orderDetails.priority, orderDetails.scheduling, onOrderDetailsChange]);
+  }, [orderDetails.priority, orderDetails.schedulingTimeframe, onOrderDetailsChange]);
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -79,11 +79,14 @@ export default function OrderDetailsTab({
       const payload = {
         orderDetails: {
           priority: orderDetails.priority,
-          scheduling: orderDetails.scheduling,
-          instructions: orderDetails.instructions,
+          schedulingTimeframe: orderDetails.schedulingTimeframe,
+          specialInstructions: orderDetails.specialInstructions,
           targetFacilityId: selectedFacilityId
         },
-        supplementalText: supplementalText
+        supplementalText: supplementalText,
+        // Include radiology organization info
+        radiologyOrganizationId: selectedRadiologyOrgId,
+        radiologyOrganizationName: radiologyGroup
       };
       
       console.log('Saving order details:', payload);
@@ -213,7 +216,6 @@ export default function OrderDetailsTab({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="routine">Routine</SelectItem>
-                <SelectItem value="urgent">Urgent</SelectItem>
                 <SelectItem value="stat">STAT</SelectItem>
               </SelectContent>
             </Select>
@@ -221,8 +223,8 @@ export default function OrderDetailsTab({
           <div>
             <Label htmlFor="scheduling">Scheduling Timeframe</Label>
             <Select 
-              value={orderDetails.scheduling} 
-              onValueChange={(value) => onOrderDetailsChange('scheduling', value)}
+              value={orderDetails.schedulingTimeframe} 
+              onValueChange={(value) => onOrderDetailsChange('schedulingTimeframe', value)}
             >
               <SelectTrigger id="scheduling">
                 <SelectValue placeholder="Select timeframe" />
@@ -292,8 +294,8 @@ export default function OrderDetailsTab({
           id="instructions" 
           name="instructions"
           className="min-h-[100px]"
-          value={orderDetails.instructions}
-          onChange={(e) => onOrderDetailsChange('instructions', e.target.value)}
+          value={orderDetails.specialInstructions}
+          onChange={(e) => onOrderDetailsChange('specialInstructions', e.target.value)}
         />
       </div>
       

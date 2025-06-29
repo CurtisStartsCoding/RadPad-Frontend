@@ -201,14 +201,23 @@ const AdminOrderFinalization: React.FC<AdminOrderFinalizationProps> = ({ navigat
         });
       }
       // Update order details if available
-      if (orderData.priority || orderData.special_instructions) {
+      if (orderData.priority || orderData.special_instructions || orderData.scheduling_timeframe) {
         setOrderDetails(prev => ({
           ...prev,
           priority: orderData.priority || prev.priority,
-          instructions: orderData.special_instructions || prev.instructions,
-          // TODO: Map target_facility_id back to location name
-          // scheduling_timeframe is not stored in DB
+          specialInstructions: orderData.special_instructions || prev.specialInstructions,
+          schedulingTimeframe: orderData.scheduling_timeframe || prev.schedulingTimeframe
         }));
+      }
+
+      // Update radiology organization and facility if available
+      if (orderData.radiology_organization_id && orderData.radiology_organization_name) {
+        setSelectedRadiologyOrgId(orderData.radiology_organization_id);
+        setRadiologyGroup(orderData.radiology_organization_name);
+      }
+      
+      if (orderData.target_facility_id) {
+        setSelectedFacilityId(orderData.target_facility_id);
       }
       
       // Extract and populate diagnostic codes from order data
@@ -350,7 +359,7 @@ const AdminOrderFinalization: React.FC<AdminOrderFinalizationProps> = ({ navigat
   const [orderDetails, setOrderDetails] = useState({
     orderNumber: '',
     location: '',
-    scheduling: 'Within 14 days',
+    schedulingTimeframe: 'Within 14 days',
     priority: 'routine',
     primaryIcd10: '',
     primaryDescription: '',
@@ -358,7 +367,7 @@ const AdminOrderFinalization: React.FC<AdminOrderFinalizationProps> = ({ navigat
     secondaryDescription: '',
     cptCode: '',
     cptDescription: '',
-    instructions: ''
+    specialInstructions: ''
   });
   
   // Track selected radiology organization
@@ -711,7 +720,7 @@ const AdminOrderFinalization: React.FC<AdminOrderFinalizationProps> = ({ navigat
         userFromCache={userFromCache}
         userFromStorage={userFromStorage}
         sessionData={sessionData}
-        enableDebugLogging={process.env.NODE_ENV === 'development'}
+        enableDebugLogging={false}
       />
       
       {orderSent ? (
